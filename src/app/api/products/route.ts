@@ -1,48 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/products - Get all products
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-
-    const skip = (page - 1) * limit;
-
-    const where = search
-      ? {
-          OR: [
-            { name: { contains: search, mode: 'insensitive' } },
-            { description: { contains: search, mode: 'insensitive' } },
-            { sku: { contains: search, mode: 'insensitive' } },
-          ],
-        }
-      : {};
-
-    const [products, total] = await Promise.all([
-      db.product.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          inventory: true,
-        },
-      }),
-      db.product.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      products,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
+    const products = await db.product.findMany({
+      orderBy: {
+        createdAt: 'desc'
+      }
     });
+
+    return NextResponse.json(products);
   } catch (error) {
     console.error('Error fetching products:', error);
     return NextResponse.json(
@@ -52,23 +19,14 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/products - Create a new product
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price, sku } = body;
+    const { name, description, price, pricingType, category, sku } = body;
 
-    // Validate required fields
-    if (!name || price === undefined) {
+    if (!name || !price || !pricingType || !category) {
       return NextResponse.json(
-        { error: 'Product name and price are required' },
-        { status: 400 }
-      );
-    }
-
-    if (typeof price !== 'number' || price < 0) {
-      return NextResponse.json(
-        { error: 'Price must be a positive number' },
+        { error: 'Missing required fields' },
         { status: 400 }
       );
     }
@@ -77,12 +35,13 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         description,
-        price,
-        sku,
-      },
-      include: {
-        inventory: true,
-      },
+        price: parseFloat(price),
+        pricingType,
+        category,
+        sku: sku || `${category.toUpperCase()}-${Date.now()}`,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      }
     });
 
     return NextResponse.json(product, { status: 201 });

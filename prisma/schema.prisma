@@ -1,43 +1,91 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-}
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  name      String
-  password  String
-  role      String   @default("user") // "admin", "user"
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  quotes         Quote[]
-  calendarEvents CalendarEvent[]
-  createdAtBy    Quote[] @relation("CreatedBy")
+generator client {
+  provider = "prisma-client-js"
 }
 
-model Company {
+model User {
   id          String   @id @default(cuid())
-  name        String
-  email       String?
-  phone       String?
-  address     String?
-  city        String?
-  state       String?
-  postalCode  String?
-  country     String?
+  email       String   @unique
+  password    String?  // Added password field
+  name        String?
+  role        String   @default("User")
+  status      String   @default("Active")
+  color       String?  // For calendar event identification
+  lastLogin   DateTime?
+  joined      DateTime @default(now())
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  // Relationships
+  assignedTasks Task[] @relation("assignedTasks")
+  createdTasks  Task[] @relation("createdTasks")
+  businesses    Business[]
+  quotes        Quote[]
+  
+  @@map("users")
+}
 
-  quotes Quote[]
+model Role {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  color       String?
+  permissions Json     // Store permissions as JSON
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@map("roles")
+}
+
+model Business {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  category        String?
+  location        String?
+  phone           String?
+  email           String?
+  website         String?
+  status          String   @default("Active")
+  supportContract Boolean  @default(false)
+  supportExpiry   DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relationships
+  userId          String?
+  user            User?    @relation(fields: [userId], references: [id])
+  contacts        Contact[]
+  tasks           Task[]
+  notes           Note[]
+  quotes          Quote[]
+  products        BusinessProduct[]
+  
+  @@map("businesses")
+}
+
+model Contact {
+  id         String   @id @default(cuid())
+  name       String
+  email      String?
+  phone      String?
+  position   String?
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("contacts")
 }
 
 model Product {
@@ -45,63 +93,133 @@ model Product {
   name        String
   description String?
   price       Float
+  pricingType String   @default("one-off") // "one-off" or "monthly"
+  category    String?
   sku         String?  @unique
+  stock       Int      @default(0)
+  lowStockThreshold Int @default(10)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  inventory   Inventory[]
-  quoteItems  QuoteItem[]
+  
+  // Relationships
+  businessProducts BusinessProduct[]
+  quoteItems       QuoteItem[]
+  
+  @@map("products")
 }
 
-model Inventory {
+model BusinessProduct {
   id        String   @id @default(cuid())
+  businessId String
+  business  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   productId String
-  quantity  Int      @default(0)
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  
+  @@unique([businessId, productId])
+  @@map("business_products")
+}
 
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+model Task {
+  id          String    @id @default(cuid())
+  title       String
+  description String?
+  startDate   DateTime?
+  endDate     DateTime?
+  allDay      Boolean   @default(false)
+  recurring   Boolean   @default(false)
+  recurringPattern String? // "daily", "weekly", "monthly", "yearly"
+  recurrenceEndDate DateTime? // When the recurrence pattern ends
+  parentTaskId String?  // For recurring task instances
+  parentTask  Task?     @relation("RecurringTasks", fields: [parentTaskId], references: [id])
+  instances   Task[]    @relation("RecurringTasks")
+  businessId  String?
+  business    Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  assigneeId  String?
+  assignee    User?     @relation("assignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
+  createdById String?
+  createdBy   User?     @relation("createdTasks", fields: [createdById], references: [id], onDelete: SetNull)
+  status      String    @default("pending") // "pending", "in-progress", "completed"
+  priority    String    @default("medium") // "low", "medium", "high"
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Add indexes for better performance
+  @@index([startDate])
+  @@index([status])
+  @@index([assigneeId])
+  @@index([businessId])
+  @@index([parentTaskId])
+  @@index([recurring])
+  @@index([recurrenceEndDate])
+  
+  @@map("tasks")
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  title      String?
+  content    String
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  
+  @@map("notes")
 }
 
 model Quote {
   id          String   @id @default(cuid())
   title       String
   description String?
-  companyId   String
-  userId      String
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
   status      String   @default("draft") // "draft", "sent", "accepted", "rejected"
+  totalAmount Float
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-
-  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  quoteItems QuoteItem[]
-  createdBy User        @relation("CreatedBy", fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Relationships
+  items       QuoteItem[]
+  
+  @@map("quotes")
 }
 
 model QuoteItem {
-  id        String   @id @default(cuid())
-  quoteId   String
+  id       String @id @default(cuid())
+  quoteId  String
+  quote    Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   productId String
-  quantity  Int
-  price     Float    @default(0) // Can be different from product price for custom quotes
+  product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quantity Int    @default(1)
+  price    Float
   createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("quote_items")
 }
 
-model CalendarEvent {
+model Document {
   id          String   @id @default(cuid())
-  title       String
-  description String?
-  startTime   DateTime
-  endTime     DateTime
-  userId      String
-  status      String   @default("scheduled") // "scheduled", "completed", "cancelled"
+  name        String
+  type        String?
+  size        String?
+  path        String
+  category    String?
+  uploadedBy  String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  
+  @@map("documents")
+}
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+model Post {
+  id        String   @id @default(cuid())
+  title     String
+  content   String?
+  published Boolean  @default(false)
+  authorId  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

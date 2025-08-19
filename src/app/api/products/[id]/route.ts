@@ -1,24 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-// GET /api/products/[id] - Get a single product
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const product = await db.product.findUnique({
-      where: { id: params.id },
-      include: {
-        inventory: true,
-        quoteItems: {
-          include: {
-            quote: {
-              select: { id: true, title: true, status: true },
-            },
-          },
-        },
-      },
+      where: { id: params.id }
     });
 
     if (!product) {
@@ -38,17 +27,16 @@ export async function GET(
   }
 }
 
-// PUT /api/products/[id] - Update a product
 export async function PUT(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const body = await request.json();
-    const { name, description, price, sku } = body;
+    const { name, description, price, pricingType, category, sku } = body;
 
     const existingProduct = await db.product.findUnique({
-      where: { id: params.id },
+      where: { id: params.id }
     });
 
     if (!existingProduct) {
@@ -58,24 +46,17 @@ export async function PUT(
       );
     }
 
-    if (price !== undefined && (typeof price !== 'number' || price < 0)) {
-      return NextResponse.json(
-        { error: 'Price must be a positive number' },
-        { status: 400 }
-      );
-    }
-
     const product = await db.product.update({
       where: { id: params.id },
       data: {
-        name,
-        description,
-        price,
-        sku,
-      },
-      include: {
-        inventory: true,
-      },
+        name: name || existingProduct.name,
+        description: description || existingProduct.description,
+        price: price ? parseFloat(price) : existingProduct.price,
+        pricingType: pricingType || existingProduct.pricingType,
+        category: category || existingProduct.category,
+        sku: sku || existingProduct.sku,
+        updatedAt: new Date()
+      }
     });
 
     return NextResponse.json(product);
@@ -88,14 +69,13 @@ export async function PUT(
   }
 }
 
-// DELETE /api/products/[id] - Delete a product
 export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
     const existingProduct = await db.product.findUnique({
-      where: { id: params.id },
+      where: { id: params.id }
     });
 
     if (!existingProduct) {
@@ -106,7 +86,7 @@ export async function DELETE(
     }
 
     await db.product.delete({
-      where: { id: params.id },
+      where: { id: params.id }
     });
 
     return NextResponse.json({ message: 'Product deleted successfully' });

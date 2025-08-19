@@ -1,119 +1,60 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
-import bcrypt from 'bcryptjs';
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
+import bcrypt from 'bcryptjs'
 
-// GET /api/users - Get all users
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-    const role = searchParams.get('role');
-
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
+    const users = await db.user.findMany({
+      orderBy: { createdAt: 'desc' }
+    })
     
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { email: { contains: search, mode: 'insensitive' } },
-      ];
-    }
-
-    if (role) {
-      where.role = role;
-    }
-
-    const [users, total] = await Promise.all([
-      db.user.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          role: true,
-          createdAt: true,
-          updatedAt: true,
-        },
-      }),
-      db.user.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      users,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-      },
-    });
+    return NextResponse.json(users)
   } catch (error) {
-    console.error('Error fetching users:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch users' },
-      { status: 500 }
-    );
+    console.error('Error fetching users:', error)
+    return NextResponse.json({ error: 'Failed to fetch users' }, { status: 500 })
   }
 }
 
-// POST /api/users - Create a new user
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { name, email, password, role } = body;
-
+    const body = await request.json()
+    const { name, email, password, role, status, color, joined } = body
+    
     // Validate required fields
-    if (!name || !email || !password) {
-      return NextResponse.json(
-        { error: 'Name, email, and password are required' },
-        { status: 400 }
-      );
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 })
     }
-
+    
     // Check if user already exists
     const existingUser = await db.user.findUnique({
-      where: { email },
-    });
-
+      where: { email }
+    })
+    
     if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'User with this email already exists' }, { status: 400 })
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 12);
-
+    
+    // Hash password if provided
+    let hashedPassword = null
+    if (password) {
+      hashedPassword = await bcrypt.hash(password, 12)
+    }
+    
     const user = await db.user.create({
       data: {
         name,
         email,
-        password: hashedPassword,
-        role: role || 'user',
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-    });
-
-    return NextResponse.json(user, { status: 201 });
+        password: hashedPassword || null,
+        role: role || 'User',
+        status: status || 'Active',
+        color: color || '#3B82F6',
+        joined: joined ? new Date(joined) : new Date()
+      }
+    })
+    
+    return NextResponse.json(user)
   } catch (error) {
-    console.error('Error creating user:', error);
-    return NextResponse.json(
-      { error: 'Failed to create user' },
-      { status: 500 }
-    );
+    console.error('Error creating user:', error)
+    return NextResponse.json({ error: 'Failed to create user' }, { status: 500 })
   }
 }

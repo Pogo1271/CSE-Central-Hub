@@ -1,193 +1,98 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { db } from '@/lib/db';
+import { NextRequest, NextResponse } from 'next/server'
+import { db } from '@/lib/db'
 
-// GET /api/quotes - Get all quotes
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
-    const search = searchParams.get('search') || '';
-    const status = searchParams.get('status');
-    const companyId = searchParams.get('companyId');
-    const userId = searchParams.get('userId');
-
-    const skip = (page - 1) * limit;
-
-    const where: any = {};
+    const { searchParams } = new URL(request.url)
+    const status = searchParams.get('status')
+    const businessId = searchParams.get('businessId')
     
-    if (search) {
-      where.OR = [
-        { title: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ];
+    const where: any = {}
+    
+    if (status && status !== 'All Statuses') {
+      where.status = status
     }
-
-    if (status) {
-      where.status = status;
+    
+    if (businessId) {
+      where.businessId = businessId
     }
-
-    if (companyId) {
-      where.companyId = companyId;
-    }
-
-    if (userId) {
-      where.userId = userId;
-    }
-
-    const [quotes, total] = await Promise.all([
-      db.quote.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          company: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
-          },
-          quoteItems: {
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  price: true,
-                },
-              },
-            },
-          },
+    
+    const quotes = await db.quote.findMany({
+      where,
+      include: {
+        business: true,
+        items: {
+          include: {
+            product: true
+          }
         },
-      }),
-      db.quote.count({ where }),
-    ]);
-
-    return NextResponse.json({
-      quotes,
-      pagination: {
-        total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
+        user: true
       },
-    });
+      orderBy: { createdAt: 'desc' }
+    })
+    
+    return NextResponse.json(quotes)
   } catch (error) {
-    console.error('Error fetching quotes:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch quotes' },
-      { status: 500 }
-    );
+    console.error('Error fetching quotes:', error)
+    return NextResponse.json({ error: 'Failed to fetch quotes' }, { status: 500 })
   }
 }
 
-// POST /api/quotes - Create a new quote
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { title, description, companyId, userId, quoteItems } = body;
-
+    const body = await request.json()
+    const { 
+      title, 
+      description, 
+      businessId, 
+      userId, 
+      status,
+      items 
+    } = body
+    
     // Validate required fields
-    if (!title || !companyId || !userId) {
-      return NextResponse.json(
-        { error: 'Title, company ID, and user ID are required' },
-        { status: 400 }
-      );
+    if (!title || !businessId) {
+      return NextResponse.json({ error: 'Title and business are required' }, { status: 400 })
     }
-
-    // Check if company and user exist
-    const [company, user] = await Promise.all([
-      db.company.findUnique({ where: { id: companyId } }),
-      db.user.findUnique({ where: { id: userId } }),
-    ]);
-
-    if (!company) {
-      return NextResponse.json(
-        { error: 'Company not found' },
-        { status: 404 }
-      );
+    
+    // Calculate total amount
+    let totalAmount = 0
+    if (items && items.length > 0) {
+      totalAmount = items.reduce((sum: number, item: any) => {
+        return sum + (item.price * item.quantity)
+      }, 0)
     }
-
-    if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
-    }
-
-    // Create quote with quote items in a transaction
-    const quote = await db.$transaction(async (prisma) => {
-      const createdQuote = await prisma.quote.create({
-        data: {
-          title,
-          description,
-          companyId,
-          userId,
-          status: 'draft',
-        },
-      });
-
-      if (quoteItems && quoteItems.length > 0) {
-        await prisma.quoteItem.createMany({
-          data: quoteItems.map((item: any) => ({
-            quoteId: createdQuote.id,
+    
+    const quote = await db.quote.create({
+      data: {
+        title,
+        description,
+        businessId,
+        userId,
+        status: status || 'draft',
+        totalAmount,
+        items: items ? {
+          create: items.map((item: any) => ({
             productId: item.productId,
             quantity: item.quantity,
-            price: item.price || 0,
-          })),
-        });
-      }
-
-      return createdQuote;
-    });
-
-    // Fetch the complete quote with relations
-    const completeQuote = await db.quote.findUnique({
-      where: { id: quote.id },
-      include: {
-        company: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-          },
-        },
-        quoteItems: {
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-                price: true,
-              },
-            },
-          },
-        },
+            price: item.price
+          }))
+        } : undefined
       },
-    });
-
-    return NextResponse.json(completeQuote, { status: 201 });
+      include: {
+        business: true,
+        items: {
+          include: {
+            product: true
+          }
+        },
+        user: true
+      }
+    })
+    
+    return NextResponse.json(quote)
   } catch (error) {
-    console.error('Error creating quote:', error);
-    return NextResponse.json(
-      { error: 'Failed to create quote' },
-      { status: 500 }
-    );
+    console.error('Error creating quote:', error)
+    return NextResponse.json({ error: 'Failed to create quote' }, { status: 500 })
   }
 }
