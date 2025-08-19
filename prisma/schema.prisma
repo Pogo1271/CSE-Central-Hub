@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  role      String   @default("user") // "admin", "user"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quotes         Quote[]
+  calendarEvents CalendarEvent[]
+  createdAtBy    Quote[] @relation("CreatedBy")
+}
+
+model Company {
+  id          String   @id @default(cuid())
+  name        String
+  email       String?
+  phone       String?
+  address     String?
+  city        String?
+  state       String?
+  postalCode  String?
+  country     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  quotes Quote[]
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  sku         String?  @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  inventory   Inventory[]
+  quoteItems  QuoteItem[]
+}
+
+model Inventory {
+  id        String   @id @default(cuid())
+  productId String
+  quantity  Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Quote {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  companyId   String
+  userId      String
+  status      String   @default("draft") // "draft", "sent", "accepted", "rejected"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  company   Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  quoteItems QuoteItem[]
+  createdBy User        @relation("CreatedBy", fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model QuoteItem {
+  id        String   @id @default(cuid())
+  quoteId   String
+  productId String
+  quantity  Int
+  price     Float    @default(0) // Can be different from product price for custom quotes
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  quote   Quote   @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model CalendarEvent {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  startTime   DateTime
+  endTime     DateTime
+  userId      String
+  status      String   @default("scheduled") // "scheduled", "completed", "cancelled"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
