@@ -232,7 +232,8 @@ export default function BusinessHub() {
     phone: '',
     email: '',
     website: '',
-    status: 'Active'
+    status: 'Active',
+    supportContract: false
   })
   
   const [newUser, setNewUser] = useState({
@@ -477,7 +478,8 @@ export default function BusinessHub() {
           phone: '',
           email: '',
           website: '',
-          status: 'Active'
+          status: 'Active',
+          supportContract: false
         })
         setIsAddBusinessOpen(false)
         updateDashboardStats()
@@ -1229,12 +1231,21 @@ export default function BusinessHub() {
                                 <Badge variant={business.status === 'Active' ? 'default' : 'secondary'}>
                                   {business.status}
                                 </Badge>
-                                {business.supportContract && (
-                                  <Badge variant="outline" className="border-green-500 text-green-700">
+                                <Badge 
+                                  variant="outline" 
+                                  className={
+                                    business.supportContract 
+                                      ? "border-green-500 text-green-700 bg-green-50" 
+                                      : "border-red-500 text-red-700 bg-red-50"
+                                  }
+                                >
+                                  {business.supportContract ? (
                                     <CheckCircle className="h-3 w-3 mr-1" />
-                                    Support
-                                  </Badge>
-                                )}
+                                  ) : (
+                                    <X className="h-3 w-3 mr-1" />
+                                  )}
+                                  Support
+                                </Badge>
                               </div>
                               <Button variant="outline" size="sm" onClick={() => handleViewBusiness(business)}>
                                 View Details
@@ -1464,6 +1475,14 @@ export default function BusinessHub() {
                 onChange={(e) => setNewBusiness({...newBusiness, website: e.target.value})}
                 placeholder="Website URL"
               />
+            </div>
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="support-contract"
+                checked={newBusiness.supportContract}
+                onCheckedChange={(checked) => setNewBusiness({...newBusiness, supportContract: checked})}
+              />
+              <Label htmlFor="support-contract">Support Contract Active</Label>
             </div>
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsAddBusinessOpen(false)}>
@@ -1706,6 +1725,38 @@ export default function BusinessHub() {
                     <p className="text-gray-900 mt-1">{selectedBusiness.description}</p>
                   </div>
                 )}
+              </div>
+
+              {/* Support Contract Banner */}
+              <div className={`rounded-lg p-4 flex items-center space-x-3 ${
+                selectedBusiness.supportContract 
+                  ? 'bg-green-50 border border-green-200' 
+                  : 'bg-red-50 border border-red-200'
+              }`}>
+                <div className={`flex-shrink-0 ${
+                  selectedBusiness.supportContract ? 'text-green-600' : 'text-red-600'
+                }`}>
+                  {selectedBusiness.supportContract ? (
+                    <CheckCircle className="h-6 w-6" />
+                  ) : (
+                    <X className="h-6 w-6" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <h4 className={`text-sm font-medium ${
+                    selectedBusiness.supportContract ? 'text-green-800' : 'text-red-800'
+                  }`}>
+                    Support Contract {selectedBusiness.supportContract ? 'Active' : 'Inactive'}
+                  </h4>
+                  <p className={`text-xs ${
+                    selectedBusiness.supportContract ? 'text-green-700' : 'text-red-700'
+                  }`}>
+                    {selectedBusiness.supportContract 
+                      ? 'This business has an active support contract'
+                      : 'This business does not have a support contract'
+                    }
+                  </p>
+                </div>
               </div>
 
               {/* Related Data */}
@@ -2036,6 +2087,15 @@ export default function BusinessHub() {
                   placeholder="Enter business description"
                   rows={3}
                 />
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="edit-support-contract"
+                  checked={selectedBusiness.supportContract || false}
+                  onCheckedChange={(checked) => setSelectedBusiness({...selectedBusiness, supportContract: checked})}
+                />
+                <Label htmlFor="edit-support-contract">Support Contract Active</Label>
               </div>
               
               <div>
