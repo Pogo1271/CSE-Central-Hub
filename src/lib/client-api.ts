@@ -575,6 +575,21 @@ export async function deleteMessage(id: string) {
   }
 }
 
+// Note API functions
+export async function getNotes() {
+  try {
+    const response = await fetch('/api/notes')
+    if (!response.ok) {
+      throw new Error('Failed to fetch notes')
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching notes:', error)
+    return { success: false, error: 'Failed to fetch notes' }
+  }
+}
+
 // Business-related data API functions
 export async function getBusinessContacts(businessId: string) {
   try {
