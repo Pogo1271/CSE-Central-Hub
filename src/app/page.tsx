@@ -2140,7 +2140,7 @@ export default function BusinessHub() {
 
       {/* Assign Product Modal */}
       <Dialog open={isAssignProductOpen} onOpenChange={setIsAssignProductOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Assign Products to Business</DialogTitle>
             <DialogDescription>

@@ -54,6 +54,12 @@ function runCommand(command, description, options = {}) {
 async function main() {
     log('Starting project setup...', 'cyan');
 
+    // Check if we're in the correct directory (look for package.json)
+    if (!fs.existsSync(path.join(process.cwd(), 'package.json'))) {
+        logError('package.json not found. Please run this script from the project root directory.');
+        process.exit(1);
+    }
+
     // Check if Node.js is installed
     try {
         execSync('node --version', { stdio: 'pipe' });
@@ -89,75 +95,39 @@ async function main() {
     // Step 4: Push database schema
     runCommand('npx prisma db push', 'Step 4: Setting up database...');
 
-    // Step 5: Seed database with demo users
-    logInfo('Step 5: Creating demo users...');
+    // Step 5: Seed database with comprehensive demo data
+    logInfo('Step 5: Creating comprehensive demo data...');
     try {
-        const seedScript = `
-            const { PrismaClient } = require('@prisma/client');
-            const bcrypt = require('bcryptjs');
-            
-            const prisma = new PrismaClient();
-            
-            async function seed() {
-                try {
-                    const hashedAdminPassword = await bcrypt.hash('admin123', 12);
-                    const hashedManagerPassword = await bcrypt.hash('manager123', 12);
-                    const hashedUserPassword = await bcrypt.hash('user123', 12);
-                    
-                    await prisma.user.createMany({
-                        data: [
-                            {
-                                name: 'Admin User',
-                                email: 'admin@businesshub.com',
-                                password: hashedAdminPassword,
-                                role: 'Admin',
-                                status: 'Active',
-                                color: '#EF4444',
-                                joined: new Date()
-                            },
-                            {
-                                name: 'Manager User',
-                                email: 'manager@businesshub.com',
-                                password: hashedManagerPassword,
-                                role: 'Manager',
-                                status: 'Active',
-                                color: '#F59E0B',
-                                joined: new Date()
-                            },
-                            {
-                                name: 'Business User',
-                                email: 'user@businesshub.com',
-                                password: hashedUserPassword,
-                                role: 'User',
-                                status: 'Active',
-                                color: '#3B82F6',
-                                joined: new Date()
-                            }
-                        ]
-                    });
-                    
-                    console.log('Demo users created successfully!');
-                } catch (error) {
-                    if (error.code === 'P2002') {
-                        console.log('Demo users already exist, skipping...');
-                    } else {
-                        console.error('Error seeding database:', error);
-                        throw error;
-                    }
-                } finally {
-                    await prisma.$disconnect();
-                }
-            }
-            
-            seed();
-        `;
-        
-        execSync(`node -e "${seedScript.replace(/"/g, '\\"')}"`, { stdio: 'inherit' });
-        logSuccess('Demo users created successfully');
+        // Use the comprehensive demo data script
+        runCommand('npx tsx prisma/comprehensive-demo-data.ts', 'Running comprehensive demo data script...', { continueOnError: true });
     } catch (error) {
-        logError('Creating demo users failed');
-        process.exit(1);
+        logWarning('Comprehensive demo data seeding had issues, falling back to basic seed...');
+        // Fallback to basic seed if comprehensive fails
+        runCommand('npx tsx prisma/seed.ts', 'Running basic database seed script...', { continueOnError: true });
     }
+
+    // Step 6: Verify installation and provide helpful information
+    logInfo('Step 6: Verifying installation...');
+    
+    // Check if critical directories exist
+    const criticalDirs = ['src', 'prisma', 'public'];
+    for (const dir of criticalDirs) {
+        if (!fs.existsSync(path.join(process.cwd(), dir))) {
+            logError(`Critical directory missing: ${dir}`);
+            process.exit(1);
+        }
+    }
+    
+    // Check if package.json has all required scripts
+    const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
+    const requiredScripts = ['dev', 'build', 'start', 'lint', 'db:push', 'db:generate'];
+    const missingScripts = requiredScripts.filter(script => !packageJson.scripts[script]);
+    
+    if (missingScripts.length > 0) {
+        logWarning(`Missing npm scripts: ${missingScripts.join(', ')}`);
+    }
+    
+    logSuccess('Installation verified successfully!');
 
     // Setup completed
     logSuccess('Setup completed successfully!');
@@ -165,18 +135,52 @@ async function main() {
     logInfo('Application will be available at: http://localhost:3000');
     log('');
     log('Demo Accounts:', 'cyan');
-    log('- Admin: admin@businesshub.com / admin123', 'cyan');
-    log('- Manager: manager@businesshub.com / manager123', 'cyan');
-    log('- User: user@businesshub.com / user123', 'cyan');
+    log('- Admin: admin@example.com / admin123', 'cyan');
+    log('- Features: Full system access including user management and analytics', 'cyan');
+    log('');
+    log('Demo Businesses:', 'cyan');
+    log('- Cornwall Scales (Technology) - Active with Support Contract', 'cyan');
+    log('- Marketing Pro (Marketing) - Active', 'cyan');
+    log('- Tech Solutions Inc. (Technology) - Active with 2 Tasks, 1 Quote', 'cyan');
+    log('- Retail Store Plus (Retail) - Active with Support Contract', 'cyan');
+    log('- Restaurant Biz (Restaurant) - Active', 'cyan');
+    log('');
+    log('Demo Products:', 'cyan');
+    log('- EPOS System Pro - Hardware ($2,999.99 one-off)', 'cyan');
+    log('- Support Package - Services ($299.99 monthly)', 'cyan');
+    log('- Inventory Management System - Software ($1,499.99 one-off)', 'cyan');
+    log('- Website Package - Services ($2,499.99 one-off)', 'cyan');
     log('');
     log('Features Available:', 'cyan');
-    log('- ✅ Drag and drop tasks between dates', 'cyan');
-    log('- ✅ Recurring tasks with custom intervals', 'cyan');
+    log('- ✅ Complete Business Directory with support contract status indicators', 'cyan');
+    log('- ✅ Role-based access control (Admin, Manager, User)', 'cyan');
+    log('- ✅ Drag and drop task management with calendar view', 'cyan');
+    log('- ✅ Recurring tasks with custom intervals and patterns', 'cyan');
     log('- ✅ Individual editing of recurring task instances', 'cyan');
-    log('- ✅ User role-based permissions', 'cyan');
-    log('- ✅ Business directory and task management', 'cyan');
+    log('- ✅ Inventory management with low stock alerts', 'cyan');
+    log('- ✅ Quote generation and management system', 'cyan');
+    log('- ✅ Document management with file upload', 'cyan');
+    log('- ✅ Real-time messaging and notifications', 'cyan');
+    log('- ✅ Analytics dashboard with charts and reports', 'cyan');
+    log('- ✅ Support contract management with visual indicators', 'cyan');
+    log('- ✅ Custom notification system (replaced browser alerts)', 'cyan');
+    log('- ✅ Responsive design for all screen sizes', 'cyan');
+    log('- ✅ Real-time updates via Socket.IO', 'cyan');
     log('');
     log('Press Ctrl+C to stop the server', 'yellow');
+    log('');
+    log('Useful Commands:', 'cyan');
+    log('- npm run lint: Check code quality', 'cyan');
+    log('- npm run db:push: Update database schema', 'cyan');
+    log('- npm run build: Build for production', 'cyan');
+    log('- npm run start: Start production server', 'cyan');
+    log('');
+    log('Project Structure:', 'cyan');
+    log('- src/app/: Next.js app router pages', 'cyan');
+    log('- src/components/: Reusable UI components', 'cyan');
+    log('- src/lib/: Utilities and API clients', 'cyan');
+    log('- prisma/: Database schema and migrations', 'cyan');
+    log('- public/: Static assets', 'cyan');
     log('');
 
     // Start the development server

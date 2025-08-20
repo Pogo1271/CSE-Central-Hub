@@ -5,21 +5,45 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  // 禁用 Next.js 热重载，由 nodemon 处理重编译
-  reactStrictMode: false,
-  webpack: (config, { dev }) => {
-    if (dev) {
-      // 禁用 webpack 的热模块替换
-      config.watchOptions = {
-        ignored: ['**/*'], // 忽略所有文件变化
+  // Enable React strict mode for better development experience
+  reactStrictMode: true,
+  // Improve webpack configuration for better chunk handling
+  webpack: (config, { dev, isServer }) => {
+    // Fix for chunk loading issues
+    if (!isServer) {
+      config.optimization = {
+        ...config.optimization,
+        splitChunks: {
+          chunks: 'all',
+          cacheGroups: {
+            vendor: {
+              test: /[\\/]node_modules[\\/]/,
+              name: 'vendors',
+              chunks: 'all',
+              priority: 10,
+            },
+            common: {
+              name: 'common',
+              minChunks: 2,
+              chunks: 'all',
+              priority: 5,
+            },
+          },
+        },
       };
     }
     return config;
   },
+  // Experimental features for better stability
+  experimental: {
+    optimizeCss: false,
+  },
+  // Disable ESLint during builds for faster builds
   eslint: {
-    // 构建时忽略ESLint错误
     ignoreDuringBuilds: true,
   },
+  // Handle transpilation properly
+  transpilePackages: ['lucide-react'],
 };
 
 export default nextConfig;

@@ -121,6 +121,17 @@
   }
 }
 
+/* Additional utility classes for support contract indicators */
+@layer utilities {
+  .support-active {
+    @apply border-green-500 text-green-700 bg-green-50;
+  }
+  
+  .support-inactive {
+    @apply border-red-500 text-red-700 bg-red-50;
+  }
+}
+
 /* Drag and Drop Styles */
 .draggable {
   cursor: grab;
