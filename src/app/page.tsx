@@ -3023,10 +3023,23 @@ export default function BusinessHub() {
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-gray-900">Available Products</h4>
                   <div className="flex items-center space-x-2">
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        const allProductIds = availableProducts.map(p => p.id)
+                        setSelectedProducts(allProductIds)
+                      }}
+                    >
                       Select All
                     </Button>
-                    <Button variant="ghost" size="sm">
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => {
+                        setSelectedProducts([])
+                      }}
+                    >
                       Clear All
                     </Button>
                   </div>
