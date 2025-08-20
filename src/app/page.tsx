@@ -31,7 +31,7 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  DollarSign,
+  PoundSterling,
   ShoppingCart,
   UserPlus,
   Upload,
@@ -189,6 +189,7 @@ export default function BusinessHub() {
   const [messages, setMessages] = useState<any[]>([])
   const [businessList, setBusinessList] = useState<any[]>([])
   const [quotes, setQuotes] = useState<any[]>([])
+  const [notes, setNotes] = useState<any[]>([])
   
   // Dashboard stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -222,6 +223,15 @@ export default function BusinessHub() {
     position: ''
   })
   
+  // Note Management Modal state
+  const [isAddNoteOpen, setIsAddNoteOpen] = useState(false)
+  const [isEditNoteOpen, setIsEditNoteOpen] = useState(false)
+  const [selectedNote, setSelectedNote] = useState(null)
+  const [newNote, setNewNote] = useState({
+    title: '',
+    content: ''
+  })
+  
   // Business Directory states
   const [isViewBusinessOpen, setIsViewBusinessOpen] = useState(false)
   const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false)
@@ -231,7 +241,8 @@ export default function BusinessHub() {
     tasks: [],
     quotes: [],
     documents: [],
-    contacts: []
+    contacts: [],
+    notes: []
   })
   const [businessSearchTerm, setBusinessSearchTerm] = useState('')
   const [filteredBusinessList, setFilteredBusinessList] = useState<any[]>([])
@@ -279,6 +290,10 @@ export default function BusinessHub() {
   const [deleteContactDialog, setDeleteContactDialog] = useState({
     open: false,
     contactId: null
+  })
+  const [deleteNoteDialog, setDeleteNoteDialog] = useState({
+    open: false,
+    noteId: null
   })
 
   // Client-side welcome component
@@ -403,6 +418,14 @@ export default function BusinessHub() {
         if (messagesResponse.success) {
           setMessages(messagesResponse.data)
           console.log('Messages loaded:', messagesResponse.data.length)
+        }
+
+        // Load notes
+        const notesResponse = await api.getNotes()
+        console.log('Notes response:', notesResponse)
+        if (notesResponse.success) {
+          setNotes(notesResponse.data)
+          console.log('Notes loaded:', notesResponse.data.length)
         }
 
         // Update dashboard stats
@@ -753,6 +776,92 @@ export default function BusinessHub() {
     }
   }
 
+  // Note Management Handlers
+  const handleAddNote = async () => {
+    try {
+      const response = await api.createBusinessNote(selectedBusiness.id, newNote)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        // Reset form and close modal
+        setNewNote({
+          title: '',
+          content: ''
+        })
+        setIsAddNoteOpen(false)
+        toast.success('Note added successfully!')
+      } else {
+        toast.error('Failed to add note')
+      }
+    } catch (error) {
+      console.error('Error adding note:', error)
+      toast.error('Error adding note. Please try again.')
+    }
+  }
+
+  const handleEditNote = (note) => {
+    setSelectedNote(note)
+    setNewNote({
+      title: note.title,
+      content: note.content
+    })
+    setIsEditNoteOpen(true)
+  }
+
+  const handleUpdateNote = async () => {
+    try {
+      const response = await api.updateBusinessNote(selectedBusiness.id, selectedNote.id, newNote)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        // Reset form and close modal
+        setSelectedNote(null)
+        setNewNote({
+          title: '',
+          content: ''
+        })
+        setIsEditNoteOpen(false)
+        toast.success('Note updated successfully!')
+      } else {
+        toast.error('Failed to update note')
+      }
+    } catch (error) {
+      console.error('Error updating note:', error)
+      toast.error('Error updating note. Please try again.')
+    }
+  }
+
+  const handleDeleteNote = async (noteId) => {
+    setDeleteNoteDialog({
+      open: true,
+      noteId
+    })
+  }
+
+  const confirmDeleteNote = async () => {
+    const { noteId } = deleteNoteDialog
+    try {
+      const response = await api.deleteBusinessNote(selectedBusiness.id, noteId)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        setDeleteNoteDialog({ open: false, noteId: null })
+        toast.success('Note deleted successfully!')
+      } else {
+        toast.error('Failed to delete note')
+      }
+    } catch (error) {
+      console.error('Error deleting note:', error)
+      toast.error('Error deleting note. Please try again.')
+    }
+  }
+
   const handleAssignProducts = async () => {
     if (!selectedBusiness || selectedProducts.length === 0) return
 
@@ -851,6 +960,10 @@ export default function BusinessHub() {
       const businessContactsResponse = await api.getBusinessContacts(businessId)
       const businessContacts = businessContactsResponse.success ? businessContactsResponse.data : []
       
+      // Get business notes using the API
+      const businessNotesResponse = await api.getBusinessNotes(businessId)
+      const businessNotes = businessNotesResponse.success ? businessNotesResponse.data : []
+      
       // Filter other related data from local state
       const businessTasks = tasks.filter(t => t.businessId === businessId)
       const businessQuotes = quotes.filter(q => q.businessId === businessId)
@@ -861,7 +974,8 @@ export default function BusinessHub() {
         contacts: businessContacts,
         tasks: businessTasks,
         quotes: businessQuotes,
-        documents: businessDocuments
+        documents: businessDocuments,
+        notes: businessNotes
       }
     } catch (error) {
       console.error('Error getting business related data:', error)
@@ -870,7 +984,8 @@ export default function BusinessHub() {
         contacts: [],
         tasks: [],
         quotes: [],
-        documents: []
+        documents: [],
+        notes: []
       }
     }
   }
@@ -880,11 +995,13 @@ export default function BusinessHub() {
     const businessTasks = tasks.filter(t => t.businessId === businessId)
     const businessQuotes = quotes.filter(q => q.businessId === businessId)
     const businessDocuments = documents.filter(d => d.businessId === businessId)
+    const businessNotes = notes.filter(n => n.businessId === businessId)
     
     return {
       tasks: businessTasks,
       quotes: businessQuotes,
-      documents: businessDocuments
+      documents: businessDocuments,
+      notes: businessNotes
     }
   }
 
@@ -1212,7 +1329,7 @@ export default function BusinessHub() {
                         </div>
                         <div>
                           <p className="font-medium text-gray-900">Quote Created</p>
-                          <p className="text-sm text-gray-500">Marketing Pro - $5,000</p>
+                          <p className="text-sm text-gray-500">Marketing Pro - £5,000</p>
                         </div>
                       </div>
                       <span className="text-sm text-gray-500">1 day ago</span>
@@ -1977,7 +2094,7 @@ export default function BusinessHub() {
                                     </div>
                                     {quote.totalAmount && (
                                       <p className="text-sm font-medium text-gray-900">
-                                        ${quote.totalAmount.toLocaleString()}
+                                        £{quote.totalAmount.toLocaleString()}
                                       </p>
                                     )}
                                   </div>
@@ -2010,7 +2127,7 @@ export default function BusinessHub() {
                                       <p className="text-xs text-gray-500">{product.category}</p>
                                       <div className="flex items-center space-x-2 mt-1">
                                         <p className="text-sm font-semibold text-green-600">
-                                          ${product.price.toLocaleString()}
+                                          £{product.price.toLocaleString()}
                                         </p>
                                         <Badge variant="outline" className="text-xs">
                                           {product.pricingType || 'one-off'}
@@ -2101,6 +2218,58 @@ export default function BusinessHub() {
                           </Card>
                         )}
 
+                        {/* Notes */}
+                        {businessRelatedData.notes.length > 0 && (
+                          <Card className="bg-white border-gray-200">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
+                                <FileText className="h-4 w-4 mr-2 text-blue-600" />
+                                Notes
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {businessRelatedData.notes.slice(0, 5).map((note) => (
+                                  <div key={note.id} className="flex items-start justify-between p-3 bg-gray-50 rounded">
+                                    <div className="flex-1 min-w-0 pr-2">
+                                      <p className="text-sm font-medium text-gray-900">{note.title}</p>
+                                      <p className="text-xs text-gray-500 mt-1">{note.content}</p>
+                                      {note.createdAt && (
+                                        <p className="text-xs text-gray-400 mt-1">
+                                          {new Date(note.createdAt).toLocaleDateString()}
+                                        </p>
+                                      )}
+                                    </div>
+                                    <div className="flex space-x-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditNote(note)}
+                                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteNote(note.id)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {businessRelatedData.notes.length > 5 && (
+                                  <p className="text-xs text-gray-500 text-center">
+                                    +{businessRelatedData.notes.length - 5} more notes
+                                  </p>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
                         {/* Documents */}
                         {businessRelatedData.documents.length > 0 && (
                           <Card className="bg-white border-gray-200">
@@ -2138,7 +2307,8 @@ export default function BusinessHub() {
 
                       {/* Empty State */}
                       {businessRelatedData.products.length === 0 && businessRelatedData.tasks.length === 0 && 
-                       businessRelatedData.quotes.length === 0 && businessRelatedData.documents.length === 0 && businessRelatedData.contacts.length === 0 && (
+                       businessRelatedData.quotes.length === 0 && businessRelatedData.documents.length === 0 && 
+                       businessRelatedData.contacts.length === 0 && businessRelatedData.notes.length === 0 && (
                         <Card className="bg-gray-50 border-gray-200">
                           <CardContent className="p-8 text-center">
                             <p className="text-gray-500">No related information found for this business.</p>
@@ -2162,6 +2332,16 @@ export default function BusinessHub() {
                 >
                   <UserPlus className="h-4 w-4 mr-2" />
                   Add Contact
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSelectedBusiness(selectedBusiness)
+                    setIsAddNoteOpen(true)
+                  }}
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  Add Note
                 </Button>
                 <Button 
                   variant="outline" 
@@ -2377,7 +2557,7 @@ export default function BusinessHub() {
                             <p className="text-xs text-gray-500 mt-1">{product.category}</p>
                             <div className="flex items-center space-x-2 mt-2">
                               <p className="text-sm font-semibold text-green-600">
-                                ${product.price.toLocaleString()}
+                                £{product.price.toLocaleString()}
                               </p>
                               <Badge variant="outline" className="text-xs">
                                 {product.pricingType || 'one-off'}
@@ -2549,6 +2729,100 @@ export default function BusinessHub() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Note Modal */}
+      <Dialog open={isAddNoteOpen} onOpenChange={setIsAddNoteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Note</DialogTitle>
+            <DialogDescription>
+              Add a new note for {selectedBusiness?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="note-title">Title *</Label>
+              <Input
+                id="note-title"
+                value={newNote.title}
+                onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+                placeholder="Enter note title"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="note-content">Content *</Label>
+              <Textarea
+                id="note-content"
+                value={newNote.content}
+                onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                placeholder="Enter note content"
+                rows={4}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsAddNoteOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddNote}
+                disabled={!newNote.title.trim() || !newNote.content.trim()}
+              >
+                Add Note
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Note Modal */}
+      <Dialog open={isEditNoteOpen} onOpenChange={setIsEditNoteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Note</DialogTitle>
+            <DialogDescription>
+              Update note for {selectedBusiness?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-note-title">Title *</Label>
+              <Input
+                id="edit-note-title"
+                value={newNote.title}
+                onChange={(e) => setNewNote({ ...newNote, title: e.target.value })}
+                placeholder="Enter note title"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-note-content">Content *</Label>
+              <Textarea
+                id="edit-note-content"
+                value={newNote.content}
+                onChange={(e) => setNewNote({ ...newNote, content: e.target.value })}
+                placeholder="Enter note content"
+                rows={4}
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsEditNoteOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateNote}
+                disabled={!newNote.title.trim() || !newNote.content.trim()}
+              >
+                Update Note
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Confirmation Dialogs */}
       <ConfirmDialog
         open={deleteBusinessDialog.open}
@@ -2577,6 +2851,16 @@ export default function BusinessHub() {
         description="Are you sure you want to delete this contact? This action cannot be undone."
         confirmText="Delete Contact"
         onConfirm={confirmDeleteContact}
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={deleteNoteDialog.open}
+        onOpenChange={(open) => setDeleteNoteDialog({ ...deleteNoteDialog, open })}
+        title="Delete Note"
+        description="Are you sure you want to delete this note? This action cannot be undone."
+        confirmText="Delete Note"
+        onConfirm={confirmDeleteNote}
         variant="destructive"
       />
     </div>
