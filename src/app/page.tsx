@@ -20,6 +20,7 @@ import {
   MapPin,
   Phone,
   Mail,
+  AtSign,
   Globe,
   Package,
   FileSignature,
@@ -210,6 +211,17 @@ export default function BusinessHub() {
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
   
+  // Contact Management Modal state
+  const [isAddContactOpen, setIsAddContactOpen] = useState(false)
+  const [isEditContactOpen, setIsEditContactOpen] = useState(false)
+  const [selectedContact, setSelectedContact] = useState(null)
+  const [newContact, setNewContact] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    position: ''
+  })
+  
   // Business Directory states
   const [isViewBusinessOpen, setIsViewBusinessOpen] = useState(false)
   const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false)
@@ -218,7 +230,8 @@ export default function BusinessHub() {
     products: [],
     tasks: [],
     quotes: [],
-    documents: []
+    documents: [],
+    contacts: []
   })
   const [businessSearchTerm, setBusinessSearchTerm] = useState('')
   const [filteredBusinessList, setFilteredBusinessList] = useState<any[]>([])
@@ -262,6 +275,10 @@ export default function BusinessHub() {
     open: false,
     businessId: null,
     productId: null
+  })
+  const [deleteContactDialog, setDeleteContactDialog] = useState({
+    open: false,
+    contactId: null
   })
 
   // Client-side welcome component
@@ -644,6 +661,98 @@ export default function BusinessHub() {
     }
   }
 
+  // Contact management functions
+  const handleAddContact = async () => {
+    try {
+      const response = await api.createBusinessContact(selectedBusiness.id, newContact)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        // Reset form and close modal
+        setNewContact({
+          name: '',
+          email: '',
+          phone: '',
+          position: ''
+        })
+        setIsAddContactOpen(false)
+        toast.success('Contact added successfully!')
+      } else {
+        toast.error('Failed to add contact')
+      }
+    } catch (error) {
+      console.error('Error adding contact:', error)
+      toast.error('Error adding contact. Please try again.')
+    }
+  }
+
+  const handleEditContact = (contact) => {
+    setSelectedContact(contact)
+    setNewContact({
+      name: contact.name,
+      email: contact.email || '',
+      phone: contact.phone || '',
+      position: contact.position || ''
+    })
+    setIsEditContactOpen(true)
+  }
+
+  const handleUpdateContact = async () => {
+    try {
+      const response = await api.updateBusinessContact(selectedBusiness.id, selectedContact.id, newContact)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        // Reset form and close modal
+        setSelectedContact(null)
+        setNewContact({
+          name: '',
+          email: '',
+          phone: '',
+          position: ''
+        })
+        setIsEditContactOpen(false)
+        toast.success('Contact updated successfully!')
+      } else {
+        toast.error('Failed to update contact')
+      }
+    } catch (error) {
+      console.error('Error updating contact:', error)
+      toast.error('Error updating contact. Please try again.')
+    }
+  }
+
+  const handleDeleteContact = async (contactId) => {
+    setDeleteContactDialog({
+      open: true,
+      contactId
+    })
+  }
+
+  const confirmDeleteContact = async () => {
+    const { contactId } = deleteContactDialog
+    try {
+      const response = await api.deleteBusinessContact(selectedBusiness.id, contactId)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        setDeleteContactDialog({ open: false, contactId: null })
+        toast.success('Contact deleted successfully!')
+      } else {
+        toast.error('Failed to delete contact')
+      }
+    } catch (error) {
+      console.error('Error deleting contact:', error)
+      toast.error('Error deleting contact. Please try again.')
+    }
+  }
+
   const handleAssignProducts = async () => {
     if (!selectedBusiness || selectedProducts.length === 0) return
 
@@ -738,6 +847,10 @@ export default function BusinessHub() {
       const businessProductsResponse = await api.getBusinessProducts(businessId)
       const businessProducts = businessProductsResponse.success ? businessProductsResponse.data : []
       
+      // Get business contacts using the API
+      const businessContactsResponse = await api.getBusinessContacts(businessId)
+      const businessContacts = businessContactsResponse.success ? businessContactsResponse.data : []
+      
       // Filter other related data from local state
       const businessTasks = tasks.filter(t => t.businessId === businessId)
       const businessQuotes = quotes.filter(q => q.businessId === businessId)
@@ -745,6 +858,7 @@ export default function BusinessHub() {
       
       return {
         products: businessProducts,
+        contacts: businessContacts,
         tasks: businessTasks,
         quotes: businessQuotes,
         documents: businessDocuments
@@ -753,6 +867,7 @@ export default function BusinessHub() {
       console.error('Error getting business related data:', error)
       return {
         products: [],
+        contacts: [],
         tasks: [],
         quotes: [],
         documents: []
@@ -1208,20 +1323,20 @@ export default function BusinessHub() {
                         <CardContent className="pt-0">
                           <div className="space-y-3">
                             <div className="flex items-center text-sm text-gray-600">
-                              <MapPin className="h-4 w-4 mr-2" />
+                              <MapPin className="h-4 w-5 mr-2" />
                               {business.location}
                             </div>
                             
                             {business.phone && (
                               <div className="flex items-center text-sm text-gray-600">
-                                <Phone className="h-4 w-4 mr-2" />
+                                <Phone className="h-4 w-5 mr-2" />
                                 {business.phone}
                               </div>
                             )}
                             
                             {business.email && (
                               <div className="flex items-center text-sm text-gray-600">
-                                <Mail className="h-4 w-4 mr-2" />
+                                <Mail className="h-4 w-5 mr-2" />
                                 {business.email}
                               </div>
                             )}
@@ -1659,7 +1774,7 @@ export default function BusinessHub() {
 
       {/* View Business Modal */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold text-gray-900">
               {selectedBusiness?.name}
@@ -1688,28 +1803,28 @@ export default function BusinessHub() {
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Location</Label>
                     <p className="text-gray-900 flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" />
+                      <MapPin className="h-4 w-5 mr-2" />
                       {selectedBusiness.location}
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Phone</Label>
                     <p className="text-gray-900 flex items-center">
-                      <Phone className="h-4 w-4 mr-1" />
+                      <Phone className="h-4 w-5 mr-2" />
                       {selectedBusiness.phone || 'Not provided'}
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Email</Label>
                     <p className="text-gray-900 flex items-center">
-                      <Mail className="h-4 w-4 mr-1" />
+                      <Mail className="h-4 w-5 mr-2" />
                       {selectedBusiness.email || 'Not provided'}
                     </p>
                   </div>
                   <div>
                     <Label className="text-sm font-medium text-gray-500">Website</Label>
                     <p className="text-gray-900 flex items-center">
-                      <Globe className="h-4 w-4 mr-1" />
+                      <Globe className="h-4 w-5 mr-2" />
                       {selectedBusiness.website ? (
                         <a href={selectedBusiness.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
                           {selectedBusiness.website}
@@ -1765,39 +1880,47 @@ export default function BusinessHub() {
                 
                 <>
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <Card className="bg-blue-50 border-blue-200">
                       <CardContent className="p-4 text-center">
                         <Package className="h-8 w-8 text-blue-600 mx-auto mb-2" />
                         <p className="text-2xl font-bold text-blue-900">{businessRelatedData.products.length}</p>
                         <p className="text-sm text-blue-700">Products</p>
                       </CardContent>
-                        </Card>
-                        
-                        <Card className="bg-green-50 border-green-200">
-                          <CardContent className="p-4 text-center">
-                            <CheckSquare className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-green-900">{businessRelatedData.tasks.length}</p>
-                            <p className="text-sm text-green-700">Tasks</p>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card className="bg-purple-50 border-purple-200">
-                          <CardContent className="p-4 text-center">
-                            <FileSignature className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-purple-900">{businessRelatedData.quotes.length}</p>
-                            <p className="text-sm text-purple-700">Quotes</p>
-                          </CardContent>
-                        </Card>
-                        
-                        <Card className="bg-orange-50 border-orange-200">
-                          <CardContent className="p-4 text-center">
-                            <FolderOpen className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-orange-900">{businessRelatedData.documents.length}</p>
-                            <p className="text-sm text-orange-700">Documents</p>
-                          </CardContent>
-                        </Card>
-                      </div>
+                    </Card>
+                    
+                    <Card className="bg-purple-50 border-purple-200">
+                      <CardContent className="p-4 text-center">
+                        <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-purple-900">{businessRelatedData.contacts.length}</p>
+                        <p className="text-sm text-purple-700">Contacts</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="bg-green-50 border-green-200">
+                      <CardContent className="p-4 text-center">
+                        <CheckSquare className="h-8 w-8 text-green-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-green-900">{businessRelatedData.tasks.length}</p>
+                        <p className="text-sm text-green-700">Tasks</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="bg-purple-50 border-purple-200">
+                      <CardContent className="p-4 text-center">
+                        <FileSignature className="h-8 w-8 text-purple-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-purple-900">{businessRelatedData.quotes.length}</p>
+                        <p className="text-sm text-purple-700">Quotes</p>
+                      </CardContent>
+                    </Card>
+                    
+                    <Card className="bg-orange-50 border-orange-200">
+                      <CardContent className="p-4 text-center">
+                        <FolderOpen className="h-8 w-8 text-orange-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-orange-900">{businessRelatedData.documents.length}</p>
+                        <p className="text-sm text-orange-700">Documents</p>
+                      </CardContent>
+                    </Card>
+                  </div>
 
                       {/* Detailed Lists */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -1917,6 +2040,67 @@ export default function BusinessHub() {
                           </Card>
                         )}
 
+                        {/* Contacts */}
+                        {businessRelatedData.contacts.length > 0 && (
+                          <Card className="bg-white border-gray-200">
+                            <CardHeader className="pb-3">
+                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
+                                <Users className="h-4 w-4 mr-2 text-purple-600" />
+                                Contacts
+                              </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-0">
+                              <div className="space-y-2 max-h-40 overflow-y-auto">
+                                {businessRelatedData.contacts.slice(0, 5).map((contact) => (
+                                  <div key={contact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                                    <div className="flex-1 min-w-0 pr-2">
+                                      <p className="text-sm font-medium text-gray-900 truncate">{contact.name}</p>
+                                      <p className="text-xs text-gray-500">{contact.position}</p>
+                                      <div className="flex flex-col space-y-1 mt-1">
+                                        {contact.email && (
+                                          <div className="flex items-center text-xs text-gray-600">
+                                            <Mail className="h-4 w-5 mr-2 flex-shrink-0" />
+                                            <span className="truncate">{contact.email}</span>
+                                          </div>
+                                        )}
+                                        {contact.phone && (
+                                          <div className="flex items-center text-xs text-gray-600">
+                                            <Phone className="h-4 w-5 mr-2 flex-shrink-0" />
+                                            <span className="truncate">{contact.phone}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                    <div className="flex space-x-1">
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleEditContact(contact)}
+                                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
+                                      >
+                                        <Edit className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => handleDeleteContact(contact.id)}
+                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                ))}
+                                {businessRelatedData.contacts.length > 5 && (
+                                  <p className="text-xs text-gray-500 text-center">
+                                    +{businessRelatedData.contacts.length - 5} more contacts
+                                  </p>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        )}
+
                         {/* Documents */}
                         {businessRelatedData.documents.length > 0 && (
                           <Card className="bg-white border-gray-200">
@@ -1954,7 +2138,7 @@ export default function BusinessHub() {
 
                       {/* Empty State */}
                       {businessRelatedData.products.length === 0 && businessRelatedData.tasks.length === 0 && 
-                       businessRelatedData.quotes.length === 0 && businessRelatedData.documents.length === 0 && (
+                       businessRelatedData.quotes.length === 0 && businessRelatedData.documents.length === 0 && businessRelatedData.contacts.length === 0 && (
                         <Card className="bg-gray-50 border-gray-200">
                           <CardContent className="p-8 text-center">
                             <p className="text-gray-500">No related information found for this business.</p>
@@ -1968,6 +2152,16 @@ export default function BusinessHub() {
               <div className="flex justify-end space-x-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewBusinessOpen(false)}>
                   Close
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setSelectedBusiness(selectedBusiness)
+                    setIsAddContactOpen(true)
+                  }}
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Add Contact
                 </Button>
                 <Button 
                   variant="outline" 
@@ -2221,6 +2415,140 @@ export default function BusinessHub() {
         </DialogContent>
       </Dialog>
 
+      {/* Add Contact Modal */}
+      <Dialog open={isAddContactOpen} onOpenChange={setIsAddContactOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Contact</DialogTitle>
+            <DialogDescription>
+              Add a new contact for {selectedBusiness?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="contact-name">Name *</Label>
+              <Input
+                id="contact-name"
+                value={newContact.name}
+                onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                placeholder="Enter contact name"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="contact-email">Email</Label>
+              <Input
+                id="contact-email"
+                type="email"
+                value={newContact.email}
+                onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="contact-phone">Phone</Label>
+              <Input
+                id="contact-phone"
+                value={newContact.phone}
+                onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                placeholder="Enter phone number"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="contact-position">Job Role</Label>
+              <Input
+                id="contact-position"
+                value={newContact.position}
+                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                placeholder="Enter job title/position"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsAddContactOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAddContact}
+                disabled={!newContact.name.trim()}
+              >
+                Add Contact
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Contact Modal */}
+      <Dialog open={isEditContactOpen} onOpenChange={setIsEditContactOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Contact</DialogTitle>
+            <DialogDescription>
+              Update contact information for {selectedBusiness?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="edit-contact-name">Name *</Label>
+              <Input
+                id="edit-contact-name"
+                value={newContact.name}
+                onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                placeholder="Enter contact name"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-contact-email">Email</Label>
+              <Input
+                id="edit-contact-email"
+                type="email"
+                value={newContact.email}
+                onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                placeholder="Enter email address"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-contact-phone">Phone</Label>
+              <Input
+                id="edit-contact-phone"
+                value={newContact.phone}
+                onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                placeholder="Enter phone number"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="edit-contact-position">Job Role</Label>
+              <Input
+                id="edit-contact-position"
+                value={newContact.position}
+                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                placeholder="Enter job title/position"
+              />
+            </div>
+            
+            <div className="flex justify-end space-x-2 pt-4">
+              <Button variant="outline" onClick={() => setIsEditContactOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleUpdateContact}
+                disabled={!newContact.name.trim()}
+              >
+                Update Contact
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Confirmation Dialogs */}
       <ConfirmDialog
         open={deleteBusinessDialog.open}
@@ -2239,6 +2567,16 @@ export default function BusinessHub() {
         description="Are you sure you want to remove this product from the business?"
         confirmText="Remove Product"
         onConfirm={confirmRemoveProduct}
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={deleteContactDialog.open}
+        onOpenChange={(open) => setDeleteContactDialog({ ...deleteContactDialog, open })}
+        title="Delete Contact"
+        description="Are you sure you want to delete this contact? This action cannot be undone."
+        confirmText="Delete Contact"
+        onConfirm={confirmDeleteContact}
         variant="destructive"
       />
     </div>

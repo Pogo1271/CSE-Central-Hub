@@ -140,10 +140,15 @@ async function main() {
     log('');
     log('Demo Businesses:', 'cyan');
     log('- Cornwall Scales (Technology) - Active with Support Contract', 'cyan');
+    log('  - Contact: John Smith (Managing Director)', 'cyan');
     log('- Marketing Pro (Marketing) - Active', 'cyan');
+    log('  - Contact: Sarah Johnson (Marketing Director)', 'cyan');
     log('- Tech Solutions Inc. (Technology) - Active with 2 Tasks, 1 Quote', 'cyan');
+    log('  - Contact: Michael Chen (CTO)', 'cyan');
     log('- Retail Store Plus (Retail) - Active with Support Contract', 'cyan');
+    log('  - Contact: Emily Davis (Store Manager)', 'cyan');
     log('- Restaurant Biz (Restaurant) - Active', 'cyan');
+    log('  - Contact: Carlos Rodriguez (Head Chef)', 'cyan');
     log('');
     log('Demo Products:', 'cyan');
     log('- EPOS System Pro - Hardware ($2,999.99 one-off)', 'cyan');

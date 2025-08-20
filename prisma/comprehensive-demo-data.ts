@@ -296,6 +296,57 @@ export async function seedComprehensiveDemoData() {
     },
   })
 
+  // Create sample contacts for each business
+  await prisma.contact.create({
+    data: {
+      name: 'John Smith',
+      email: 'john.smith@cornwallscales.co.uk',
+      phone: '+44 1234 567891',
+      position: 'Managing Director',
+      businessId: cornwallScales.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Sarah Johnson',
+      email: 'sarah.johnson@marketingpro.com',
+      phone: '+1 (555) 234-5679',
+      position: 'Marketing Director',
+      businessId: marketingPro.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Michael Chen',
+      email: 'michael.chen@techsolutions.com',
+      phone: '+1 (555) 123-4568',
+      position: 'CTO',
+      businessId: techSolutions.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Emily Davis',
+      email: 'emily.davis@retailstoreplus.com',
+      phone: '+1 (555) 345-6790',
+      position: 'Store Manager',
+      businessId: retailStore.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Carlos Rodriguez',
+      email: 'carlos.rodriguez@restaurantbiz.com',
+      phone: '+1 (555) 456-7891',
+      position: 'Head Chef',
+      businessId: restaurantBiz.id,
+    },
+  })
+
   console.log('Comprehensive demo data seeded successfully!')
   console.log('Default admin user:', {
     email: 'admin@example.com',
