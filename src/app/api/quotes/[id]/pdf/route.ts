@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const quote = await db.quote.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         business: true,
         items: {

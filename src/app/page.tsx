@@ -41,7 +41,9 @@ import {
   ArrowDownRight,
   Eye,
   Edit,
-  Trash2
+  Trash2,
+  LogOut,
+  Circle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -132,7 +134,7 @@ const locations = [
 ]
 
 export default function BusinessHub() {
-  const { isAuthenticated, user: currentUser, isLoading } = useAuth()
+  const { isAuthenticated, user: currentUser, isLoading, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
@@ -144,7 +146,21 @@ export default function BusinessHub() {
   
   // Handle authentication state
   const [isClient, setIsClient] = useState(false)
-  const [displayName, setDisplayName] = useState('User')
+  const [displayName, setDisplayName] = useState(() => {
+    // Try to get user name from localStorage during initial state setup
+    if (typeof window !== 'undefined') {
+      try {
+        const userString = localStorage.getItem('currentUser')
+        if (userString) {
+          const user = JSON.parse(userString)
+          return user.name || 'User'
+        }
+      } catch (error) {
+        console.error('Error reading user from localStorage:', error)
+      }
+    }
+    return 'User'
+  })
   
   // Role-based permissions
   const [rolePermissions, setRolePermissions] = useState({
@@ -246,6 +262,7 @@ export default function BusinessHub() {
   })
   const [businessSearchTerm, setBusinessSearchTerm] = useState('')
   const [filteredBusinessList, setFilteredBusinessList] = useState<any[]>([])
+  const [businessOverviewActiveTab, setBusinessOverviewActiveTab] = useState('overview')
   
   // Form states
   const [newBusiness, setNewBusiness] = useState({
@@ -312,44 +329,9 @@ export default function BusinessHub() {
     }
   }
 
-  // Client-side welcome component
+  // Simplified welcome component that uses the parent's authentication state
   const WelcomeMessage = () => {
-    const [name, setName] = useState('User')
-    const [isMounted, setIsMounted] = useState(false)
-    
-    useEffect(() => {
-      setIsMounted(true)
-      
-      // Try to get user from localStorage first
-      try {
-        const storedUser = localStorage.getItem('currentUser')
-        if (storedUser) {
-          const user = JSON.parse(storedUser)
-          setName(user.name || 'User')
-        } else {
-          // Fallback to default user for development
-          const defaultUser = {
-            id: 'cme3diluk0003zm24qhnvxmae',
-            email: 'admin@example.com', 
-            name: 'Admin User', 
-            role: 'Admin',
-            status: 'Active',
-            color: '#EF4444',
-            joined: '2024-01-01T00:00:00.000Z'
-          }
-          setName(defaultUser.name)
-        }
-      } catch (error) {
-        console.error('Error reading user from localStorage:', error)
-        setName('User')
-      }
-    }, [])
-    
-    if (!isMounted) {
-      return <span className="opacity-0">Loading...</span>
-    }
-    
-    return <span>{name}</span>
+    return <span>{displayName}</span>
   }
   const getUserPermissions = () => {
     const adminPermissions = {
@@ -624,6 +606,7 @@ export default function BusinessHub() {
   // Business Directory handlers
   const handleViewBusiness = (business) => {
     setSelectedBusiness(business)
+    setBusinessOverviewActiveTab('overview')
     setIsViewBusinessOpen(true)
   }
 
@@ -937,6 +920,25 @@ export default function BusinessHub() {
     }
   }
 
+  // Get business stats for display in cards
+  const getBusinessStats = (business) => {
+    // Get tasks for this business
+    const businessTasks = tasks.filter(task => task.businessId === business.id)
+    
+    // Get products for this business
+    const businessProducts = products.filter(product => product.businessId === business.id)
+    
+    // For contacts, we'll show 0 since they're loaded on-demand per business
+    // The actual contact count will be visible in the business detail view
+    const businessContacts = []
+    
+    return {
+      contacts: businessContacts,
+      tasks: businessTasks,
+      products: businessProducts
+    }
+  }
+
   // Filter businesses based on search term, category, and location
   useEffect(() => {
     let filtered = businessList
@@ -1205,16 +1207,26 @@ export default function BusinessHub() {
                 <Bell className="h-5 w-5" />
               </Button>
               
-              <div className="flex items-center space-x-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={currentUser?.avatar} />
-                  <AvatarFallback>{currentUser?.name?.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="hidden md:block">
-                  <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
-                  <p className="text-xs text-gray-500">{currentUser?.role}</p>
-                </div>
-              </div>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center space-x-2 cursor-pointer">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={currentUser?.avatar} />
+                      <AvatarFallback>{currentUser?.name?.charAt(0)}</AvatarFallback>
+                    </Avatar>
+                    <div className="hidden md:block">
+                      <p className="text-sm font-medium text-gray-900">{currentUser?.name}</p>
+                      <p className="text-xs text-gray-500">{currentUser?.role}</p>
+                    </div>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <DropdownMenuItem onClick={logout} className="cursor-pointer">
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
         </header>
@@ -1412,7 +1424,7 @@ export default function BusinessHub() {
                 </CardContent>
               </Card>
             </div>
-              </div>
+            </div>
             )}
 
             {activeTab === 'businesses' && (
@@ -1421,10 +1433,16 @@ export default function BusinessHub() {
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Business Directory</h2>
-                      <p className="text-gray-600 mt-1">Manage your business partnerships and client relationships</p>
+                      <h1 className="text-2xl font-bold text-gray-900">Business Directory</h1>
+                      <p className="text-gray-600 mt-1">Manage your business contacts and relationships</p>
                     </div>
-                    <Button onClick={() => setIsAddBusinessOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                    <div className="text-right">
+                      <p className="text-sm text-gray-500">Total Businesses</p>
+                      <p className="text-2xl font-bold text-gray-900">{businessList.length}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4">
+                    <Button onClick={() => setIsAddBusinessOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Business
                     </Button>
@@ -1432,14 +1450,30 @@ export default function BusinessHub() {
                 </div>
 
                 {/* Filters */}
-                <Card className="bg-white shadow-sm">
+                <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
                   <CardContent className="p-6">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="flex-1">
-                        <Label htmlFor="category-filter">Category</Label>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                      {/* Search Bar - Takes most space */}
+                      <div className="lg:col-span-6">
+                        <Label htmlFor="search">Search Businesses</Label>
+                        <div className="relative">
+                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                          <Input
+                            id="search"
+                            placeholder="Search by name, description, or category..."
+                            className="pl-10"
+                            value={businessSearchTerm}
+                            onChange={(e) => setBusinessSearchTerm(e.target.value)}
+                          />
+                        </div>
+                      </div>
+                      
+                      {/* Category Filter */}
+                      <div className="lg:col-span-3">
+                        <Label htmlFor="category">Category</Label>
                         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="All Categories" />
                           </SelectTrigger>
                           <SelectContent>
                             {categories.map((category) => (
@@ -1450,11 +1484,13 @@ export default function BusinessHub() {
                           </SelectContent>
                         </Select>
                       </div>
-                      <div className="flex-1">
-                        <Label htmlFor="location-filter">Location</Label>
+                      
+                      {/* Location Filter */}
+                      <div className="lg:col-span-3">
+                        <Label htmlFor="location">Location</Label>
                         <Select value={selectedLocation} onValueChange={setSelectedLocation}>
                           <SelectTrigger>
-                            <SelectValue />
+                            <SelectValue placeholder="All Locations" />
                           </SelectTrigger>
                           <SelectContent>
                             {locations.map((location) => (
@@ -1469,122 +1505,132 @@ export default function BusinessHub() {
                   </CardContent>
                 </Card>
 
-                {/* Business Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {filteredBusinessList.map((business) => {
-                    const relatedData = getBusinessRelatedDataSync(business.id)
-                    return (
-                      <Card key={business.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
-                        <CardHeader className="pb-3">
-                          <div className="flex items-start justify-between">
-                            <div className="flex items-center space-x-3">
-                              <div className="p-2 bg-blue-100 rounded-lg">
-                                <Building2 className="h-5 w-5 text-blue-600" />
-                              </div>
-                              <div>
-                                <CardTitle className="text-lg font-semibold text-gray-900">{business.name}</CardTitle>
-                                <CardDescription className="text-sm text-gray-500">{business.category}</CardDescription>
-                              </div>
-                            </div>
-                            <Badge variant={business.status === 'Active' ? 'default' : 'secondary'}>
-                              {business.status}
-                            </Badge>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">{business.description}</p>
-                          
-                          <div className="space-y-2 mb-4">
-                            <div className="flex items-center text-sm text-gray-500">
-                              <MapPin className="h-4 w-4 mr-2" />
-                              {business.location}
-                            </div>
-                            {business.phone && (
-                              <div className="flex items-center text-sm text-gray-500">
-                                <Phone className="h-4 w-4 mr-2" />
-                                {business.phone}
-                              </div>
-                            )}
-                            {business.email && (
-                              <div className="flex items-center text-sm text-gray-500">
-                                <Mail className="h-4 w-4 mr-2" />
-                                {business.email}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Related data summary */}
-                          <div className="grid grid-cols-2 gap-4 mb-4">
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                              <p className="text-xs text-gray-500">Tasks</p>
-                              <p className="text-lg font-semibold text-gray-900">{relatedData.tasks.length}</p>
-                            </div>
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                              <p className="text-xs text-gray-500">Quotes</p>
-                              <p className="text-lg font-semibold text-gray-900">{relatedData.quotes.length}</p>
-                            </div>
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                              <p className="text-xs text-gray-500">Documents</p>
-                              <p className="text-lg font-semibold text-gray-900">{relatedData.documents.length}</p>
-                            </div>
-                            <div className="text-center p-2 bg-gray-50 rounded-lg">
-                              <p className="text-xs text-gray-500">Notes</p>
-                              <p className="text-lg font-semibold text-gray-900">{relatedData.notes.length}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex justify-between items-center">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleViewBusiness(business)}
-                            >
-                              <Eye className="h-4 w-4 mr-2" />
-                              View Details
-                            </Button>
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button variant="ghost" size="sm">
-                                  <MoreHorizontal className="h-4 w-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleEditBusiness(business)}>
-                                  <Edit className="h-4 w-4 mr-2" />
-                                  Edit
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleOpenAssignProduct(business)}>
-                                  <Package className="h-4 w-4 mr-2" />
-                                  Assign Products
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => handleDeleteBusiness(business.id)}
-                                  className="text-red-600"
-                                >
-                                  <Trash2 className="h-4 w-4 mr-2" />
-                                  Delete
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )
-                  })}
+                {/* Results Count */}
+                <div className="bg-white rounded-lg shadow-sm p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-gray-600">
+                        Showing {filteredBusinessList.length} of {businessList.length} businesses
+                      </p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setBusinessSearchTerm('')
+                        setSelectedCategory('All Categories')
+                        setSelectedLocation('All Locations')
+                      }}>
+                        Clear Filters
+                      </Button>
+                    </div>
+                  </div>
                 </div>
 
-                {filteredBusinessList.length === 0 && (
-                  <Card className="bg-white shadow-sm">
+                {/* Business Grid */}
+                {filteredBusinessList.length === 0 ? (
+                  <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
                     <CardContent className="p-12 text-center">
                       <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No businesses found</h3>
-                      <p className="text-gray-500 mb-4">Try adjusting your filters or create a new business.</p>
+                      <h3 className="text-lg font-medium text-gray-900 mb-2">No businesses found</h3>
+                      <p className="text-gray-600 mb-4">Try adjusting your search criteria or create a new business.</p>
                       <Button onClick={() => setIsAddBusinessOpen(true)}>
                         <Plus className="h-4 w-4 mr-2" />
                         Add Business
                       </Button>
                     </CardContent>
                   </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {filteredBusinessList.map((business) => {
+                      const businessStats = getBusinessStats(business)
+                      return (
+                        <Card 
+                          key={business.id} 
+                          className="bg-white shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                          onClick={() => handleViewBusiness(business)}
+                        >
+                          <CardHeader className="pb-3">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1 min-w-0">
+                                <CardTitle className="text-lg truncate group-hover:text-blue-600 transition-colors">
+                                  {business.name}
+                                </CardTitle>
+                                <CardDescription className="text-sm line-clamp-2 mt-1">
+                                  {business.description || 'No description available'}
+                                </CardDescription>
+                              </div>
+                              <div className="flex flex-col items-end space-y-2">
+                                <Badge className={business.supportContract ? "bg-green-100 text-green-800 hover:bg-green-200" : "bg-red-100 text-red-800 hover:bg-red-200"}>
+                                  {business.supportContract ? "Support" : "No Support"}
+                                </Badge>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm" 
+                                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                      onClick={(e) => e.stopPropagation()}
+                                    >
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => handleViewBusiness(business)}>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      View Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleEditBusiness(business)}>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      Edit Details
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteBusiness(business.id)}
+                                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                    >
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="pt-0">
+                            <div className="space-y-3">
+                              {/* Location */}
+                              <div className="flex items-center text-sm text-gray-600">
+                                <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
+                                <span className="truncate">{business.location || 'No location specified'}</span>
+                              </div>
+                              
+                              {/* Category */}
+                              <div className="flex items-center text-sm text-gray-600">
+                                <Building2 className="h-4 w-4 mr-2 flex-shrink-0" />
+                                <span className="truncate">{business.category || 'Uncategorized'}</span>
+                              </div>
+                              
+                              <Separator className="my-3" />
+                              
+                              {/* Stats */}
+                              <div className="grid grid-cols-3 gap-2">
+                                <div className="text-center p-2 bg-blue-50 rounded-lg">
+                                  <div className="text-lg font-bold text-blue-600">{businessStats.contacts.length}</div>
+                                  <div className="text-xs text-blue-600">Contacts</div>
+                                </div>
+                                <div className="text-center p-2 bg-green-50 rounded-lg">
+                                  <div className="text-lg font-bold text-green-600">{businessStats.tasks.length}</div>
+                                  <div className="text-xs text-green-600">Tasks</div>
+                                </div>
+                                <div className="text-center p-2 bg-purple-50 rounded-lg">
+                                  <div className="text-lg font-bold text-purple-600">{businessStats.products.length}</div>
+                                  <div className="text-xs text-purple-600">Products</div>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      )
+                    })}
+                  </div>
                 )}
               </div>
             )}
@@ -2303,101 +2349,256 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>{selectedBusiness?.name}</DialogTitle>
-            <DialogDescription>
-              {selectedBusiness?.category} • {selectedBusiness?.location}
-            </DialogDescription>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+          <DialogHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900">{selectedBusiness?.name}</DialogTitle>
+                <DialogDescription className="text-gray-600 mt-1">{selectedBusiness?.description}</DialogDescription>
+              </div>
+              <div className="flex items-center space-x-3">
+                <Badge className={selectedBusiness?.supportContract ? "bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 text-sm" : "bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2 text-sm"}>
+                  {selectedBusiness?.supportContract ? "Support Contract" : "No Support"}
+                </Badge>
+              </div>
+            </div>
           </DialogHeader>
           
-          {selectedBusiness && (
-            <div className="space-y-6">
-              {/* Business Information */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Status</Label>
-                  <p className="text-gray-900">{selectedBusiness.status}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Support Contract</Label>
-                  <p className="text-gray-900">{selectedBusiness.supportContract ? 'Yes' : 'No'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                  <p className="text-gray-900">{selectedBusiness.phone || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Email</Label>
-                  <p className="text-gray-900">{selectedBusiness.email || 'N/A'}</p>
-                </div>
-                <div>
-                  <Label className="text-sm font-medium text-gray-500">Website</Label>
-                  <p className="text-gray-900">{selectedBusiness.website || 'N/A'}</p>
-                </div>
-              </div>
-
-              <div>
-                <Label className="text-sm font-medium text-gray-500">Description</Label>
-                <p className="text-gray-900 mt-1">{selectedBusiness.description}</p>
-              </div>
-
-              {/* Tabs for related data */}
-              <Tabs defaultValue="products" className="w-full">
-                <TabsList className="grid w-full grid-cols-5">
-                  <TabsTrigger value="products">Products</TabsTrigger>
-                  <TabsTrigger value="contacts">Contacts</TabsTrigger>
-                  <TabsTrigger value="tasks">Tasks</TabsTrigger>
-                  <TabsTrigger value="quotes">Quotes</TabsTrigger>
-                  <TabsTrigger value="notes">Notes</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="products" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold">Assigned Products</h3>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleOpenAssignProduct(selectedBusiness)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Assign Product
-                      </Button>
+          <Tabs value={businessOverviewActiveTab} onValueChange={setBusinessOverviewActiveTab} className="mt-4">
+            <TabsList className="grid w-full grid-cols-5 h-10">
+              <TabsTrigger value="overview" className="text-sm font-medium py-2">Overview</TabsTrigger>
+              <TabsTrigger value="contacts" className="text-sm font-medium py-2">Contacts</TabsTrigger>
+              <TabsTrigger value="tasks" className="text-sm font-medium py-2">Tasks</TabsTrigger>
+              <TabsTrigger value="notes" className="text-sm font-medium py-2">Notes</TabsTrigger>
+              <TabsTrigger value="products" className="text-sm font-medium py-2">Products</TabsTrigger>
+            </TabsList>
+            
+            <div className="mt-4 max-h-[70vh] overflow-y-auto">
+              {/* Overview Tab */}
+              <TabsContent value="overview" className="space-y-8">
+                {/* Business Information Section */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-100">
+                  <h3 className="text-lg font-bold text-gray-900 mb-6 flex items-center">
+                    <Building2 className="h-5 w-5 mr-2 text-blue-600" />
+                    Business Information
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center mb-2">
+                        <div className="p-2 bg-blue-100 rounded-lg mr-3">
+                          <FolderOpen className="h-4 w-4 text-blue-600" />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Category</Label>
+                          <p className="text-sm font-semibold text-gray-900">{selectedBusiness?.category || 'Uncategorized'}</p>
+                        </div>
+                      </div>
                     </div>
-                    
-                    {businessRelatedData.products.length > 0 ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {businessRelatedData.products.map((product) => (
-                          <Card key={product.id} className="bg-white shadow-sm">
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-medium text-gray-900">{product.name}</h4>
-                                  <p className="text-sm text-gray-500">{product.category}</p>
-                                  <p className="text-lg font-semibold text-gray-900 mt-2">
-                                    £{product.price?.toLocaleString()}
-                                  </p>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleRemoveProduct(selectedBusiness.id, product.id)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center mb-2">
+                        <div className="p-2 bg-green-100 rounded-lg mr-3">
+                          <MapPin className="h-4 w-4 text-green-600" />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Location</Label>
+                          <p className="text-sm font-semibold text-gray-900">{selectedBusiness?.location || 'No location specified'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center mb-2">
+                        <div className="p-2 bg-purple-100 rounded-lg mr-3">
+                          <Phone className="h-4 w-4 text-purple-600" />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Phone</Label>
+                          <p className="text-sm font-semibold text-gray-900">{selectedBusiness?.phone || 'No phone specified'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center mb-2">
+                        <div className="p-2 bg-red-100 rounded-lg mr-3">
+                          <Mail className="h-4 w-4 text-red-600" />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Email</Label>
+                          <p className="text-sm font-semibold text-gray-900">{selectedBusiness?.email || 'No email specified'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center mb-2">
+                        <div className="p-2 bg-indigo-100 rounded-lg mr-3">
+                          <Globe className="h-4 w-4 text-indigo-600" />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Website</Label>
+                          <p className="text-sm font-semibold text-gray-900">{selectedBusiness?.website || 'No website specified'}</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="bg-white p-6 rounded-lg shadow-sm border border-gray-100">
+                      <div className="flex items-center mb-2">
+                        <div className="p-2 bg-yellow-100 rounded-lg mr-3">
+                          <CheckCircle className="h-4 w-4 text-yellow-600" />
+                        </div>
+                        <div>
+                          <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">Status</Label>
+                          <p className="text-sm font-semibold text-gray-900">{selectedBusiness?.status || 'Active'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Quick Stats Overview */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                  <Card 
+                    className="bg-white shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100 cursor-pointer group"
+                    onClick={() => setBusinessOverviewActiveTab('contacts')}
+                  >
+                    <CardContent className="p-8">
+                      <div className="flex flex-col items-center text-center">
+                        <div className="p-3 bg-blue-100 rounded-xl mb-4">
+                          <Users className="h-6 w-6 text-blue-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Contacts</p>
+                          <p className="text-3xl font-bold text-blue-600 mt-1">{businessRelatedData.contacts.length}</p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <div className="flex items-center justify-center text-xs text-blue-600 group-hover:text-blue-700 transition-colors">
+                          <Eye className="h-3 w-3 mr-1" />
+                          View all contacts
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-white shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100 cursor-pointer group"
+                    onClick={() => setBusinessOverviewActiveTab('tasks')}
+                  >
+                    <CardContent className="p-8">
+                      <div className="flex flex-col items-center text-center">
+                        <div className="p-3 bg-green-100 rounded-xl mb-4">
+                          <CheckSquare className="h-6 w-6 text-green-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Tasks</p>
+                          <p className="text-3xl font-bold text-green-600 mt-1">{businessRelatedData.tasks.length}</p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <div className="flex items-center justify-center text-xs text-green-600 group-hover:text-green-700 transition-colors">
+                          <Eye className="h-3 w-3 mr-1" />
+                          View all tasks
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-white shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100 cursor-pointer group"
+                    onClick={() => setBusinessOverviewActiveTab('products')}
+                  >
+                    <CardContent className="p-8">
+                      <div className="flex flex-col items-center text-center">
+                        <div className="p-3 bg-purple-100 rounded-xl mb-4">
+                          <Package className="h-6 w-6 text-purple-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Products</p>
+                          <p className="text-3xl font-bold text-purple-600 mt-1">{businessRelatedData.products.length}</p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <div className="flex items-center justify-center text-xs text-purple-600 group-hover:text-purple-700 transition-colors">
+                          <Eye className="h-3 w-3 mr-1" />
+                          View all products
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card 
+                    className="bg-white shadow-sm hover:shadow-lg transition-all duration-200 border border-gray-100 cursor-pointer group"
+                    onClick={() => setBusinessOverviewActiveTab('notes')}
+                  >
+                    <CardContent className="p-8">
+                      <div className="flex flex-col items-center text-center">
+                        <div className="p-3 bg-orange-100 rounded-xl mb-4">
+                          <FileText className="h-6 w-6 text-orange-600" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Notes</p>
+                          <p className="text-3xl font-bold text-orange-600 mt-1">{businessRelatedData.notes.length}</p>
+                        </div>
+                      </div>
+                      <div className="mt-6">
+                        <div className="flex items-center justify-center text-xs text-orange-600 group-hover:text-orange-700 transition-colors">
+                          <Eye className="h-3 w-3 mr-1" />
+                          View all notes
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+                
+                {/* Support Contract Banner */}
+                <Card className="border-0 shadow-sm overflow-hidden">
+                  <CardContent className="p-0">
+                    {selectedBusiness?.supportContract ? (
+                      <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
+                        <div className="p-8">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-3 bg-green-100 rounded-full">
+                                <CheckCircle className="h-6 w-6 text-green-600" />
                               </div>
-                            </CardContent>
-                          </Card>
-                        ))}
+                              <div>
+                                <h4 className="text-lg font-bold text-green-800">Active Support Contract</h4>
+                                <p className="text-sm text-green-700 mt-1">
+                                  This business has an active support contract.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm text-green-600 font-medium">Active</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-center py-4">No products assigned</p>
+                      <div className="bg-gradient-to-r from-red-50 to-rose-50 border border-red-200 rounded-lg">
+                        <div className="p-8">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="p-3 bg-red-100 rounded-full">
+                                <X className="h-6 w-6 text-red-600" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-bold text-red-800">No Active Support Contract</h4>
+                                <p className="text-sm text-red-700 mt-1">
+                                  This business does not have an active support contract.
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center space-x-3">
+                              <span className="text-sm text-red-600 font-medium">Inactive</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     )}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="contacts" className="mt-4">
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Contacts Tab */}
+              <TabsContent value="contacts" className="space-y-4">
                   <div className="space-y-4">
                     <div className="flex justify-between items-center">
                       <h3 className="text-lg font-semibold">Business Contacts</h3>
@@ -2464,7 +2665,20 @@ export default function BusinessHub() {
                 
                 <TabsContent value="tasks" className="mt-4">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-semibold">Related Tasks</h3>
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Related Tasks</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => {
+                          // Add task functionality here
+                          toast.info('Add Task functionality would be implemented here')
+                        }}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Task
+                      </Button>
+                    </div>
                     
                     {businessRelatedData.tasks.length > 0 ? (
                       <div className="space-y-3">
@@ -2581,27 +2795,65 @@ export default function BusinessHub() {
                     )}
                   </div>
                 </TabsContent>
-              </Tabs>
-
-              {/* Action buttons */}
-              <div className="flex justify-end space-x-2 pt-4 border-t">
-                <Button variant="outline" onClick={() => setIsViewBusinessOpen(false)}>
-                  Close
-                </Button>
-                <Button variant="outline" onClick={() => handleEditBusiness(selectedBusiness)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  Edit Business
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => handleDeleteBusiness(selectedBusiness.id)}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Business
-                </Button>
-              </div>
+                
+                <TabsContent value="products" className="mt-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Related Products</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenAssignProduct(selectedBusiness)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Products
+                      </Button>
+                    </div>
+                    
+                    {businessRelatedData.products.length > 0 ? (
+                      <div className="space-y-3">
+                        {businessRelatedData.products.map((product) => (
+                          <Card key={product.id} className="bg-white shadow-sm">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{product.name}</h4>
+                                  <p className="text-sm text-gray-600">{product.description}</p>
+                                  <div className="flex items-center mt-2 space-x-4">
+                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{product.category}</Badge>
+                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
+                                      {product.pricingType || 'one-off'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                <div className="text-right">
+                                  <p className="font-semibold text-gray-900">£{product.price}</p>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => {
+                                      setRemoveProductDialog({
+                                        open: true,
+                                        businessId: selectedBusiness.id,
+                                        productId: product.id
+                                      })
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No products found</p>
+                    )}
+                  </div>
+                </TabsContent>
             </div>
-          )}
+          </Tabs>
         </DialogContent>
       </Dialog>
 
@@ -2725,45 +2977,166 @@ export default function BusinessHub() {
 
       {/* Assign Product Dialog */}
       <Dialog open={isAssignProductOpen} onOpenChange={setIsAssignProductOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle>Assign Products</DialogTitle>
-            <DialogDescription>
-              Select products to assign to {selectedBusiness?.name}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="max-h-60 overflow-y-auto space-y-2">
-              {availableProducts.map((product) => (
-                <div key={product.id} className="flex items-center space-x-2">
-                  <Checkbox
-                    id={`product-${product.id}`}
-                    checked={selectedProducts.includes(product.id)}
-                    onCheckedChange={(checked) => {
-                      if (checked) {
-                        setSelectedProducts([...selectedProducts, product.id])
-                      } else {
-                        setSelectedProducts(selectedProducts.filter(id => id !== product.id))
-                      }
-                    }}
-                  />
-                  <Label htmlFor={`product-${product.id}`} className="flex-1">
-                    <div className="flex justify-between">
-                      <span>{product.name}</span>
-                      <span className="text-sm text-gray-500">£{product.price?.toLocaleString()}</span>
-                    </div>
-                  </Label>
-                </div>
-              ))}
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle className="text-xl font-bold text-gray-900 flex items-center">
+                  <Package className="h-5 w-5 mr-2 text-purple-600" />
+                  Assign Products
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 mt-1">
+                  Select products to assign to {selectedBusiness?.name}
+                </DialogDescription>
+              </div>
+              <div className="bg-purple-100 px-3 py-1 rounded-full">
+                <span className="text-sm font-medium text-purple-700">
+                  {selectedProducts.length} selected
+                </span>
+              </div>
             </div>
+          </DialogHeader>
+          
+          <div className="space-y-6">
+            {/* Search and Filter Section */}
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search products..."
+                      className="pl-10 bg-white border-gray-200"
+                    />
+                  </div>
+                </div>
+                <Button variant="outline" size="sm">
+                  <Filter className="h-4 w-4 mr-2" />
+                  Filter
+                </Button>
+              </div>
+            </div>
+
+            {/* Products List */}
+            <div className="bg-white border border-gray-200 rounded-lg">
+              <div className="p-4 border-b border-gray-200">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-gray-900">Available Products</h4>
+                  <div className="flex items-center space-x-2">
+                    <Button variant="ghost" size="sm">
+                      Select All
+                    </Button>
+                    <Button variant="ghost" size="sm">
+                      Clear All
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="max-h-96 overflow-y-auto">
+                {availableProducts.length > 0 ? (
+                  <div className="divide-y divide-gray-200">
+                    {availableProducts.map((product) => (
+                      <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start w-full">
+                          <div className="flex-shrink-0 pt-1 pr-4">
+                            <Checkbox
+                              id={`product-${product.id}`}
+                              checked={selectedProducts.includes(product.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  setSelectedProducts([...selectedProducts, product.id])
+                                } else {
+                                  setSelectedProducts(selectedProducts.filter(id => id !== product.id))
+                                }
+                              }}
+                              className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                            />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Label htmlFor={`product-${product.id}`} className="cursor-pointer">
+                              <div className="flex items-start justify-between w-full">
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-medium text-gray-900 truncate">
+                                    {product.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 mt-1">
+                                    {product.category || 'Uncategorized'}
+                                  </p>
+                                </div>
+                                <div className="flex-shrink-0 ml-auto text-right pl-8">
+                                  <p className="text-sm font-bold text-purple-600">
+                                    £{product.price?.toLocaleString()}
+                                  </p>
+                                  <p className="text-xs text-gray-500">
+                                    {product.pricingType || 'one-off'}
+                                  </p>
+                                </div>
+                              </div>
+                            </Label>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-12 text-center">
+                    <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900 mb-2">No products available</h3>
+                    <p className="text-gray-600">Create products first to assign them to businesses.</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Selected Products Summary */}
+            {selectedProducts.length > 0 && (
+              <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-purple-900 mb-3">Selected Products Summary</h4>
+                <div className="space-y-2">
+                  {selectedProducts.map((productId) => {
+                    const product = availableProducts.find(p => p.id === productId)
+                    return product ? (
+                      <div key={productId} className="flex items-center justify-between bg-white p-2 rounded border border-purple-100">
+                        <span className="text-sm text-gray-900">{product.name}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="text-sm font-medium text-purple-600">
+                            £{product.price?.toLocaleString()}
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setSelectedProducts(selectedProducts.filter(id => id !== productId))}
+                            className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                          >
+                            <X className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </div>
+                    ) : null
+                  })}
+                </div>
+              </div>
+            )}
           </div>
-          <div className="flex justify-end space-x-2 mt-6">
-            <Button variant="outline" onClick={() => setIsAssignProductOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAssignProducts}>
-              Assign Products
-            </Button>
+
+          <div className="flex justify-between items-center pt-4 border-t border-gray-200">
+            <div className="text-sm text-gray-500">
+              {selectedProducts.length} product(s) selected
+            </div>
+            <div className="flex space-x-2">
+              <Button variant="outline" onClick={() => setIsAssignProductOpen(false)}>
+                Cancel
+              </Button>
+              <Button 
+                onClick={handleAssignProducts}
+                disabled={selectedProducts.length === 0}
+                className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300"
+              >
+                <Package className="h-4 w-4 mr-2" />
+                Assign {selectedProducts.length} Product{selectedProducts.length !== 1 ? 's' : ''}
+              </Button>
+            </div>
           </div>
         </DialogContent>
       </Dialog>
@@ -2772,55 +3145,65 @@ export default function BusinessHub() {
       <Dialog open={isAddContactOpen} onOpenChange={setIsAddContactOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Add Contact</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold text-gray-900 flex items-center">
+              <UserPlus className="h-5 w-5 mr-2 text-blue-600" />
+              Add Contact
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
               Add a new contact for {selectedBusiness?.name}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="contact-name">Name</Label>
-              <Input
-                id="contact-name"
-                value={newContact.name}
-                onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                placeholder="Enter contact name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="contact-position">Position</Label>
-              <Input
-                id="contact-position"
-                value={newContact.position}
-                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
-                placeholder="Enter position"
-              />
-            </div>
-            <div>
-              <Label htmlFor="contact-email">Email</Label>
-              <Input
-                id="contact-email"
-                type="email"
-                value={newContact.email}
-                onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                placeholder="Enter email address"
-              />
-            </div>
-            <div>
-              <Label htmlFor="contact-phone">Phone</Label>
-              <Input
-                id="contact-phone"
-                value={newContact.phone}
-                onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                placeholder="Enter phone number"
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="contact-name" className="text-sm font-medium text-gray-700">Full Name</Label>
+                <Input
+                  id="contact-name"
+                  value={newContact.name}
+                  onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                  placeholder="Enter contact name"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contact-position" className="text-sm font-medium text-gray-700">Position</Label>
+                <Input
+                  id="contact-position"
+                  value={newContact.position}
+                  onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                  placeholder="Enter position"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contact-email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                <Input
+                  id="contact-email"
+                  type="email"
+                  value={newContact.email}
+                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                  placeholder="Enter email address"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="contact-phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
+                <Input
+                  id="contact-phone"
+                  value={newContact.phone}
+                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                  className="mt-1"
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" onClick={() => setIsAddContactOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddContact}>
+            <Button onClick={handleAddContact} className="bg-blue-600 hover:bg-blue-700">
+              <UserPlus className="h-4 w-4 mr-2" />
               Add Contact
             </Button>
           </div>
@@ -2831,55 +3214,65 @@ export default function BusinessHub() {
       <Dialog open={isEditContactOpen} onOpenChange={setIsEditContactOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Edit Contact</DialogTitle>
-            <DialogDescription>
+            <DialogTitle className="text-xl font-bold text-gray-900 flex items-center">
+              <Edit className="h-5 w-5 mr-2 text-green-600" />
+              Edit Contact
+            </DialogTitle>
+            <DialogDescription className="text-gray-600">
               Update contact information
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div>
-              <Label htmlFor="edit-contact-name">Name</Label>
-              <Input
-                id="edit-contact-name"
-                value={newContact.name}
-                onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
-                placeholder="Enter contact name"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-contact-position">Position</Label>
-              <Input
-                id="edit-contact-position"
-                value={newContact.position}
-                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
-                placeholder="Enter position"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-contact-email">Email</Label>
-              <Input
-                id="edit-contact-email"
-                type="email"
-                value={newContact.email}
-                onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
-                placeholder="Enter email address"
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-contact-phone">Phone</Label>
-              <Input
-                id="edit-contact-phone"
-                value={newContact.phone}
-                onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
-                placeholder="Enter phone number"
-              />
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-contact-name" className="text-sm font-medium text-gray-700">Full Name</Label>
+                <Input
+                  id="edit-contact-name"
+                  value={newContact.name}
+                  onChange={(e) => setNewContact({ ...newContact, name: e.target.value })}
+                  placeholder="Enter contact name"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-contact-position" className="text-sm font-medium text-gray-700">Position</Label>
+                <Input
+                  id="edit-contact-position"
+                  value={newContact.position}
+                  onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                  placeholder="Enter position"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-contact-email" className="text-sm font-medium text-gray-700">Email Address</Label>
+                <Input
+                  id="edit-contact-email"
+                  type="email"
+                  value={newContact.email}
+                  onChange={(e) => setNewContact({ ...newContact, email: e.target.value })}
+                  placeholder="Enter email address"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-contact-phone" className="text-sm font-medium text-gray-700">Phone Number</Label>
+                <Input
+                  id="edit-contact-phone"
+                  value={newContact.phone}
+                  onChange={(e) => setNewContact({ ...newContact, phone: e.target.value })}
+                  placeholder="Enter phone number"
+                  className="mt-1"
+                />
+              </div>
             </div>
           </div>
           <div className="flex justify-end space-x-2 mt-6">
             <Button variant="outline" onClick={() => setIsEditContactOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateContact}>
+            <Button onClick={handleUpdateContact} className="bg-green-600 hover:bg-green-700">
+              <Edit className="h-4 w-4 mr-2" />
               Update Contact
             </Button>
           </div>

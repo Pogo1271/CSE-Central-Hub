@@ -3,11 +3,11 @@ import { db } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const task = await db.task.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         assignee: {
           select: {
@@ -67,7 +67,7 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json()
@@ -86,7 +86,7 @@ export async function PUT(
     } = body
 
     const existingTask = await db.task.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!existingTask) {
@@ -97,7 +97,7 @@ export async function PUT(
     }
 
     const task = await db.task.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         title: title !== undefined ? title : existingTask.title,
         description: description !== undefined ? description : existingTask.description,
@@ -163,11 +163,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const existingTask = await db.task.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     if (!existingTask) {
@@ -178,7 +178,7 @@ export async function DELETE(
     }
 
     await db.task.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
 
     return NextResponse.json({ message: 'Task deleted successfully' })

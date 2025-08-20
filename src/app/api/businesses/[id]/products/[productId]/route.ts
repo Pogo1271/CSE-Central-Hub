@@ -3,11 +3,11 @@ import { db } from '@/lib/db'
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string; productId: string } }
+  { params }: { params: Promise<{ id: string; productId: string }> }
 ) {
   try {
-    const businessId = params.id
-    const productId = params.productId
+    const businessId = (await params).id
+    const productId = (await params).productId
 
     // Check if the business exists
     const business = await db.business.findUnique({
@@ -84,11 +84,11 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; productId: string } }
+  { params }: { params: Promise<{ id: string; productId: string }> }
 ) {
   try {
-    const businessId = params.id
-    const productId = params.productId
+    const businessId = (await params).id
+    const productId = (await params).productId
 
     // Check if the assignment exists
     const existingAssignment = await db.businessProduct.findUnique({

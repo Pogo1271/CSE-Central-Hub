@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const quote = await db.quote.findUnique({
-      where: { id: params.id },
+      where: { id: (await params).id },
       include: {
         business: true,
         items: {
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
     const { 
@@ -49,11 +49,11 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     
     // Delete existing items
     await db.quoteItem.deleteMany({
-      where: { quoteId: params.id }
+      where: { quoteId: (await params).id }
     })
     
     const quote = await db.quote.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         title,
         description,
@@ -87,10 +87,10 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await db.quote.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
     
     return NextResponse.json({ message: 'Quote deleted successfully' })

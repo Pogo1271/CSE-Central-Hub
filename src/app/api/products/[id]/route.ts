@@ -3,11 +3,11 @@ import { db } from '@/lib/db';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const product = await db.product.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     });
 
     if (!product) {
@@ -29,14 +29,14 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const body = await request.json();
     const { name, description, price, pricingType, category, sku } = body;
 
     const existingProduct = await db.product.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     });
 
     if (!existingProduct) {
@@ -47,7 +47,7 @@ export async function PUT(
     }
 
     const product = await db.product.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: {
         name: name || existingProduct.name,
         description: description || existingProduct.description,
@@ -71,11 +71,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const existingProduct = await db.product.findUnique({
-      where: { id: params.id }
+      where: { id: (await params).id }
     });
 
     if (!existingProduct) {
@@ -86,7 +86,7 @@ export async function DELETE(
     }
 
     await db.product.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     });
 
     return NextResponse.json({ message: 'Product deleted successfully' });

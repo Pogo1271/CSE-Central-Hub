@@ -3,10 +3,10 @@ import { db } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const businessId = params.id
+    const businessId = (await params).id
 
     // Fetch products for the business through BusinessProduct junction table
     const businessProducts = await db.businessProduct.findMany({

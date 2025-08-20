@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
     const { name, email, password, role, status, color } = body
@@ -22,7 +22,7 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
     
     const user = await db.user.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: updateData
     })
     
@@ -33,13 +33,13 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const body = await request.json()
     const { color } = body
     
     const user = await db.user.update({
-      where: { id: params.id },
+      where: { id: (await params).id },
       data: { color }
     })
     
@@ -50,10 +50,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     await db.user.delete({
-      where: { id: params.id }
+      where: { id: (await params).id }
     })
     
     return NextResponse.json({ success: true })

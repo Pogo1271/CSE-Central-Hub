@@ -3,11 +3,11 @@ import { db } from '@/lib/db'
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string; contactId: string } }
+  { params }: { params: Promise<{ id: string; contactId: string }> }
 ) {
   try {
-    const businessId = params.id
-    const contactId = params.contactId
+    const businessId = (await params).id
+    const contactId = (await params).contactId
     const body = await request.json()
 
     const contact = await db.contact.update({
@@ -30,11 +30,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string; contactId: string } }
+  { params }: { params: Promise<{ id: string; contactId: string }> }
 ) {
   try {
-    const businessId = params.id
-    const contactId = params.contactId
+    const businessId = (await params).id
+    const contactId = (await params).contactId
 
     await db.contact.delete({
       where: {

@@ -3,10 +3,10 @@ import { db } from '@/lib/db'
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const businessId = params.id
+    const businessId = (await params).id
 
     // Fetch contacts for the business
     const contacts = await db.contact.findMany({
@@ -30,10 +30,10 @@ export async function GET(
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const businessId = params.id
+    const businessId = (await params).id
     const body = await request.json()
 
     const contact = await db.contact.create({
