@@ -23,8 +23,7 @@ export default function AuthPage() {
     name: '',
     email: '',
     password: '',
-    confirmPassword: '',
-    company: ''
+    confirmPassword: ''
   })
   const [isLoading, setIsLoading] = useState(false)
   const [authMode, setAuthMode] = useState('login')
@@ -187,6 +186,49 @@ export default function AuthPage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-100 flex items-center justify-center p-4">
+      {/* Success Animation - Moved to top level to avoid positioning conflicts */}
+      {showSuccess && (
+        <div className="fixed inset-0 bg-gradient-to-br from-blue-600/30 via-purple-600/30 to-indigo-600/30 backdrop-blur-md flex items-center justify-center z-[9999] animate-fade-in-smooth">
+          <div className="relative">
+            {/* Animated background circles */}
+            <div className="absolute -inset-6 bg-gradient-to-r from-blue-400/30 to-purple-400/30 rounded-full blur-3xl animate-pulse"></div>
+            <div className="absolute -inset-12 bg-gradient-to-r from-purple-400/20 to-indigo-400/20 rounded-full blur-4xl animate-pulse delay-300"></div>
+            
+            {/* Main success card */}
+            <div className="relative bg-white/98 backdrop-blur-sm rounded-3xl p-12 max-w-md mx-4 text-center transform animate-scale-in-smooth shadow-2xl border border-white/30">
+              {/* Success icon with animation */}
+              <div className="relative mb-8">
+                <div className="absolute inset-0 bg-green-400/30 rounded-full blur-2xl animate-ping"></div>
+                <div className="relative w-24 h-24 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto shadow-xl">
+                  <CheckCircle className="h-12 w-12 text-white" />
+                </div>
+              </div>
+              
+              {/* Success message */}
+              <div className="space-y-4">
+                <h3 className="text-3xl font-bold bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
+                  Welcome Back!
+                </h3>
+                <p className="text-gray-600 text-xl">
+                  You've successfully signed in
+                </p>
+                <div className="flex items-center justify-center space-x-2 text-sm text-gray-500">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span>Redirecting to your dashboard...</span>
+                </div>
+              </div>
+              
+              {/* Progress indicator */}
+              <div className="mt-8">
+                <div className="w-full bg-gray-200 rounded-full h-1.5 overflow-hidden">
+                  <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 rounded-full animate-progress-bar"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Background animation */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-32 w-80 h-80 bg-purple-300 rounded-full opacity-20 animate-pulse"></div>
@@ -284,19 +326,6 @@ export default function AuthPage() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Success Animation */}
-              {showSuccess && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[9999] animate-fade-in-smooth">
-                  <div className="bg-white rounded-2xl p-8 max-w-sm mx-4 text-center transform animate-scale-in-smooth shadow-2xl">
-                    <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle className="h-8 w-8 text-green-600" />
-                    </div>
-                    <h3 className="text-xl font-semibold text-gray-900 mb-2">Welcome!</h3>
-                    <p className="text-gray-600">Redirecting to your dashboard...</p>
-                  </div>
-                </div>
-              )}
-
               <Tabs value={authMode} onValueChange={setAuthMode} className="w-full">
                 <TabsList className="grid w-full grid-cols-2 bg-gray-100 p-1 rounded-lg">
                   <TabsTrigger 
@@ -395,38 +424,6 @@ export default function AuthPage() {
                     </Button>
                   </form>
 
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator className="w-full" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-3 text-gray-500">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.02] border-gray-200"
-                    >
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      Google
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.02] border-gray-200"
-                    >
-                      <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.024-.105-.949-.199-2.403.041-3.439.219-.937 1.404-5.965 1.404-5.965s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.097.118.112.221.085.345-.09.381-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.748-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001.017 0z"/>
-                      </svg>
-                      GitHub
-                    </Button>
-                  </div>
                 </TabsContent>
 
                 <TabsContent value="signup" className="space-y-4 animate-fade-in">
@@ -475,23 +472,6 @@ export default function AuthPage() {
                       {formErrors.email && (
                         <p className="text-sm text-red-600 animate-slide-down">{formErrors.email}</p>
                       )}
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="signup-company" className="text-sm font-medium text-gray-700">
-                        Company (Optional)
-                      </Label>
-                      <div className="relative group">
-                        <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4 group-focus-within:text-blue-600 transition-colors" />
-                        <Input
-                          id="signup-company"
-                          type="text"
-                          placeholder="Enter your company name"
-                          value={signupForm.company}
-                          onChange={(e) => setSignupForm({...signupForm, company: e.target.value})}
-                          className="pl-10 transition-all duration-200 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        />
-                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -599,38 +579,6 @@ export default function AuthPage() {
                     </Button>
                   </form>
 
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <Separator className="w-full" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-3 text-gray-500">Or continue with</span>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      variant="outline" 
-                      className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.02] border-gray-200"
-                    >
-                      <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
-                        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-                        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-                        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-                        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-                      </svg>
-                      Google
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      className="w-full transition-all duration-200 hover:shadow-md hover:scale-[1.02] border-gray-200"
-                    >
-                      <svg className="mr-2 h-4 w-4" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12.017 0C5.396 0 .029 5.367.029 11.987c0 5.079 3.158 9.417 7.618 11.024-.105-.949-.199-2.403.041-3.439.219-.937 1.404-5.965 1.404-5.965s-.359-.72-.359-1.781c0-1.663.967-2.911 2.168-2.911 1.024 0 1.518.769 1.518 1.688 0 1.029-.653 2.567-.992 3.992-.285 1.193.6 2.165 1.775 2.165 2.128 0 3.768-2.245 3.768-5.487 0-2.861-2.063-4.869-5.008-4.869-3.41 0-5.409 2.562-5.409 5.199 0 1.033.394 2.143.889 2.741.097.118.112.221.085.345-.09.381-.293 1.199-.334 1.363-.053.225-.172.271-.402.165-1.495-.69-2.433-2.878-2.433-4.646 0-3.776 2.748-7.252 7.92-7.252 4.158 0 7.392 2.967 7.392 6.923 0 4.135-2.607 7.462-6.233 7.462-1.214 0-2.357-.629-2.748-1.378l-.748 2.853c-.271 1.043-1.002 2.35-1.492 3.146C9.57 23.812 10.763 24.009 12.017 24.009c6.624 0 11.99-5.367 11.99-11.988C24.007 5.367 18.641.001.017 0z"/>
-                      </svg>
-                      GitHub
-                    </Button>
-                  </div>
                 </TabsContent>
               </Tabs>
 
@@ -672,6 +620,21 @@ export default function AuthPage() {
           to { transform: scale(1); }
         }
         
+        @keyframes fade-in-smooth {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes scale-in-smooth {
+          from { transform: scale(0.8); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        
+        @keyframes progress-bar {
+          from { transform: translateX(-100%); }
+          to { transform: translateX(100%); }
+        }
+        
         .animate-fade-in {
           animation: fade-in 0.6s ease-out;
         }
@@ -686,6 +649,18 @@ export default function AuthPage() {
         
         .animate-scale-in {
           animation: scale-in 0.3s ease-out;
+        }
+        
+        .animate-fade-in-smooth {
+          animation: fade-in-smooth 0.5s ease-out;
+        }
+        
+        .animate-scale-in-smooth {
+          animation: scale-in-smooth 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        
+        .animate-progress-bar {
+          animation: progress-bar 1.5s ease-in-out infinite;
         }
         
         .animate-pulse {

@@ -472,7 +472,7 @@ export default function AdminDatabasePage() {
       )
     }
 
-    const columns = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'id') : []
+    const columns = data.length > 0 ? Object.keys(data[0]).filter(key => key !== 'id' && key !== 'password') : []
 
     return (
       <div>
@@ -543,7 +543,7 @@ export default function AdminDatabasePage() {
                       }}
                     />
                   </TableCell>
-                  {columns.map(column => (
+                  {columns.filter(column => column !== 'password').map(column => (
                     <TableCell key={column}>
                       {typeof record[column] === 'boolean' ? (
                         <Badge variant={record[column] ? 'default' : 'secondary'}>

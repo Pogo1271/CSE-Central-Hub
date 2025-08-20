@@ -88,6 +88,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { AnalyticsDashboard } from '@/components/analytics-dashboard'
 import InventoryPage from '@/components/inventory-page'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useAuth } from '@/hooks/use-auth'
 
 // Import client API
 import * as api from '@/lib/client-api'
@@ -131,6 +132,7 @@ const locations = [
 ]
 
 export default function BusinessHub() {
+  const { isAuthenticated, user: currentUser, isLoading } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
@@ -140,9 +142,7 @@ export default function BusinessHub() {
   const [filteredBusinesses, setFilteredBusinesses] = useState<any[]>([])
   const [filteredUsers, setFilteredUsers] = useState<any[]>([])
   
-  // Authentication state
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [currentUser, setCurrentUser] = useState(null)
+  // Handle authentication state
   const [isClient, setIsClient] = useState(false)
   const [displayName, setDisplayName] = useState('User')
   
@@ -296,6 +296,22 @@ export default function BusinessHub() {
     noteId: null
   })
 
+  // Utility function to format dates consistently
+  const formatDate = (date: Date | string) => {
+    try {
+      const d = new Date(date)
+      // Use a consistent format that works on both server and client
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      })
+    } catch (error) {
+      console.error('Error formatting date:', error)
+      return 'Invalid date'
+    }
+  }
+
   // Client-side welcome component
   const WelcomeMessage = () => {
     const [name, setName] = useState('User')
@@ -303,16 +319,30 @@ export default function BusinessHub() {
     
     useEffect(() => {
       setIsMounted(true)
-      const defaultUser = {
-        id: 'cme3diluk0003zm24qhnvxmae',
-        email: 'admin@example.com', 
-        name: 'Admin User', 
-        role: 'Admin',
-        status: 'Active',
-        color: '#EF4444',
-        joined: '2024-01-01T00:00:00.000Z'
+      
+      // Try to get user from localStorage first
+      try {
+        const storedUser = localStorage.getItem('currentUser')
+        if (storedUser) {
+          const user = JSON.parse(storedUser)
+          setName(user.name || 'User')
+        } else {
+          // Fallback to default user for development
+          const defaultUser = {
+            id: 'cme3diluk0003zm24qhnvxmae',
+            email: 'admin@example.com', 
+            name: 'Admin User', 
+            role: 'Admin',
+            status: 'Active',
+            color: '#EF4444',
+            joined: '2024-01-01T00:00:00.000Z'
+          }
+          setName(defaultUser.name)
+        }
+      } catch (error) {
+        console.error('Error reading user from localStorage:', error)
+        setName('User')
       }
-      setName(defaultUser.name)
     }, [])
     
     if (!isMounted) {
@@ -440,38 +470,23 @@ export default function BusinessHub() {
     loadData()
   }, [isAuthenticated, currentUser])
 
-  // Set up authentication and client state
+  // Set up client state and handle authentication redirect
   useEffect(() => {
     // Mark that we're on the client side
     setIsClient(true)
     
-    // For development, set a default admin user
-    const defaultUser = {
-      id: 'cme3diluk0003zm24qhnvxmae',
-      email: 'admin@example.com', 
-      name: 'Admin User', 
-      role: 'Admin',
-      status: 'Active',
-      color: '#EF4444',
-      joined: '2024-01-01T00:00:00.000Z'
+    // Set display name if user is authenticated
+    if (isAuthenticated && currentUser) {
+      setDisplayName(currentUser.name || 'User')
     }
-    
-    setCurrentUser(defaultUser)
-    setIsAuthenticated(true)
-    setDisplayName(defaultUser.name)
-    
-    // Store in localStorage for persistence
-    localStorage.setItem('isAuthenticated', 'true')
-    localStorage.setItem('currentUser', JSON.stringify(defaultUser))
-    
-    console.log('Authentication setup complete')
-    console.log('Current user:', defaultUser)
-  }, [])
+  }, [isAuthenticated, currentUser])
 
-  // Debug currentUser state
+  // Redirect to login if not authenticated
   useEffect(() => {
-    console.log('currentUser state changed:', currentUser)
-  }, [currentUser])
+    if (isClient && !isLoading && !isAuthenticated) {
+      window.location.href = '/auth'
+    }
+  }, [isClient, isLoading, isAuthenticated])
 
   // Load business related data when a business is selected
   useEffect(() => {
@@ -1076,6 +1091,31 @@ export default function BusinessHub() {
     }
   ]
 
+  // Show loading state while checking authentication
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated and not loading, the redirect effect will handle it
+  // This prevents flash of content before redirect
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
@@ -1195,7 +1235,7 @@ export default function BusinessHub() {
                     </div>
                     <div className="text-right">
                       <p className="text-sm text-gray-500">Last updated</p>
-                      <p className="text-sm font-medium text-gray-900">{new Date().toLocaleDateString()}</p>
+                      <p className="text-sm font-medium text-gray-900">{formatDate(new Date())}</p>
                     </div>
                   </div>
                 </div>
@@ -1359,7 +1399,7 @@ export default function BusinessHub() {
                               <div className="flex items-center mt-2 text-xs text-gray-500">
                                 <span className="font-medium">{note.businessName}</span>
                                 <span className="mx-2">•</span>
-                                <span>{new Date(note.createdAt).toLocaleDateString()}</span>
+                                <span>{formatDate(note.createdAt)}</span>
                               </div>
                             </div>
                           </div>
@@ -1437,14 +1477,71 @@ export default function BusinessHub() {
                       <Card key={business.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="pb-3">
                           <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <CardTitle className="text-lg font-semibold text-gray-900 truncate">
-                                {business.name}
-                              </CardTitle>
-                              <CardDescription className="text-sm text-gray-500">
-                                {business.category}
-                              </CardDescription>
+                            <div className="flex items-center space-x-3">
+                              <div className="p-2 bg-blue-100 rounded-lg">
+                                <Building2 className="h-5 w-5 text-blue-600" />
+                              </div>
+                              <div>
+                                <CardTitle className="text-lg font-semibold text-gray-900">{business.name}</CardTitle>
+                                <CardDescription className="text-sm text-gray-500">{business.category}</CardDescription>
+                              </div>
                             </div>
+                            <Badge variant={business.status === 'Active' ? 'default' : 'secondary'}>
+                              {business.status}
+                            </Badge>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <p className="text-sm text-gray-600 mb-4 line-clamp-2">{business.description}</p>
+                          
+                          <div className="space-y-2 mb-4">
+                            <div className="flex items-center text-sm text-gray-500">
+                              <MapPin className="h-4 w-4 mr-2" />
+                              {business.location}
+                            </div>
+                            {business.phone && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <Phone className="h-4 w-4 mr-2" />
+                                {business.phone}
+                              </div>
+                            )}
+                            {business.email && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <Mail className="h-4 w-4 mr-2" />
+                                {business.email}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Related data summary */}
+                          <div className="grid grid-cols-2 gap-4 mb-4">
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                              <p className="text-xs text-gray-500">Tasks</p>
+                              <p className="text-lg font-semibold text-gray-900">{relatedData.tasks.length}</p>
+                            </div>
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                              <p className="text-xs text-gray-500">Quotes</p>
+                              <p className="text-lg font-semibold text-gray-900">{relatedData.quotes.length}</p>
+                            </div>
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                              <p className="text-xs text-gray-500">Documents</p>
+                              <p className="text-lg font-semibold text-gray-900">{relatedData.documents.length}</p>
+                            </div>
+                            <div className="text-center p-2 bg-gray-50 rounded-lg">
+                              <p className="text-xs text-gray-500">Notes</p>
+                              <p className="text-lg font-semibold text-gray-900">{relatedData.notes.length}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex justify-between items-center">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewBusiness(business)}
+                            >
+                              <Eye className="h-4 w-4 mr-2" />
+                              View Details
+                            </Button>
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button variant="ghost" size="sm">
@@ -1452,13 +1549,13 @@ export default function BusinessHub() {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => handleViewBusiness(business)}>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View Details
-                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => handleEditBusiness(business)}>
                                   <Edit className="h-4 w-4 mr-2" />
                                   Edit
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleOpenAssignProduct(business)}>
+                                  <Package className="h-4 w-4 mr-2" />
+                                  Assign Products
                                 </DropdownMenuItem>
                                 <DropdownMenuItem 
                                   onClick={() => handleDeleteBusiness(business.id)}
@@ -1470,70 +1567,6 @@ export default function BusinessHub() {
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
-                        </CardHeader>
-                        <CardContent className="pt-0">
-                          <div className="space-y-3">
-                            <div className="flex items-center text-sm text-gray-600">
-                              <MapPin className="h-4 w-5 mr-2" />
-                              {business.location}
-                            </div>
-                            
-                            {business.phone && (
-                              <div className="flex items-center text-sm text-gray-600">
-                                <Phone className="h-4 w-5 mr-2" />
-                                {business.phone}
-                              </div>
-                            )}
-                            
-                            {business.email && (
-                              <div className="flex items-center text-sm text-gray-600">
-                                <Mail className="h-4 w-5 mr-2" />
-                                {business.email}
-                              </div>
-                            )}
-
-                            <div className="flex items-center justify-between pt-2 border-t">
-                              <div className="flex items-center space-x-2">
-                                <Badge variant={business.status === 'Active' ? 'default' : 'secondary'}>
-                                  {business.status}
-                                </Badge>
-                                <Badge 
-                                  variant="outline" 
-                                  className={
-                                    business.supportContract 
-                                      ? "border-green-500 text-green-700 bg-green-50" 
-                                      : "border-red-500 text-red-700 bg-red-50"
-                                  }
-                                >
-                                  {business.supportContract ? (
-                                    <CheckCircle className="h-3 w-3 mr-1" />
-                                  ) : (
-                                    <X className="h-3 w-3 mr-1" />
-                                  )}
-                                  Support
-                                </Badge>
-                              </div>
-                              <Button variant="outline" size="sm" onClick={() => handleViewBusiness(business)}>
-                                View Details
-                              </Button>
-                            </div>
-
-                            {/* Related Items Summary */}
-                            <div className="grid grid-cols-3 gap-2 pt-2 border-t">
-                              <div className="text-center">
-                                <p className="text-xs text-gray-500">Tasks</p>
-                                <p className="text-sm font-medium">{relatedData.tasks.length}</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-xs text-gray-500">Quotes</p>
-                                <p className="text-sm font-medium">{relatedData.quotes.length}</p>
-                              </div>
-                              <div className="text-center">
-                                <p className="text-xs text-gray-500">Documents</p>
-                                <p className="text-sm font-medium">{relatedData.documents.length}</p>
-                              </div>
-                            </div>
-                          </div>
                         </CardContent>
                       </Card>
                     )
@@ -1544,33 +1577,15 @@ export default function BusinessHub() {
                   <Card className="bg-white shadow-sm">
                     <CardContent className="p-12 text-center">
                       <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                      <h3 className="text-lg font-medium text-gray-900 mb-2">No businesses found</h3>
-                      <p className="text-gray-500 mb-4">
-                        {businessSearchTerm ? 'Try adjusting your search terms' : 'Get started by adding your first business'}
-                      </p>
-                      {!businessSearchTerm && (
-                        <Button onClick={() => setIsAddBusinessOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Business
-                        </Button>
-                      )}
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No businesses found</h3>
+                      <p className="text-gray-500 mb-4">Try adjusting your filters or create a new business.</p>
+                      <Button onClick={() => setIsAddBusinessOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Business
+                      </Button>
                     </CardContent>
                   </Card>
                 )}
-              </div>
-            )}
-
-            {activeTab === 'users' && canAccessTab('users') && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-                  <p className="text-gray-600 mt-1">Manage team members and their permissions</p>
-                </div>
-                <Card className="bg-white shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-gray-500">User management functionality coming soon...</p>
-                  </CardContent>
-                </Card>
               </div>
             )}
 
@@ -1581,12 +1596,169 @@ export default function BusinessHub() {
             {activeTab === 'tasks' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Task Management</h2>
-                  <p className="text-gray-600 mt-1">Organize and track your tasks and projects</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Task Management</h2>
+                      <p className="text-gray-600 mt-1">Track and manage your team's tasks</p>
+                    </div>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Task
+                    </Button>
+                  </div>
                 </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  {/* To Do Column */}
+                  <Card className="bg-white shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-gray-900">To Do</CardTitle>
+                      <Badge variant="secondary">{tasks.filter(t => t.status === 'To Do').length} tasks</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {tasks.filter(t => t.status === 'To Do').map((task) => (
+                        <div key={task.id} className="p-3 border border-gray-200 rounded-lg">
+                          <h4 className="font-medium text-gray-900 mb-1">{task.title}</h4>
+                          <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline">{task.priority}</Badge>
+                            <span className="text-xs text-gray-500">
+                              {formatDate(task.dueDate)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  {/* In Progress Column */}
+                  <Card className="bg-white shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-gray-900">In Progress</CardTitle>
+                      <Badge variant="secondary">{tasks.filter(t => t.status === 'In Progress').length} tasks</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {tasks.filter(t => t.status === 'In Progress').map((task) => (
+                        <div key={task.id} className="p-3 border border-gray-200 rounded-lg">
+                          <h4 className="font-medium text-gray-900 mb-1">{task.title}</h4>
+                          <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline">{task.priority}</Badge>
+                            <span className="text-xs text-gray-500">
+                              {formatDate(task.dueDate)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+
+                  {/* Completed Column */}
+                  <Card className="bg-white shadow-sm">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-lg font-semibold text-gray-900">Completed</CardTitle>
+                      <Badge variant="secondary">{tasks.filter(t => t.status === 'Completed').length} tasks</Badge>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      {tasks.filter(t => t.status === 'Completed').map((task) => (
+                        <div key={task.id} className="p-3 border border-gray-200 rounded-lg opacity-75">
+                          <h4 className="font-medium text-gray-900 mb-1">{task.title}</h4>
+                          <p className="text-sm text-gray-600 mb-2">{task.description}</p>
+                          <div className="flex items-center justify-between">
+                            <Badge variant="outline">{task.priority}</Badge>
+                            <span className="text-xs text-gray-500">
+                              {formatDate(task.dueDate)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div className="space-y-6">
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
+                      <p className="text-gray-600 mt-1">Manage team members and their permissions</p>
+                    </div>
+                    <Button onClick={() => setIsAddUserOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add User
+                    </Button>
+                  </div>
+                </div>
+
                 <Card className="bg-white shadow-sm">
                   <CardContent className="p-6">
-                    <p className="text-gray-500">Task management functionality coming soon...</p>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Joined</TableHead>
+                          <TableHead className="text-right">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {users.map((user) => (
+                          <TableRow key={user.id}>
+                            <TableCell>
+                              <div className="flex items-center space-x-3">
+                                <Avatar className="h-8 w-8">
+                                  <AvatarImage src={user.avatar} />
+                                  <AvatarFallback style={{ backgroundColor: user.color }}>
+                                    {user.name?.charAt(0)}
+                                  </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                  <p className="font-medium text-gray-900">{user.name}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>{user.email}</TableCell>
+                            <TableCell>
+                              <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
+                                {user.role}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>
+                                {user.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {formatDate(user.joined)}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="ghost" size="sm">
+                                    <MoreHorizontal className="h-4 w-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                  <DropdownMenuItem>
+                                    <Edit className="h-4 w-4 mr-2" />
+                                    Edit
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem className="text-red-600">
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
                   </CardContent>
                 </Card>
               </div>
@@ -1595,197 +1767,379 @@ export default function BusinessHub() {
             {activeTab === 'quotes' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Quote Management</h2>
-                  <p className="text-gray-600 mt-1">Create and manage customer quotes</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Quotes & Proposals</h2>
+                      <p className="text-gray-600 mt-1">Manage client quotes and business proposals</p>
+                    </div>
+                    <Button className="bg-blue-600 hover:bg-blue-700">
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Quote
+                    </Button>
+                  </div>
                 </div>
-                <Card className="bg-white shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-gray-500">Quote management functionality coming soon...</p>
-                  </CardContent>
-                </Card>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {quotes.map((quote) => (
+                    <Card key={quote.id} className="bg-white shadow-sm">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-lg font-semibold text-gray-900">{quote.title}</CardTitle>
+                            <CardDescription className="text-sm text-gray-500">
+                              {quote.businessName}
+                            </CardDescription>
+                          </div>
+                          <Badge variant={quote.status === 'Accepted' ? 'default' : 'secondary'}>
+                            {quote.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Total Amount</span>
+                            <span className="text-lg font-semibold text-gray-900">
+                              £{quote.total?.toLocaleString()}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Created</span>
+                            <span className="text-sm text-gray-900">
+                              {formatDate(quote.createdAt)}
+                            </span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Valid Until</span>
+                            <span className="text-sm text-gray-900">
+                              {formatDate(quote.validUntil)}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
 
             {activeTab === 'documents' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Document Management</h2>
-                  <p className="text-gray-600 mt-1">Store and organize your documents</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Document Management</h2>
+                      <p className="text-gray-600 mt-1">Store and organize your business documents</p>
+                    </div>
+                    <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload Document
+                    </Button>
+                  </div>
                 </div>
-                <Card className="bg-white shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-gray-500">Document management functionality coming soon...</p>
-                  </CardContent>
-                </Card>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {documents.map((document) => (
+                    <Card key={document.id} className="bg-white shadow-sm">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-lg font-semibold text-gray-900">{document.name}</CardTitle>
+                            <CardDescription className="text-sm text-gray-500">
+                              {document.category}
+                            </CardDescription>
+                          </div>
+                          <Badge variant={document.status === 'Active' ? 'default' : 'secondary'}>
+                            {document.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="space-y-3">
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Uploaded By</span>
+                            <span className="text-sm text-gray-900">{document.uploadedBy}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Size</span>
+                            <span className="text-sm text-gray-900">{document.size}</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-sm text-gray-500">Uploaded</span>
+                            <span className="text-sm text-gray-900">
+                              {formatDate(document.uploadedAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
 
             {activeTab === 'messages' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Messages</h2>
-                  <p className="text-gray-600 mt-1">Communicate with your team and clients</p>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900">Messages</h2>
+                      <p className="text-gray-600 mt-1">Communicate with your team and clients</p>
+                    </div>
+                    <Button onClick={() => setIsSendMessageOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                      <Send className="h-4 w-4 mr-2" />
+                      New Message
+                    </Button>
+                  </div>
                 </div>
-                <Card className="bg-white shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-gray-500">Messaging functionality coming soon...</p>
-                  </CardContent>
-                </Card>
+
+                <div className="space-y-4">
+                  {messages.map((message) => (
+                    <Card key={message.id} className="bg-white shadow-sm">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <CardTitle className="text-lg font-semibold text-gray-900">{message.subject}</CardTitle>
+                            <CardDescription className="text-sm text-gray-500">
+                              From: {message.senderName} • To: {message.recipientName}
+                            </CardDescription>
+                          </div>
+                          <Badge variant={message.status === 'Read' ? 'default' : 'secondary'}>
+                            {message.status}
+                          </Badge>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="text-gray-600 mb-3">{message.content}</p>
+                        <div className="flex justify-between items-center text-sm text-gray-500">
+                          <span>Sent: {formatDate(message.timestamp)}</span>
+                          <Button variant="outline" size="sm">Reply</Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
 
-            {activeTab === 'analytics' && canAccessTab('analytics') && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Analytics</h2>
-                  <p className="text-gray-600 mt-1">Track your business performance and insights</p>
-                </div>
-                <AnalyticsDashboard />
-              </div>
+            {activeTab === 'analytics' && (
+              <AnalyticsDashboard />
             )}
 
-            {activeTab === 'settings' && canAccessTab('settings') && (
+            {activeTab === 'settings' && (
               <div className="space-y-6">
                 <div className="bg-white rounded-lg shadow-sm p-6">
-                  <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
-                  <p className="text-gray-600 mt-1">Configure your system preferences</p>
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">Settings</h2>
+                    <p className="text-gray-600 mt-1">Configure your BusinessHub preferences</p>
+                  </div>
                 </div>
-                <Card className="bg-white shadow-sm">
-                  <CardContent className="p-6">
-                    <p className="text-gray-500">Settings functionality coming soon...</p>
-                  </CardContent>
-                </Card>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card className="bg-white shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">General Settings</CardTitle>
+                      <CardDescription>Basic application configuration</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="notifications">Email Notifications</Label>
+                          <p className="text-sm text-gray-500">Receive email notifications</p>
+                        </div>
+                        <Switch id="notifications" defaultChecked />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="dark-mode">Dark Mode</Label>
+                          <p className="text-sm text-gray-500">Enable dark theme</p>
+                        </div>
+                        <Switch id="dark-mode" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="auto-save">Auto Save</Label>
+                          <p className="text-sm text-gray-500">Automatically save changes</p>
+                        </div>
+                        <Switch id="auto-save" defaultChecked />
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card className="bg-white shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">Security Settings</CardTitle>
+                      <CardDescription>Manage your account security</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="two-factor">Two-Factor Authentication</Label>
+                          <p className="text-sm text-gray-500">Add an extra layer of security</p>
+                        </div>
+                        <Switch id="two-factor" />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <Label htmlFor="session-timeout">Session Timeout</Label>
+                          <p className="text-sm text-gray-500">Automatically log out after inactivity</p>
+                        </div>
+                        <Switch id="session-timeout" defaultChecked />
+                      </div>
+                      <Button variant="outline" className="w-full">
+                        Change Password
+                      </Button>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             )}
           </div>
         </main>
       </div>
 
-      {/* Add Business Modal */}
+      {/* Add Business Dialog */}
       <Dialog open={isAddBusinessOpen} onOpenChange={setIsAddBusinessOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Add New Business</DialogTitle>
-            <DialogDescription>Create a new business profile in your directory</DialogDescription>
+            <DialogDescription>
+              Create a new business profile in your directory
+            </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="business-name">Business Name</Label>
               <Input
                 id="business-name"
                 value={newBusiness.name}
-                onChange={(e) => setNewBusiness({...newBusiness, name: e.target.value})}
+                onChange={(e) => setNewBusiness({ ...newBusiness, name: e.target.value })}
                 placeholder="Enter business name"
               />
             </div>
             <div>
               <Label htmlFor="business-category">Category</Label>
-              <Select value={newBusiness.category} onValueChange={(value) => setNewBusiness({...newBusiness, category: value})}>
+              <Select value={newBusiness.category} onValueChange={(value) => setNewBusiness({ ...newBusiness, category: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
-                  {categories.filter(cat => cat !== 'All Categories').map((category) => (
-                    <SelectItem key={category} value={category}>{category}</SelectItem>
+                  {categories.filter(c => c !== 'All Categories').map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className="col-span-2">
               <Label htmlFor="business-description">Description</Label>
               <Textarea
                 id="business-description"
                 value={newBusiness.description}
-                onChange={(e) => setNewBusiness({...newBusiness, description: e.target.value})}
+                onChange={(e) => setNewBusiness({ ...newBusiness, description: e.target.value })}
                 placeholder="Enter business description"
+                rows={3}
               />
             </div>
             <div>
               <Label htmlFor="business-location">Location</Label>
-              <Select value={newBusiness.location} onValueChange={(value) => setNewBusiness({...newBusiness, location: value})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select location" />
-                </SelectTrigger>
-                <SelectContent>
-                  {locations.filter(loc => loc !== 'All Locations').map((location) => (
-                    <SelectItem key={location} value={location}>{location}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input
+                id="business-location"
+                value={newBusiness.location}
+                onChange={(e) => setNewBusiness({ ...newBusiness, location: e.target.value })}
+                placeholder="Enter location"
+              />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="business-phone">Phone</Label>
-                <Input
-                  id="business-phone"
-                  value={newBusiness.phone}
-                  onChange={(e) => setNewBusiness({...newBusiness, phone: e.target.value})}
-                  placeholder="Phone number"
-                />
-              </div>
-              <div>
-                <Label htmlFor="business-email">Email</Label>
-                <Input
-                  id="business-email"
-                  value={newBusiness.email}
-                  onChange={(e) => setNewBusiness({...newBusiness, email: e.target.value})}
-                  placeholder="Email address"
-                />
-              </div>
+            <div>
+              <Label htmlFor="business-phone">Phone</Label>
+              <Input
+                id="business-phone"
+                value={newBusiness.phone}
+                onChange={(e) => setNewBusiness({ ...newBusiness, phone: e.target.value })}
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div>
+              <Label htmlFor="business-email">Email</Label>
+              <Input
+                id="business-email"
+                type="email"
+                value={newBusiness.email}
+                onChange={(e) => setNewBusiness({ ...newBusiness, email: e.target.value })}
+                placeholder="Enter email address"
+              />
             </div>
             <div>
               <Label htmlFor="business-website">Website</Label>
               <Input
                 id="business-website"
                 value={newBusiness.website}
-                onChange={(e) => setNewBusiness({...newBusiness, website: e.target.value})}
-                placeholder="Website URL"
+                onChange={(e) => setNewBusiness({ ...newBusiness, website: e.target.value })}
+                placeholder="Enter website URL"
               />
             </div>
-            <div className="flex items-center space-x-2">
-              <Switch
-                id="support-contract"
-                checked={newBusiness.supportContract}
-                onCheckedChange={(checked) => setNewBusiness({...newBusiness, supportContract: checked})}
-              />
-              <Label htmlFor="support-contract">Support Contract Active</Label>
+            <div>
+              <Label htmlFor="business-status">Status</Label>
+              <Select value={newBusiness.status} onValueChange={(value) => setNewBusiness({ ...newBusiness, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddBusinessOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddBusiness}>
-                Add Business
-              </Button>
+            <div className="col-span-2">
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="support-contract"
+                  checked={newBusiness.supportContract}
+                  onCheckedChange={(checked) => setNewBusiness({ ...newBusiness, supportContract: checked })}
+                />
+                <Label htmlFor="support-contract">Support Contract</Label>
+              </div>
             </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddBusinessOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddBusiness}>
+              Add Business
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Add User Modal */}
+      {/* Add User Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add New User</DialogTitle>
-            <DialogDescription>Invite a new team member to join your organization</DialogDescription>
+            <DialogDescription>
+              Create a new user account
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label htmlFor="user-name">Full Name</Label>
+              <Label htmlFor="user-name">Name</Label>
               <Input
                 id="user-name"
                 value={newUser.name}
-                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
-                placeholder="Enter full name"
+                onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                placeholder="Enter user name"
               />
             </div>
             <div>
-              <Label htmlFor="user-email">Email Address</Label>
+              <Label htmlFor="user-email">Email</Label>
               <Input
                 id="user-email"
                 type="email"
                 value={newUser.email}
-                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
                 placeholder="Enter email address"
               />
             </div>
@@ -1795,15 +2149,15 @@ export default function BusinessHub() {
                 id="user-password"
                 type="password"
                 value={newUser.password}
-                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
                 placeholder="Enter password"
               />
             </div>
             <div>
               <Label htmlFor="user-role">Role</Label>
-              <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({ ...newUser, role: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select role" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="User">User</SelectItem>
@@ -1812,24 +2166,48 @@ export default function BusinessHub() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleAddUser}>
-                Add User
-              </Button>
+            <div>
+              <Label htmlFor="user-status">Status</Label>
+              <Select value={newUser.status} onValueChange={(value) => setNewUser({ ...newUser, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            <div>
+              <Label htmlFor="user-color">Color</Label>
+              <Input
+                id="user-color"
+                type="color"
+                value={newUser.color}
+                onChange={(e) => setNewUser({ ...newUser, color: e.target.value })}
+                className="h-10 w-full"
+              />
+            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddUser}>
+              Add User
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Upload Document Modal */}
+      {/* Upload Document Dialog */}
       <Dialog open={isUploadDialogOpen} onOpenChange={setIsUploadDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Upload Document</DialogTitle>
-            <DialogDescription>Share a file with your team</DialogDescription>
+            <DialogDescription>
+              Upload a file to your document library
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
@@ -1841,45 +2219,45 @@ export default function BusinessHub() {
               />
             </div>
             <div>
-              <Label htmlFor="document-category">Category</Label>
+              <Label htmlFor="upload-category">Category</Label>
               <Select value={uploadCategory} onValueChange={setUploadCategory}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="General">General</SelectItem>
-                  <SelectItem value="Planning">Planning</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Finance">Finance</SelectItem>
-                  <SelectItem value="Project">Project</SelectItem>
-                  <SelectItem value="HR">HR</SelectItem>
-                  <SelectItem value="Legal">Legal</SelectItem>
+                  <SelectItem value="Contracts">Contracts</SelectItem>
+                  <SelectItem value="Invoices">Invoices</SelectItem>
+                  <SelectItem value="Reports">Reports</SelectItem>
+                  <SelectItem value="Presentations">Presentations</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleFileUpload}>
-                Upload Document
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsUploadDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleFileUpload}>
+              Upload
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Send Message Modal */}
+      {/* Send Message Dialog */}
       <Dialog open={isSendMessageOpen} onOpenChange={setIsSendMessageOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Send Message</DialogTitle>
-            <DialogDescription>Send a message to a team member</DialogDescription>
+            <DialogDescription>
+              Send a message to a team member
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label htmlFor="message-recipient">Recipient</Label>
-              <Select value={messageData.recipient} onValueChange={(value) => setMessageData({...messageData, recipient: value})}>
+              <Select value={messageData.recipient} onValueChange={(value) => setMessageData({ ...messageData, recipient: value })}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select recipient" />
                 </SelectTrigger>
@@ -1897,7 +2275,7 @@ export default function BusinessHub() {
               <Input
                 id="message-subject"
                 value={messageData.subject}
-                onChange={(e) => setMessageData({...messageData, subject: e.target.value})}
+                onChange={(e) => setMessageData({ ...messageData, subject: e.target.value })}
                 placeholder="Enter subject"
               />
             </div>
@@ -1906,31 +2284,29 @@ export default function BusinessHub() {
               <Textarea
                 id="message-content"
                 value={messageData.content}
-                onChange={(e) => setMessageData({...messageData, content: e.target.value})}
+                onChange={(e) => setMessageData({ ...messageData, content: e.target.value })}
                 placeholder="Enter your message"
                 rows={4}
               />
             </div>
-            <div className="flex justify-end space-x-2">
-              <Button variant="outline" onClick={() => setIsSendMessageOpen(false)}>
-                Cancel
-              </Button>
-              <Button onClick={handleSendMessage}>
-                Send Message
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsSendMessageOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSendMessage}>
+              Send
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* View Business Modal */}
+      {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="sm:max-w-4xl max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-xl font-bold text-gray-900">
-              {selectedBusiness?.name}
-            </DialogTitle>
-            <DialogDescription className="text-gray-600">
+            <DialogTitle>{selectedBusiness?.name}</DialogTitle>
+            <DialogDescription>
               {selectedBusiness?.category} • {selectedBusiness?.location}
             </DialogDescription>
           </DialogHeader>
@@ -1938,458 +2314,290 @@ export default function BusinessHub() {
           {selectedBusiness && (
             <div className="space-y-6">
               {/* Business Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Business Information</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Category</Label>
-                    <p className="text-gray-900">{selectedBusiness.category}</p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Status</Label>
-                    <Badge variant={selectedBusiness.status === 'Active' ? 'default' : 'secondary'}>
-                      {selectedBusiness.status}
-                    </Badge>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Location</Label>
-                    <p className="text-gray-900 flex items-center">
-                      <MapPin className="h-4 w-5 mr-2" />
-                      {selectedBusiness.location}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Phone</Label>
-                    <p className="text-gray-900 flex items-center">
-                      <Phone className="h-4 w-5 mr-2" />
-                      {selectedBusiness.phone || 'Not provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Email</Label>
-                    <p className="text-gray-900 flex items-center">
-                      <Mail className="h-4 w-5 mr-2" />
-                      {selectedBusiness.email || 'Not provided'}
-                    </p>
-                  </div>
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Website</Label>
-                    <p className="text-gray-900 flex items-center">
-                      <Globe className="h-4 w-5 mr-2" />
-                      {selectedBusiness.website ? (
-                        <a href={selectedBusiness.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                          {selectedBusiness.website}
-                        </a>
-                      ) : 'Not provided'}
-                    </p>
-                  </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Status</Label>
+                  <p className="text-gray-900">{selectedBusiness.status}</p>
                 </div>
-                
-                {selectedBusiness.description && (
-                  <div>
-                    <Label className="text-sm font-medium text-gray-500">Description</Label>
-                    <p className="text-gray-900 mt-1">{selectedBusiness.description}</p>
-                  </div>
-                )}
-              </div>
-
-              {/* Support Contract Banner */}
-              <div className={`rounded-lg p-4 flex items-center space-x-3 ${
-                selectedBusiness.supportContract 
-                  ? 'bg-green-50 border border-green-200' 
-                  : 'bg-red-50 border border-red-200'
-              }`}>
-                <div className={`flex-shrink-0 ${
-                  selectedBusiness.supportContract ? 'text-green-600' : 'text-red-600'
-                }`}>
-                  {selectedBusiness.supportContract ? (
-                    <CheckCircle className="h-6 w-6" />
-                  ) : (
-                    <X className="h-6 w-6" />
-                  )}
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Support Contract</Label>
+                  <p className="text-gray-900">{selectedBusiness.supportContract ? 'Yes' : 'No'}</p>
                 </div>
-                <div className="flex-1">
-                  <h4 className={`text-sm font-medium ${
-                    selectedBusiness.supportContract ? 'text-green-800' : 'text-red-800'
-                  }`}>
-                    Support Contract {selectedBusiness.supportContract ? 'Active' : 'Inactive'}
-                  </h4>
-                  <p className={`text-xs ${
-                    selectedBusiness.supportContract ? 'text-green-700' : 'text-red-700'
-                  }`}>
-                    {selectedBusiness.supportContract 
-                      ? 'This business has an active support contract'
-                      : 'This business does not have a support contract'
-                    }
-                  </p>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Phone</Label>
+                  <p className="text-gray-900">{selectedBusiness.phone || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Email</Label>
+                  <p className="text-gray-900">{selectedBusiness.email || 'N/A'}</p>
+                </div>
+                <div>
+                  <Label className="text-sm font-medium text-gray-500">Website</Label>
+                  <p className="text-gray-900">{selectedBusiness.website || 'N/A'}</p>
                 </div>
               </div>
 
-              {/* Related Data */}
-              <div className="space-y-6">
-                <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Related Information</h3>
+              <div>
+                <Label className="text-sm font-medium text-gray-500">Description</Label>
+                <p className="text-gray-900 mt-1">{selectedBusiness.description}</p>
+              </div>
+
+              {/* Tabs for related data */}
+              <Tabs defaultValue="products" className="w-full">
+                <TabsList className="grid w-full grid-cols-5">
+                  <TabsTrigger value="products">Products</TabsTrigger>
+                  <TabsTrigger value="contacts">Contacts</TabsTrigger>
+                  <TabsTrigger value="tasks">Tasks</TabsTrigger>
+                  <TabsTrigger value="quotes">Quotes</TabsTrigger>
+                  <TabsTrigger value="notes">Notes</TabsTrigger>
+                </TabsList>
                 
-                <>
-                  {/* Summary Cards */}
-                  <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <Card className="bg-blue-50 border-blue-200">
-                      <CardContent className="p-4 text-center">
-                        <Package className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-blue-900">{businessRelatedData.products.length}</p>
-                        <p className="text-sm text-blue-700">Products</p>
-                      </CardContent>
-                    </Card>
+                <TabsContent value="products" className="mt-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Assigned Products</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => handleOpenAssignProduct(selectedBusiness)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Assign Product
+                      </Button>
+                    </div>
                     
-                    <Card className="bg-purple-50 border-purple-200">
-                      <CardContent className="p-4 text-center">
-                        <Users className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-purple-900">{businessRelatedData.contacts.length}</p>
-                        <p className="text-sm text-purple-700">Contacts</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-green-50 border-green-200">
-                      <CardContent className="p-4 text-center">
-                        <CheckSquare className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-green-900">{businessRelatedData.tasks.length}</p>
-                        <p className="text-sm text-green-700">Tasks</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-purple-50 border-purple-200">
-                      <CardContent className="p-4 text-center">
-                        <FileSignature className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-purple-900">{businessRelatedData.quotes.length}</p>
-                        <p className="text-sm text-purple-700">Quotes</p>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-orange-50 border-orange-200">
-                      <CardContent className="p-4 text-center">
-                        <FolderOpen className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                        <p className="text-2xl font-bold text-orange-900">{businessRelatedData.documents.length}</p>
-                        <p className="text-sm text-orange-700">Documents</p>
-                      </CardContent>
-                    </Card>
-                  </div>
-
-                      {/* Detailed Lists */}
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {/* Recent Tasks */}
-                        {businessRelatedData.tasks.length > 0 && (
-                          <Card className="bg-white border-gray-200">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                                <CheckSquare className="h-4 w-4 mr-2 text-green-600" />
-                                Recent Tasks
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {businessRelatedData.tasks.slice(0, 5).map((task) => (
-                                  <div key={task.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
-                                      <p className="text-xs text-gray-500">{task.status}</p>
-                                    </div>
-                                    {task.startDate && (
-                                      <p className="text-xs text-gray-500">
-                                        {new Date(task.startDate).toLocaleDateString()}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                                {businessRelatedData.tasks.length > 5 && (
-                                  <p className="text-xs text-gray-500 text-center">
-                                    +{businessRelatedData.tasks.length - 5} more tasks
+                    {businessRelatedData.products.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {businessRelatedData.products.map((product) => (
+                          <Card key={product.id} className="bg-white shadow-sm">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{product.name}</h4>
+                                  <p className="text-sm text-gray-500">{product.category}</p>
+                                  <p className="text-lg font-semibold text-gray-900 mt-2">
+                                    £{product.price?.toLocaleString()}
                                   </p>
-                                )}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleRemoveProduct(selectedBusiness.id, product.id)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               </div>
                             </CardContent>
                           </Card>
-                        )}
-
-                        {/* Recent Quotes */}
-                        {businessRelatedData.quotes.length > 0 && (
-                          <Card className="bg-white border-gray-200">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                                <FileSignature className="h-4 w-4 mr-2 text-purple-600" />
-                                Recent Quotes
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {businessRelatedData.quotes.slice(0, 5).map((quote) => (
-                                  <div key={quote.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{quote.title}</p>
-                                      <p className="text-xs text-gray-500">{quote.status}</p>
-                                    </div>
-                                    {quote.totalAmount && (
-                                      <p className="text-sm font-medium text-gray-900">
-                                        £{quote.totalAmount.toLocaleString()}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                                {businessRelatedData.quotes.length > 5 && (
-                                  <p className="text-xs text-gray-500 text-center">
-                                    +{businessRelatedData.quotes.length - 5} more quotes
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {/* Products */}
-                        {businessRelatedData.products.length > 0 && (
-                          <Card className="bg-white border-gray-200">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                                <Package className="h-4 w-4 mr-2 text-blue-600" />
-                                Products
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {businessRelatedData.products.slice(0, 5).map((product) => (
-                                  <div key={product.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                                      <p className="text-xs text-gray-500">{product.category}</p>
-                                      <div className="flex items-center space-x-2 mt-1">
-                                        <p className="text-sm font-semibold text-green-600">
-                                          £{product.price.toLocaleString()}
-                                        </p>
-                                        <Badge variant="outline" className="text-xs">
-                                          {product.pricingType || 'one-off'}
-                                        </Badge>
-                                        {product.sku && (
-                                          <p className="text-xs text-gray-400">SKU: {product.sku}</p>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <Button
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => handleRemoveProduct(selectedBusiness.id, product.id)}
-                                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ))}
-                                {businessRelatedData.products.length > 5 && (
-                                  <p className="text-xs text-gray-500 text-center">
-                                    +{businessRelatedData.products.length - 5} more products
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {/* Contacts */}
-                        {businessRelatedData.contacts.length > 0 && (
-                          <Card className="bg-white border-gray-200">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                                <Users className="h-4 w-4 mr-2 text-purple-600" />
-                                Contacts
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {businessRelatedData.contacts.slice(0, 5).map((contact) => (
-                                  <div key={contact.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0 pr-2">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{contact.name}</p>
-                                      <p className="text-xs text-gray-500">{contact.position}</p>
-                                      <div className="flex flex-col space-y-1 mt-1">
-                                        {contact.email && (
-                                          <div className="flex items-center text-xs text-gray-600">
-                                            <Mail className="h-4 w-5 mr-2 flex-shrink-0" />
-                                            <span className="truncate">{contact.email}</span>
-                                          </div>
-                                        )}
-                                        {contact.phone && (
-                                          <div className="flex items-center text-xs text-gray-600">
-                                            <Phone className="h-4 w-5 mr-2 flex-shrink-0" />
-                                            <span className="truncate">{contact.phone}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    </div>
-                                    <div className="flex space-x-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleEditContact(contact)}
-                                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDeleteContact(contact.id)}
-                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                                {businessRelatedData.contacts.length > 5 && (
-                                  <p className="text-xs text-gray-500 text-center">
-                                    +{businessRelatedData.contacts.length - 5} more contacts
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {/* Notes */}
-                        {businessRelatedData.notes.length > 0 && (
-                          <Card className="bg-white border-gray-200">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                                <FileText className="h-4 w-4 mr-2 text-blue-600" />
-                                Notes
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {businessRelatedData.notes.slice(0, 5).map((note) => (
-                                  <div key={note.id} className="flex items-start justify-between p-3 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0 pr-2">
-                                      <p className="text-sm font-medium text-gray-900">{note.title}</p>
-                                      <p className="text-xs text-gray-500 mt-1">{note.content}</p>
-                                      {note.createdAt && (
-                                        <p className="text-xs text-gray-400 mt-1">
-                                          {new Date(note.createdAt).toLocaleDateString()}
-                                        </p>
-                                      )}
-                                    </div>
-                                    <div className="flex space-x-1">
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleEditNote(note)}
-                                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                                      >
-                                        <Edit className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={() => handleDeleteNote(note.id)}
-                                        className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                                      >
-                                        <Trash2 className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  </div>
-                                ))}
-                                {businessRelatedData.notes.length > 5 && (
-                                  <p className="text-xs text-gray-500 text-center">
-                                    +{businessRelatedData.notes.length - 5} more notes
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
-
-                        {/* Documents */}
-                        {businessRelatedData.documents.length > 0 && (
-                          <Card className="bg-white border-gray-200">
-                            <CardHeader className="pb-3">
-                              <CardTitle className="text-base font-medium text-gray-900 flex items-center">
-                                <FolderOpen className="h-4 w-4 mr-2 text-orange-600" />
-                                Documents
-                              </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-0">
-                              <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {businessRelatedData.documents.slice(0, 5).map((document) => (
-                                  <div key={document.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                                    <div className="flex-1 min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{document.name}</p>
-                                      <p className="text-xs text-gray-500">{document.type || 'Document'}</p>
-                                    </div>
-                                    {document.uploadedBy && (
-                                      <p className="text-xs text-gray-500">
-                                        {document.uploadedBy}
-                                      </p>
-                                    )}
-                                  </div>
-                                ))}
-                                {businessRelatedData.documents.length > 5 && (
-                                  <p className="text-xs text-gray-500 text-center">
-                                    +{businessRelatedData.documents.length - 5} more documents
-                                  </p>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        )}
+                        ))}
                       </div>
-
-                      {/* Empty State */}
-                      {businessRelatedData.products.length === 0 && businessRelatedData.tasks.length === 0 && 
-                       businessRelatedData.quotes.length === 0 && businessRelatedData.documents.length === 0 && 
-                       businessRelatedData.contacts.length === 0 && businessRelatedData.notes.length === 0 && (
-                        <Card className="bg-gray-50 border-gray-200">
-                          <CardContent className="p-8 text-center">
-                            <p className="text-gray-500">No related information found for this business.</p>
-                          </CardContent>
-                        </Card>
-                      )}
-                    </>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No products assigned</p>
+                    )}
                   </div>
+                </TabsContent>
+                
+                <TabsContent value="contacts" className="mt-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Business Contacts</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsAddContactOpen(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Contact
+                      </Button>
+                    </div>
+                    
+                    {businessRelatedData.contacts.length > 0 ? (
+                      <div className="space-y-3">
+                        {businessRelatedData.contacts.map((contact) => (
+                          <Card key={contact.id} className="bg-white shadow-sm">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{contact.name}</h4>
+                                  <p className="text-sm text-gray-500">{contact.position}</p>
+                                  <div className="mt-2 space-y-1">
+                                    {contact.email && (
+                                      <p className="text-sm text-gray-600">
+                                        <Mail className="h-3 w-3 inline mr-1" />
+                                        {contact.email}
+                                      </p>
+                                    )}
+                                    {contact.phone && (
+                                      <p className="text-sm text-gray-600">
+                                        <Phone className="h-3 w-3 inline mr-1" />
+                                        {contact.phone}
+                                      </p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="flex space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditContact(contact)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteContact(contact.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No contacts found</p>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="tasks" className="mt-4">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Related Tasks</h3>
+                    
+                    {businessRelatedData.tasks.length > 0 ? (
+                      <div className="space-y-3">
+                        {businessRelatedData.tasks.map((task) => (
+                          <Card key={task.id} className="bg-white shadow-sm">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{task.title}</h4>
+                                  <p className="text-sm text-gray-600">{task.description}</p>
+                                  <div className="flex items-center mt-2 space-x-4">
+                                    <Badge variant="outline">{task.priority}</Badge>
+                                    <Badge variant={task.status === 'Completed' ? 'default' : 'secondary'}>
+                                      {task.status}
+                                    </Badge>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No tasks found</p>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="quotes" className="mt-4">
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold">Related Quotes</h3>
+                    
+                    {businessRelatedData.quotes.length > 0 ? (
+                      <div className="space-y-3">
+                        {businessRelatedData.quotes.map((quote) => (
+                          <Card key={quote.id} className="bg-white shadow-sm">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div>
+                                  <h4 className="font-medium text-gray-900">{quote.title}</h4>
+                                  <p className="text-lg font-semibold text-gray-900 mt-2">
+                                    £{quote.total?.toLocaleString()}
+                                  </p>
+                                  <div className="flex items-center mt-2 space-x-4">
+                                    <Badge variant={quote.status === 'Accepted' ? 'default' : 'secondary'}>
+                                      {quote.status}
+                                    </Badge>
+                                    <span className="text-sm text-gray-500">
+                                      Valid until {formatDate(quote.validUntil)}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No quotes found</p>
+                    )}
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="notes" className="mt-4">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <h3 className="text-lg font-semibold">Business Notes</h3>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setIsAddNoteOpen(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Note
+                      </Button>
+                    </div>
+                    
+                    {businessRelatedData.notes.length > 0 ? (
+                      <div className="space-y-3">
+                        {businessRelatedData.notes.map((note) => (
+                          <Card key={note.id} className="bg-white shadow-sm">
+                            <CardContent className="p-4">
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <h4 className="font-medium text-gray-900">{note.title}</h4>
+                                  <p className="text-sm text-gray-600 mt-1">{note.content}</p>
+                                  <p className="text-xs text-gray-500 mt-2">
+                                    {formatDate(note.createdAt)}
+                                  </p>
+                                </div>
+                                <div className="flex space-x-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleEditNote(note)}
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleDeleteNote(note.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-gray-500 text-center py-4">No notes found</p>
+                    )}
+                  </div>
+                </TabsContent>
+              </Tabs>
 
-              {/* Action Buttons */}
+              {/* Action buttons */}
               <div className="flex justify-end space-x-2 pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewBusinessOpen(false)}>
                   Close
                 </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSelectedBusiness(selectedBusiness)
-                    setIsAddContactOpen(true)
-                  }}
-                >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add Contact
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSelectedBusiness(selectedBusiness)
-                    setIsAddNoteOpen(true)
-                  }}
-                >
-                  <FileText className="h-4 w-4 mr-2" />
-                  Add Note
-                </Button>
-                <Button 
-                  variant="outline" 
-                  onClick={() => handleOpenAssignProduct(selectedBusiness)}
-                >
-                  <Package className="h-4 w-4 mr-2" />
-                  Assign Product
-                </Button>
-                <Button onClick={() => {
-                  setIsViewBusinessOpen(false)
-                  handleEditBusiness(selectedBusiness)
-                }}>
+                <Button variant="outline" onClick={() => handleEditBusiness(selectedBusiness)}>
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Business
+                </Button>
+                <Button 
+                  variant="destructive" 
+                  onClick={() => handleDeleteBusiness(selectedBusiness.id)}
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Business
                 </Button>
               </div>
             </div>
@@ -2397,37 +2605,34 @@ export default function BusinessHub() {
         </DialogContent>
       </Dialog>
 
-      {/* Edit Business Modal */}
+      {/* Edit Business Dialog */}
       <Dialog open={isEditBusinessOpen} onOpenChange={setIsEditBusinessOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Business</DialogTitle>
-            <DialogDescription>Update business information</DialogDescription>
+            <DialogDescription>
+              Update business information
+            </DialogDescription>
           </DialogHeader>
-          
           {selectedBusiness && (
-            <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="edit-business-name">Business Name</Label>
                 <Input
                   id="edit-business-name"
                   value={selectedBusiness.name}
-                  onChange={(e) => setSelectedBusiness({...selectedBusiness, name: e.target.value})}
+                  onChange={(e) => setSelectedBusiness({ ...selectedBusiness, name: e.target.value })}
                   placeholder="Enter business name"
                 />
               </div>
-              
               <div>
                 <Label htmlFor="edit-business-category">Category</Label>
-                <Select 
-                  value={selectedBusiness.category} 
-                  onValueChange={(value) => setSelectedBusiness({...selectedBusiness, category: value})}
-                >
+                <Select value={selectedBusiness.category} onValueChange={(value) => setSelectedBusiness({ ...selectedBusiness, category: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {categories.filter(cat => cat !== 'All Categories').map((category) => (
+                    {categories.filter(c => c !== 'All Categories').map((category) => (
                       <SelectItem key={category} value={category}>
                         {category}
                       </SelectItem>
@@ -2435,83 +2640,56 @@ export default function BusinessHub() {
                   </SelectContent>
                 </Select>
               </div>
-              
+              <div className="col-span-2">
+                <Label htmlFor="edit-business-description">Description</Label>
+                <Textarea
+                  id="edit-business-description"
+                  value={selectedBusiness.description}
+                  onChange={(e) => setSelectedBusiness({ ...selectedBusiness, description: e.target.value })}
+                  placeholder="Enter business description"
+                  rows={3}
+                />
+              </div>
               <div>
                 <Label htmlFor="edit-business-location">Location</Label>
-                <Select 
-                  value={selectedBusiness.location} 
-                  onValueChange={(value) => setSelectedBusiness({...selectedBusiness, location: value})}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {locations.filter(loc => loc !== 'All Locations').map((location) => (
-                      <SelectItem key={location} value={location}>
-                        {location}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Input
+                  id="edit-business-location"
+                  value={selectedBusiness.location}
+                  onChange={(e) => setSelectedBusiness({ ...selectedBusiness, location: e.target.value })}
+                  placeholder="Enter location"
+                />
               </div>
-              
               <div>
                 <Label htmlFor="edit-business-phone">Phone</Label>
                 <Input
                   id="edit-business-phone"
-                  value={selectedBusiness.phone || ''}
-                  onChange={(e) => setSelectedBusiness({...selectedBusiness, phone: e.target.value})}
+                  value={selectedBusiness.phone}
+                  onChange={(e) => setSelectedBusiness({ ...selectedBusiness, phone: e.target.value })}
                   placeholder="Enter phone number"
                 />
               </div>
-              
               <div>
                 <Label htmlFor="edit-business-email">Email</Label>
                 <Input
                   id="edit-business-email"
                   type="email"
-                  value={selectedBusiness.email || ''}
-                  onChange={(e) => setSelectedBusiness({...selectedBusiness, email: e.target.value})}
+                  value={selectedBusiness.email}
+                  onChange={(e) => setSelectedBusiness({ ...selectedBusiness, email: e.target.value })}
                   placeholder="Enter email address"
                 />
               </div>
-              
               <div>
                 <Label htmlFor="edit-business-website">Website</Label>
                 <Input
                   id="edit-business-website"
-                  value={selectedBusiness.website || ''}
-                  onChange={(e) => setSelectedBusiness({...selectedBusiness, website: e.target.value})}
+                  value={selectedBusiness.website}
+                  onChange={(e) => setSelectedBusiness({ ...selectedBusiness, website: e.target.value })}
                   placeholder="Enter website URL"
                 />
               </div>
-              
-              <div>
-                <Label htmlFor="edit-business-description">Description</Label>
-                <Textarea
-                  id="edit-business-description"
-                  value={selectedBusiness.description || ''}
-                  onChange={(e) => setSelectedBusiness({...selectedBusiness, description: e.target.value})}
-                  placeholder="Enter business description"
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex items-center space-x-2">
-                <Switch
-                  id="edit-support-contract"
-                  checked={selectedBusiness.supportContract || false}
-                  onCheckedChange={(checked) => setSelectedBusiness({...selectedBusiness, supportContract: checked})}
-                />
-                <Label htmlFor="edit-support-contract">Support Contract Active</Label>
-              </div>
-              
               <div>
                 <Label htmlFor="edit-business-status">Status</Label>
-                <Select 
-                  value={selectedBusiness.status} 
-                  onValueChange={(value) => setSelectedBusiness({...selectedBusiness, status: value})}
-                >
+                <Select value={selectedBusiness.status} onValueChange={(value) => setSelectedBusiness({ ...selectedBusiness, status: value })}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -2522,126 +2700,86 @@ export default function BusinessHub() {
                   </SelectContent>
                 </Select>
               </div>
-              
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={() => setIsEditBusinessOpen(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => {
-                    setIsEditBusinessOpen(false)
-                    handleDeleteBusiness(selectedBusiness.id)
-                  }}
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete
-                </Button>
-                <Button onClick={handleUpdateBusiness}>
-                  Save Changes
-                </Button>
+              <div className="col-span-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="edit-support-contract"
+                    checked={selectedBusiness.supportContract}
+                    onCheckedChange={(checked) => setSelectedBusiness({ ...selectedBusiness, supportContract: checked })}
+                  />
+                  <Label htmlFor="edit-support-contract">Support Contract</Label>
+                </div>
               </div>
             </div>
           )}
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsEditBusinessOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateBusiness}>
+              Update Business
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Assign Product Modal */}
+      {/* Assign Product Dialog */}
       <Dialog open={isAssignProductOpen} onOpenChange={setIsAssignProductOpen}>
-        <DialogContent className="sm:max-w-4xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Assign Products to Business</DialogTitle>
+            <DialogTitle>Assign Products</DialogTitle>
             <DialogDescription>
               Select products to assign to {selectedBusiness?.name}
             </DialogDescription>
           </DialogHeader>
-          
-          {selectedBusiness && (
-            <div className="space-y-4">
-              {availableProducts.length === 0 ? (
-                <div className="text-center py-8">
-                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-500">All available products are already assigned to this business.</p>
+          <div className="space-y-4">
+            <div className="max-h-60 overflow-y-auto space-y-2">
+              {availableProducts.map((product) => (
+                <div key={product.id} className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`product-${product.id}`}
+                    checked={selectedProducts.includes(product.id)}
+                    onCheckedChange={(checked) => {
+                      if (checked) {
+                        setSelectedProducts([...selectedProducts, product.id])
+                      } else {
+                        setSelectedProducts(selectedProducts.filter(id => id !== product.id))
+                      }
+                    }}
+                  />
+                  <Label htmlFor={`product-${product.id}`} className="flex-1">
+                    <div className="flex justify-between">
+                      <span>{product.name}</span>
+                      <span className="text-sm text-gray-500">£{product.price?.toLocaleString()}</span>
+                    </div>
+                  </Label>
                 </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label className="text-sm font-medium">Available Products</Label>
-                    <div className="space-y-2 max-h-60 overflow-y-auto border rounded-lg p-2">
-                      {availableProducts.map((product) => (
-                        <div key={product.id} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50">
-                          <Checkbox
-                            id={`product-${product.id}`}
-                            checked={selectedProducts.includes(product.id)}
-                            onCheckedChange={(checked) => {
-                              if (checked) {
-                                setSelectedProducts([...selectedProducts, product.id])
-                              } else {
-                                setSelectedProducts(selectedProducts.filter(id => id !== product.id))
-                              }
-                            }}
-                          />
-                          <div className="flex-1 min-w-0">
-                            <label 
-                              htmlFor={`product-${product.id}`}
-                              className="text-sm font-medium text-gray-900 cursor-pointer"
-                            >
-                              {product.name}
-                            </label>
-                            <p className="text-xs text-gray-500 mt-1">{product.category}</p>
-                            <div className="flex items-center space-x-2 mt-2">
-                              <p className="text-sm font-semibold text-green-600">
-                                £{product.price.toLocaleString()}
-                              </p>
-                              <Badge variant="outline" className="text-xs">
-                                {product.pricingType || 'one-off'}
-                              </Badge>
-                              {product.description && (
-                                <p className="text-xs text-gray-400 truncate">{product.description}</p>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div className="flex justify-between items-center pt-4 border-t">
-                    <p className="text-sm text-gray-500">
-                      {selectedProducts.length} product(s) selected
-                    </p>
-                    <div className="flex space-x-2">
-                      <Button variant="outline" onClick={() => setIsAssignProductOpen(false)}>
-                        Cancel
-                      </Button>
-                      <Button 
-                        onClick={handleAssignProducts}
-                        disabled={selectedProducts.length === 0}
-                      >
-                        Assign Selected Products
-                      </Button>
-                    </div>
-                  </div>
-                </>
-              )}
+              ))}
             </div>
-          )}
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAssignProductOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAssignProducts}>
+              Assign Products
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
 
-      {/* Add Contact Modal */}
+      {/* Add Contact Dialog */}
       <Dialog open={isAddContactOpen} onOpenChange={setIsAddContactOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Contact</DialogTitle>
             <DialogDescription>
               Add a new contact for {selectedBusiness?.name}
             </DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4">
             <div>
-              <Label htmlFor="contact-name">Name *</Label>
+              <Label htmlFor="contact-name">Name</Label>
               <Input
                 id="contact-name"
                 value={newContact.name}
@@ -2649,7 +2787,15 @@ export default function BusinessHub() {
                 placeholder="Enter contact name"
               />
             </div>
-            
+            <div>
+              <Label htmlFor="contact-position">Position</Label>
+              <Input
+                id="contact-position"
+                value={newContact.position}
+                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                placeholder="Enter position"
+              />
+            </div>
             <div>
               <Label htmlFor="contact-email">Email</Label>
               <Input
@@ -2660,7 +2806,6 @@ export default function BusinessHub() {
                 placeholder="Enter email address"
               />
             </div>
-            
             <div>
               <Label htmlFor="contact-phone">Phone</Label>
               <Input
@@ -2670,45 +2815,30 @@ export default function BusinessHub() {
                 placeholder="Enter phone number"
               />
             </div>
-            
-            <div>
-              <Label htmlFor="contact-position">Job Role</Label>
-              <Input
-                id="contact-position"
-                value={newContact.position}
-                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
-                placeholder="Enter job title/position"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" onClick={() => setIsAddContactOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleAddContact}
-                disabled={!newContact.name.trim()}
-              >
-                Add Contact
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddContactOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddContact}>
+              Add Contact
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Contact Modal */}
+      {/* Edit Contact Dialog */}
       <Dialog open={isEditContactOpen} onOpenChange={setIsEditContactOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Contact</DialogTitle>
             <DialogDescription>
-              Update contact information for {selectedBusiness?.name}
+              Update contact information
             </DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4">
             <div>
-              <Label htmlFor="edit-contact-name">Name *</Label>
+              <Label htmlFor="edit-contact-name">Name</Label>
               <Input
                 id="edit-contact-name"
                 value={newContact.name}
@@ -2716,7 +2846,15 @@ export default function BusinessHub() {
                 placeholder="Enter contact name"
               />
             </div>
-            
+            <div>
+              <Label htmlFor="edit-contact-position">Position</Label>
+              <Input
+                id="edit-contact-position"
+                value={newContact.position}
+                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
+                placeholder="Enter position"
+              />
+            </div>
             <div>
               <Label htmlFor="edit-contact-email">Email</Label>
               <Input
@@ -2727,7 +2865,6 @@ export default function BusinessHub() {
                 placeholder="Enter email address"
               />
             </div>
-            
             <div>
               <Label htmlFor="edit-contact-phone">Phone</Label>
               <Input
@@ -2737,45 +2874,30 @@ export default function BusinessHub() {
                 placeholder="Enter phone number"
               />
             </div>
-            
-            <div>
-              <Label htmlFor="edit-contact-position">Job Role</Label>
-              <Input
-                id="edit-contact-position"
-                value={newContact.position}
-                onChange={(e) => setNewContact({ ...newContact, position: e.target.value })}
-                placeholder="Enter job title/position"
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" onClick={() => setIsEditContactOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleUpdateContact}
-                disabled={!newContact.name.trim()}
-              >
-                Update Contact
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsEditContactOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateContact}>
+              Update Contact
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Add Note Modal */}
+      {/* Add Note Dialog */}
       <Dialog open={isAddNoteOpen} onOpenChange={setIsAddNoteOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Note</DialogTitle>
             <DialogDescription>
               Add a new note for {selectedBusiness?.name}
             </DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4">
             <div>
-              <Label htmlFor="note-title">Title *</Label>
+              <Label htmlFor="note-title">Title</Label>
               <Input
                 id="note-title"
                 value={newNote.title}
@@ -2783,9 +2905,8 @@ export default function BusinessHub() {
                 placeholder="Enter note title"
               />
             </div>
-            
             <div>
-              <Label htmlFor="note-content">Content *</Label>
+              <Label htmlFor="note-content">Content</Label>
               <Textarea
                 id="note-content"
                 value={newNote.content}
@@ -2794,35 +2915,30 @@ export default function BusinessHub() {
                 rows={4}
               />
             </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" onClick={() => setIsAddNoteOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleAddNote}
-                disabled={!newNote.title.trim() || !newNote.content.trim()}
-              >
-                Add Note
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsAddNoteOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddNote}>
+              Add Note
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Note Modal */}
+      {/* Edit Note Dialog */}
       <Dialog open={isEditNoteOpen} onOpenChange={setIsEditNoteOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Note</DialogTitle>
             <DialogDescription>
-              Update note for {selectedBusiness?.name}
+              Update note content
             </DialogDescription>
           </DialogHeader>
-          
           <div className="space-y-4">
             <div>
-              <Label htmlFor="edit-note-title">Title *</Label>
+              <Label htmlFor="edit-note-title">Title</Label>
               <Input
                 id="edit-note-title"
                 value={newNote.title}
@@ -2830,9 +2946,8 @@ export default function BusinessHub() {
                 placeholder="Enter note title"
               />
             </div>
-            
             <div>
-              <Label htmlFor="edit-note-content">Content *</Label>
+              <Label htmlFor="edit-note-content">Content</Label>
               <Textarea
                 id="edit-note-content"
                 value={newNote.content}
@@ -2841,18 +2956,14 @@ export default function BusinessHub() {
                 rows={4}
               />
             </div>
-            
-            <div className="flex justify-end space-x-2 pt-4">
-              <Button variant="outline" onClick={() => setIsEditNoteOpen(false)}>
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleUpdateNote}
-                disabled={!newNote.title.trim() || !newNote.content.trim()}
-              >
-                Update Note
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end space-x-2 mt-6">
+            <Button variant="outline" onClick={() => setIsEditNoteOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateNote}>
+              Update Note
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -2862,10 +2973,8 @@ export default function BusinessHub() {
         open={deleteBusinessDialog.open}
         onOpenChange={(open) => setDeleteBusinessDialog({ ...deleteBusinessDialog, open })}
         title="Delete Business"
-        description="Are you sure you want to delete this business? This action cannot be undone."
-        confirmText="Delete Business"
+        description="Are you sure you want to delete this business? This action cannot be undone and will remove all associated data."
         onConfirm={confirmDeleteBusiness}
-        variant="destructive"
       />
 
       <ConfirmDialog
@@ -2873,29 +2982,23 @@ export default function BusinessHub() {
         onOpenChange={(open) => setRemoveProductDialog({ ...removeProductDialog, open })}
         title="Remove Product"
         description="Are you sure you want to remove this product from the business?"
-        confirmText="Remove Product"
         onConfirm={confirmRemoveProduct}
-        variant="destructive"
       />
 
       <ConfirmDialog
         open={deleteContactDialog.open}
         onOpenChange={(open) => setDeleteContactDialog({ ...deleteContactDialog, open })}
         title="Delete Contact"
-        description="Are you sure you want to delete this contact? This action cannot be undone."
-        confirmText="Delete Contact"
+        description="Are you sure you want to delete this contact?"
         onConfirm={confirmDeleteContact}
-        variant="destructive"
       />
 
       <ConfirmDialog
         open={deleteNoteDialog.open}
         onOpenChange={(open) => setDeleteNoteDialog({ ...deleteNoteDialog, open })}
         title="Delete Note"
-        description="Are you sure you want to delete this note? This action cannot be undone."
-        confirmText="Delete Note"
+        description="Are you sure you want to delete this note?"
         onConfirm={confirmDeleteNote}
-        variant="destructive"
       />
     </div>
   )

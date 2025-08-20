@@ -6,19 +6,47 @@ const prisma = new PrismaClient()
 export async function seedComprehensiveDemoData() {
   console.log('Seeding comprehensive demo data...')
 
-  // Create default admin user
-  const hashedPassword = await bcrypt.hash('admin123', 10)
+  // Create demo users with proper passwords
+  const adminPassword = await bcrypt.hash('admin123', 10)
+  const managerPassword = await bcrypt.hash('manager123', 10)
+  const userPassword = await bcrypt.hash('user123', 10)
   
   const adminUser = await prisma.user.upsert({
-    where: { email: 'admin@example.com' },
-    update: {},
+    where: { email: 'admin@businesshub.com' },
+    update: { password: adminPassword },
     create: {
-      email: 'admin@example.com',
-      password: hashedPassword,
+      email: 'admin@businesshub.com',
+      password: adminPassword,
       name: 'Admin User',
       role: 'Admin',
       status: 'Active',
       color: '#EF4444',
+    },
+  })
+
+  const managerUser = await prisma.user.upsert({
+    where: { email: 'manager@businesshub.com' },
+    update: { password: managerPassword },
+    create: {
+      email: 'manager@businesshub.com',
+      password: managerPassword,
+      name: 'Manager User',
+      role: 'Manager',
+      status: 'Active',
+      color: '#F59E0B',
+    },
+  })
+
+  const businessUser = await prisma.user.upsert({
+    where: { email: 'user@businesshub.com' },
+    update: { password: userPassword },
+    create: {
+      email: 'user@businesshub.com',
+      password: userPassword,
+      name: 'Business User',
+      role: 'User',
+      status: 'Active',
+      color: '#3B82F6',
     },
   })
 
@@ -348,10 +376,10 @@ export async function seedComprehensiveDemoData() {
   })
 
   console.log('Comprehensive demo data seeded successfully!')
-  console.log('Default admin user:', {
-    email: 'admin@example.com',
-    password: 'admin123',
-  })
+  console.log('Demo credentials:')
+  console.log('- Admin: admin@businesshub.com / admin123')
+  console.log('- Manager: manager@businesshub.com / manager123') 
+  console.log('- User: user@businesshub.com / user123')
   console.log('Businesses created:', [
     'Cornwall Scales',
     'Marketing Pro', 

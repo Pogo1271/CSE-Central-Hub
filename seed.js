@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client')
+const bcrypt = require('bcryptjs')
 const prisma = new PrismaClient()
 
 async function main() {
@@ -89,43 +90,76 @@ async function main() {
     }
   })
 
-  // Create demo users
+  // Create demo users with proper passwords
+  const adminPassword = await bcrypt.hash('admin123', 10)
+  const managerPassword = await bcrypt.hash('manager123', 10)
+  const userPassword = await bcrypt.hash('user123', 10)
+
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@businesshub.com' },
-    update: {},
+    update: { password: adminPassword },
     create: {
       email: 'admin@businesshub.com',
+      password: adminPassword,
       name: 'Admin User',
       role: 'Admin',
-      status: 'Active'
+      status: 'Active',
+      color: '#EF4444'
     }
   })
 
   const managerUser = await prisma.user.upsert({
     where: { email: 'manager@businesshub.com' },
-    update: {},
+    update: { password: managerPassword },
     create: {
       email: 'manager@businesshub.com',
+      password: managerPassword,
       name: 'Manager User',
       role: 'Manager',
-      status: 'Active'
+      status: 'Active',
+      color: '#F59E0B'
     }
   })
 
   const businessUser = await prisma.user.upsert({
-    where: { email: 'business@businesshub.com' },
-    update: {},
+    where: { email: 'user@businesshub.com' },
+    update: { password: userPassword },
     create: {
-      email: 'business@businesshub.com',
+      email: 'user@businesshub.com',
+      password: userPassword,
       name: 'Business User',
       role: 'User',
-      status: 'Active'
+      status: 'Active',
+      color: '#3B82F6'
     }
   })
 
   console.log('Database seeded successfully!')
   console.log('Created roles:', { adminRole, managerRole, userRole })
-  console.log('Created users:', { adminUser, managerUser, businessUser })
+  console.log('Created users:', { 
+    adminUser: { 
+      email: adminUser.email, 
+      name: adminUser.name, 
+      role: adminUser.role,
+      password: '***' // Don't log actual passwords
+    },
+    managerUser: { 
+      email: managerUser.email, 
+      name: managerUser.name, 
+      role: managerUser.role,
+      password: '***'
+    },
+    businessUser: { 
+      email: businessUser.email, 
+      name: businessUser.name, 
+      role: businessUser.role,
+      password: '***'
+    }
+  })
+  console.log('Demo credentials:')
+  console.log('- Admin: admin@businesshub.com / admin123')
+  console.log('- Manager: manager@businesshub.com / manager123') 
+  console.log('- User: user@businesshub.com / user123')
 }
 
 main()
