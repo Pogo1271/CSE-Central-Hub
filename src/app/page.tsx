@@ -2,6 +2,7 @@
 // Force rebuild
 
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 import { 
   Building2, 
   Users, 
@@ -85,6 +86,7 @@ import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { AnalyticsDashboard } from '@/components/analytics-dashboard'
 import InventoryPage from '@/components/inventory-page'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 // Import client API
 import * as api from '@/lib/client-api'
@@ -140,6 +142,8 @@ export default function BusinessHub() {
   // Authentication state
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [currentUser, setCurrentUser] = useState(null)
+  const [isClient, setIsClient] = useState(false)
+  const [displayName, setDisplayName] = useState('User')
   
   // Role-based permissions
   const [rolePermissions, setRolePermissions] = useState({
@@ -210,6 +214,12 @@ export default function BusinessHub() {
   const [isViewBusinessOpen, setIsViewBusinessOpen] = useState(false)
   const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false)
   const [selectedBusiness, setSelectedBusiness] = useState(null)
+  const [businessRelatedData, setBusinessRelatedData] = useState({
+    products: [],
+    tasks: [],
+    quotes: [],
+    documents: []
+  })
   const [businessSearchTerm, setBusinessSearchTerm] = useState('')
   const [filteredBusinessList, setFilteredBusinessList] = useState<any[]>([])
   
@@ -242,7 +252,42 @@ export default function BusinessHub() {
     content: ''
   })
 
-  // Get user permissions
+  // Confirmation dialog states
+  const [deleteBusinessDialog, setDeleteBusinessDialog] = useState({
+    open: false,
+    businessId: null
+  })
+  const [removeProductDialog, setRemoveProductDialog] = useState({
+    open: false,
+    businessId: null,
+    productId: null
+  })
+
+  // Client-side welcome component
+  const WelcomeMessage = () => {
+    const [name, setName] = useState('User')
+    const [isMounted, setIsMounted] = useState(false)
+    
+    useEffect(() => {
+      setIsMounted(true)
+      const defaultUser = {
+        id: 'cme3diluk0003zm24qhnvxmae',
+        email: 'admin@example.com', 
+        name: 'Admin User', 
+        role: 'Admin',
+        status: 'Active',
+        color: '#EF4444',
+        joined: '2024-01-01T00:00:00.000Z'
+      }
+      setName(defaultUser.name)
+    }, [])
+    
+    if (!isMounted) {
+      return <span className="opacity-0">Loading...</span>
+    }
+    
+    return <span>{name}</span>
+  }
   const getUserPermissions = () => {
     const adminPermissions = {
       tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
@@ -275,6 +320,12 @@ export default function BusinessHub() {
   // Load data from backend
   useEffect(() => {
     const loadData = async () => {
+      // Only load data if user is authenticated
+      if (!isAuthenticated || !currentUser) {
+        console.log('Skipping data load - user not authenticated')
+        return
+      }
+      
       try {
         console.log('Starting to load data...')
         
@@ -346,10 +397,13 @@ export default function BusinessHub() {
     }
     
     loadData()
-  }, [])
+  }, [isAuthenticated, currentUser])
 
-  // Set up authentication
+  // Set up authentication and client state
   useEffect(() => {
+    // Mark that we're on the client side
+    setIsClient(true)
+    
     // For development, set a default admin user
     const defaultUser = {
       id: 'cme3diluk0003zm24qhnvxmae',
@@ -361,21 +415,34 @@ export default function BusinessHub() {
       joined: '2024-01-01T00:00:00.000Z'
     }
     
-    console.log('Setting current user:', defaultUser)
     setCurrentUser(defaultUser)
     setIsAuthenticated(true)
+    setDisplayName(defaultUser.name)
     
     // Store in localStorage for persistence
     localStorage.setItem('isAuthenticated', 'true')
     localStorage.setItem('currentUser', JSON.stringify(defaultUser))
     
-    console.log('Default admin user set:', defaultUser)
+    console.log('Authentication setup complete')
+    console.log('Current user:', defaultUser)
   }, [])
 
   // Debug currentUser state
   useEffect(() => {
     console.log('currentUser state changed:', currentUser)
   }, [currentUser])
+
+  // Load business related data when a business is selected
+  useEffect(() => {
+    const loadBusinessRelatedData = async () => {
+      if (selectedBusiness) {
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+      }
+    }
+    
+    loadBusinessRelatedData()
+  }, [selectedBusiness])
 
   // Update dashboard statistics
   const updateDashboardStats = () => {
@@ -526,20 +593,31 @@ export default function BusinessHub() {
   }
 
   const handleDeleteBusiness = async (businessId) => {
-    if (window.confirm('Are you sure you want to delete this business? This action cannot be undone.')) {
-      try {
-        const response = await api.deleteBusiness(businessId)
-        if (response.success) {
-          const updatedBusinesses = businessList.filter(b => b.id !== businessId)
-          setBusinessList(updatedBusinesses)
-          setFilteredBusinessList(updatedBusinesses)
-          setIsViewBusinessOpen(false)
-          setSelectedBusiness(null)
-          updateDashboardStats()
-        }
-      } catch (error) {
-        console.error('Error deleting business:', error)
+    setDeleteBusinessDialog({
+      open: true,
+      businessId
+    })
+  }
+
+  const confirmDeleteBusiness = async () => {
+    const { businessId } = deleteBusinessDialog
+    try {
+      const response = await api.deleteBusiness(businessId)
+      if (response.success) {
+        const updatedBusinesses = businessList.filter(b => b.id !== businessId)
+        setBusinessList(updatedBusinesses)
+        setFilteredBusinessList(updatedBusinesses)
+        setIsViewBusinessOpen(false)
+        setSelectedBusiness(null)
+        updateDashboardStats()
+        setDeleteBusinessDialog({ open: false, businessId: null })
+        toast.success('Business deleted successfully')
+      } else {
+        toast.error('Failed to delete business')
       }
+    } catch (error) {
+      console.error('Error deleting business:', error)
+      toast.error('Error deleting business')
     }
   }
 
@@ -548,10 +626,13 @@ export default function BusinessHub() {
     try {
       // Get all available products
       const productsResponse = await api.getProducts()
-      if (productsResponse.success) {
+      // Get products already assigned to this business
+      const businessProductsResponse = await api.getBusinessProducts(business.id)
+      
+      if (productsResponse.success && businessProductsResponse.success) {
         // Filter out products already assigned to this business
-        const businessProducts = products.filter(p => p.businessId === business.id)
-        const available = productsResponse.data.filter(p => !businessProducts.some(bp => bp.id === p.id))
+        const assignedProductIds = businessProductsResponse.data.map(p => p.id)
+        const available = productsResponse.data.filter(p => !assignedProductIds.includes(p.id))
         setAvailableProducts(available)
         setSelectedBusiness(business)
         setIsAssignProductOpen(true)
@@ -573,36 +654,51 @@ export default function BusinessHub() {
       const results = await Promise.all(assignPromises)
       
       if (results.every(result => result.success)) {
-        // Refresh products list
-        const productsResponse = await api.getProducts()
-        if (productsResponse.success) {
-          setProducts(productsResponse.data)
-        }
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
         
+        // Close the assign product modal
         setIsAssignProductOpen(false)
         setSelectedProducts([])
-        setSelectedBusiness(null)
         setAvailableProducts([])
+        
+        // Show success message
+        toast.success('Products assigned successfully!')
+      } else {
+        toast.error('Some products failed to assign. Please try again.')
       }
     } catch (error) {
       console.error('Error assigning products:', error)
+      toast.error('Error assigning products. Please try again.')
     }
   }
 
   const handleRemoveProduct = async (businessId, productId) => {
-    if (window.confirm('Are you sure you want to remove this product from the business?')) {
-      try {
-        const response = await api.removeBusinessProduct(businessId, productId)
-        if (response.success) {
-          // Refresh products list
-          const productsResponse = await api.getProducts()
-          if (productsResponse.success) {
-            setProducts(productsResponse.data)
-          }
-        }
-      } catch (error) {
-        console.error('Error removing product:', error)
+    setRemoveProductDialog({
+      open: true,
+      businessId,
+      productId
+    })
+  }
+
+  const confirmRemoveProduct = async () => {
+    const { businessId, productId } = removeProductDialog
+    try {
+      const response = await api.removeBusinessProduct(businessId, productId)
+      if (response.success) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        setRemoveProductDialog({ open: false, businessId: null, productId: null })
+        toast.success('Product removed successfully')
+      } else {
+        toast.error('Failed to remove product')
       }
+    } catch (error) {
+      console.error('Error removing product:', error)
+      toast.error('Error removing product. Please try again.')
     }
   }
 
@@ -633,15 +729,42 @@ export default function BusinessHub() {
     setFilteredBusinessList(filtered)
   }, [businessSearchTerm, businessList, selectedCategory, selectedLocation])
 
-  // Get related data for a business
-  const getBusinessRelatedData = (businessId) => {
-    const businessProducts = products.filter(p => p.businessId === businessId)
+  // Get related data for a business (async version for detailed view)
+  const getBusinessRelatedData = async (businessId) => {
+    try {
+      // Get business products using the API
+      const businessProductsResponse = await api.getBusinessProducts(businessId)
+      const businessProducts = businessProductsResponse.success ? businessProductsResponse.data : []
+      
+      // Filter other related data from local state
+      const businessTasks = tasks.filter(t => t.businessId === businessId)
+      const businessQuotes = quotes.filter(q => q.businessId === businessId)
+      const businessDocuments = documents.filter(d => d.businessId === businessId)
+      
+      return {
+        products: businessProducts,
+        tasks: businessTasks,
+        quotes: businessQuotes,
+        documents: businessDocuments
+      }
+    } catch (error) {
+      console.error('Error getting business related data:', error)
+      return {
+        products: [],
+        tasks: [],
+        quotes: [],
+        documents: []
+      }
+    }
+  }
+
+  // Get simplified related data for business grid (sync version)
+  const getBusinessRelatedDataSync = (businessId) => {
     const businessTasks = tasks.filter(t => t.businessId === businessId)
     const businessQuotes = quotes.filter(q => q.businessId === businessId)
     const businessDocuments = documents.filter(d => d.businessId === businessId)
     
     return {
-      products: businessProducts,
       tasks: businessTasks,
       quotes: businessQuotes,
       documents: businessDocuments
@@ -831,7 +954,9 @@ export default function BusinessHub() {
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Welcome back, {currentUser?.name}!</h2>
+                      <h2 className="text-2xl font-bold text-gray-900">
+                    Welcome back, <WelcomeMessage />!
+                  </h2>
                       <p className="text-gray-600 mt-1">Here's what's happening with your business today.</p>
                     </div>
                     <div className="text-right">
@@ -1039,7 +1164,7 @@ export default function BusinessHub() {
                 {/* Business Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                   {filteredBusinessList.map((business) => {
-                    const relatedData = getBusinessRelatedData(business.id)
+                    const relatedData = getBusinessRelatedDataSync(business.id)
                     return (
                       <Card key={business.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
                         <CardHeader className="pb-3">
@@ -1117,11 +1242,7 @@ export default function BusinessHub() {
                             </div>
 
                             {/* Related Items Summary */}
-                            <div className="grid grid-cols-2 gap-2 pt-2 border-t">
-                              <div className="text-center">
-                                <p className="text-xs text-gray-500">Products</p>
-                                <p className="text-sm font-medium">{relatedData.products.length}</p>
-                              </div>
+                            <div className="grid grid-cols-3 gap-2 pt-2 border-t">
                               <div className="text-center">
                                 <p className="text-xs text-gray-500">Tasks</p>
                                 <p className="text-sm font-medium">{relatedData.tasks.length}</p>
@@ -1591,24 +1712,21 @@ export default function BusinessHub() {
               <div className="space-y-6">
                 <h3 className="text-lg font-semibold text-gray-900 border-b pb-2">Related Information</h3>
                 
-                {(() => {
-                  const relatedData = getBusinessRelatedData(selectedBusiness.id)
-                  return (
-                    <>
-                      {/* Summary Cards */}
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <Card className="bg-blue-50 border-blue-200">
-                          <CardContent className="p-4 text-center">
-                            <Package className="h-8 w-8 text-blue-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-blue-900">{relatedData.products.length}</p>
-                            <p className="text-sm text-blue-700">Products</p>
-                          </CardContent>
+                <>
+                  {/* Summary Cards */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <Card className="bg-blue-50 border-blue-200">
+                      <CardContent className="p-4 text-center">
+                        <Package className="h-8 w-8 text-blue-600 mx-auto mb-2" />
+                        <p className="text-2xl font-bold text-blue-900">{businessRelatedData.products.length}</p>
+                        <p className="text-sm text-blue-700">Products</p>
+                      </CardContent>
                         </Card>
                         
                         <Card className="bg-green-50 border-green-200">
                           <CardContent className="p-4 text-center">
                             <CheckSquare className="h-8 w-8 text-green-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-green-900">{relatedData.tasks.length}</p>
+                            <p className="text-2xl font-bold text-green-900">{businessRelatedData.tasks.length}</p>
                             <p className="text-sm text-green-700">Tasks</p>
                           </CardContent>
                         </Card>
@@ -1616,7 +1734,7 @@ export default function BusinessHub() {
                         <Card className="bg-purple-50 border-purple-200">
                           <CardContent className="p-4 text-center">
                             <FileSignature className="h-8 w-8 text-purple-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-purple-900">{relatedData.quotes.length}</p>
+                            <p className="text-2xl font-bold text-purple-900">{businessRelatedData.quotes.length}</p>
                             <p className="text-sm text-purple-700">Quotes</p>
                           </CardContent>
                         </Card>
@@ -1624,7 +1742,7 @@ export default function BusinessHub() {
                         <Card className="bg-orange-50 border-orange-200">
                           <CardContent className="p-4 text-center">
                             <FolderOpen className="h-8 w-8 text-orange-600 mx-auto mb-2" />
-                            <p className="text-2xl font-bold text-orange-900">{relatedData.documents.length}</p>
+                            <p className="text-2xl font-bold text-orange-900">{businessRelatedData.documents.length}</p>
                             <p className="text-sm text-orange-700">Documents</p>
                           </CardContent>
                         </Card>
@@ -1633,7 +1751,7 @@ export default function BusinessHub() {
                       {/* Detailed Lists */}
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {/* Recent Tasks */}
-                        {relatedData.tasks.length > 0 && (
+                        {businessRelatedData.tasks.length > 0 && (
                           <Card className="bg-white border-gray-200">
                             <CardHeader className="pb-3">
                               <CardTitle className="text-base font-medium text-gray-900 flex items-center">
@@ -1643,7 +1761,7 @@ export default function BusinessHub() {
                             </CardHeader>
                             <CardContent className="pt-0">
                               <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {relatedData.tasks.slice(0, 5).map((task) => (
+                                {businessRelatedData.tasks.slice(0, 5).map((task) => (
                                   <div key={task.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900 truncate">{task.title}</p>
@@ -1656,9 +1774,9 @@ export default function BusinessHub() {
                                     )}
                                   </div>
                                 ))}
-                                {relatedData.tasks.length > 5 && (
+                                {businessRelatedData.tasks.length > 5 && (
                                   <p className="text-xs text-gray-500 text-center">
-                                    +{relatedData.tasks.length - 5} more tasks
+                                    +{businessRelatedData.tasks.length - 5} more tasks
                                   </p>
                                 )}
                               </div>
@@ -1667,7 +1785,7 @@ export default function BusinessHub() {
                         )}
 
                         {/* Recent Quotes */}
-                        {relatedData.quotes.length > 0 && (
+                        {businessRelatedData.quotes.length > 0 && (
                           <Card className="bg-white border-gray-200">
                             <CardHeader className="pb-3">
                               <CardTitle className="text-base font-medium text-gray-900 flex items-center">
@@ -1677,7 +1795,7 @@ export default function BusinessHub() {
                             </CardHeader>
                             <CardContent className="pt-0">
                               <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {relatedData.quotes.slice(0, 5).map((quote) => (
+                                {businessRelatedData.quotes.slice(0, 5).map((quote) => (
                                   <div key={quote.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900 truncate">{quote.title}</p>
@@ -1690,9 +1808,9 @@ export default function BusinessHub() {
                                     )}
                                   </div>
                                 ))}
-                                {relatedData.quotes.length > 5 && (
+                                {businessRelatedData.quotes.length > 5 && (
                                   <p className="text-xs text-gray-500 text-center">
-                                    +{relatedData.quotes.length - 5} more quotes
+                                    +{businessRelatedData.quotes.length - 5} more quotes
                                   </p>
                                 )}
                               </div>
@@ -1701,7 +1819,7 @@ export default function BusinessHub() {
                         )}
 
                         {/* Products */}
-                        {relatedData.products.length > 0 && (
+                        {businessRelatedData.products.length > 0 && (
                           <Card className="bg-white border-gray-200">
                             <CardHeader className="pb-3">
                               <CardTitle className="text-base font-medium text-gray-900 flex items-center">
@@ -1711,7 +1829,7 @@ export default function BusinessHub() {
                             </CardHeader>
                             <CardContent className="pt-0">
                               <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {relatedData.products.slice(0, 5).map((product) => (
+                                {businessRelatedData.products.slice(0, 5).map((product) => (
                                   <div key={product.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
@@ -1738,9 +1856,9 @@ export default function BusinessHub() {
                                     </Button>
                                   </div>
                                 ))}
-                                {relatedData.products.length > 5 && (
+                                {businessRelatedData.products.length > 5 && (
                                   <p className="text-xs text-gray-500 text-center">
-                                    +{relatedData.products.length - 5} more products
+                                    +{businessRelatedData.products.length - 5} more products
                                   </p>
                                 )}
                               </div>
@@ -1749,7 +1867,7 @@ export default function BusinessHub() {
                         )}
 
                         {/* Documents */}
-                        {relatedData.documents.length > 0 && (
+                        {businessRelatedData.documents.length > 0 && (
                           <Card className="bg-white border-gray-200">
                             <CardHeader className="pb-3">
                               <CardTitle className="text-base font-medium text-gray-900 flex items-center">
@@ -1759,7 +1877,7 @@ export default function BusinessHub() {
                             </CardHeader>
                             <CardContent className="pt-0">
                               <div className="space-y-2 max-h-40 overflow-y-auto">
-                                {relatedData.documents.slice(0, 5).map((document) => (
+                                {businessRelatedData.documents.slice(0, 5).map((document) => (
                                   <div key={document.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                                     <div className="flex-1 min-w-0">
                                       <p className="text-sm font-medium text-gray-900 truncate">{document.name}</p>
@@ -1772,9 +1890,9 @@ export default function BusinessHub() {
                                     )}
                                   </div>
                                 ))}
-                                {relatedData.documents.length > 5 && (
+                                {businessRelatedData.documents.length > 5 && (
                                   <p className="text-xs text-gray-500 text-center">
-                                    +{relatedData.documents.length - 5} more documents
+                                    +{businessRelatedData.documents.length - 5} more documents
                                   </p>
                                 )}
                               </div>
@@ -1784,8 +1902,8 @@ export default function BusinessHub() {
                       </div>
 
                       {/* Empty State */}
-                      {relatedData.products.length === 0 && relatedData.tasks.length === 0 && 
-                       relatedData.quotes.length === 0 && relatedData.documents.length === 0 && (
+                      {businessRelatedData.products.length === 0 && businessRelatedData.tasks.length === 0 && 
+                       businessRelatedData.quotes.length === 0 && businessRelatedData.documents.length === 0 && (
                         <Card className="bg-gray-50 border-gray-200">
                           <CardContent className="p-8 text-center">
                             <p className="text-gray-500">No related information found for this business.</p>
@@ -1793,9 +1911,7 @@ export default function BusinessHub() {
                         </Card>
                       )}
                     </>
-                  )
-                })()}
-              </div>
+                  </div>
 
               {/* Action Buttons */}
               <div className="flex justify-end space-x-2 pt-4 border-t">
@@ -2044,6 +2160,27 @@ export default function BusinessHub() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialogs */}
+      <ConfirmDialog
+        open={deleteBusinessDialog.open}
+        onOpenChange={(open) => setDeleteBusinessDialog({ ...deleteBusinessDialog, open })}
+        title="Delete Business"
+        description="Are you sure you want to delete this business? This action cannot be undone."
+        confirmText="Delete Business"
+        onConfirm={confirmDeleteBusiness}
+        variant="destructive"
+      />
+
+      <ConfirmDialog
+        open={removeProductDialog.open}
+        onOpenChange={(open) => setRemoveProductDialog({ ...removeProductDialog, open })}
+        title="Remove Product"
+        description="Are you sure you want to remove this product from the business?"
+        confirmText="Remove Product"
+        onConfirm={confirmRemoveProduct}
+        variant="destructive"
+      />
     </div>
   )
 }
