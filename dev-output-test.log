@@ -1,0 +1,439 @@
+
+> nextjs_tailwind_shadcn_ts@0.1.0 dev
+> nodemon --exec "npx tsx server.ts" --watch server.ts --watch src --ext ts,tsx,js,jsx
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): server.ts src/**/*[39m
+[33m[nodemon] watching extensions: ts,tsx,js,jsx[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3000
+> Socket.IO server running at ws://localhost:3000/api/socketio
+> Server bound to 0.0.0.0:3000
+ ○ Compiling / ...
+ ✓ Compiled / in 9.7s (1995 modules)
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 11278ms
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 203ms
+ GET / 200 in 208ms
+ ○ Compiling /api/businesses ...
+ ✓ Compiled /api/businesses in 1481ms (1997 modules)
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/users 200 in 1787ms
+ GET /api/products 200 in 1788ms
+ GET /api/quotes 200 in 1789ms
+ GET /api/tasks 200 in 1786ms
+ GET /api/businesses 200 in 1786ms
+ GET /api/roles 200 in 1800ms
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 467ms
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/products 200 in 45ms
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/tasks 200 in 67ms
+ GET /api/businesses 200 in 69ms
+ GET /api/quotes 200 in 69ms
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/users 200 in 71ms
+ GET /api/roles 200 in 73ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ ○ Compiling /api/notes ...
+ ✓ Compiled /api/notes in 651ms (2003 modules)
+ GET /api/messages 200 in 706ms
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 747ms
+ GET /api/notes 200 in 710ms
+ GET /api/roles 200 in 698ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 36ms
+ ✓ Compiled /api/businesses/[id]/contacts in 365ms (2005 modules)
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkr000dotz2o1mjhz5h/contacts 200 in 1286ms
+ GET /api/businesses/cmelp3pkn0007otz2lc14bh0l/contacts 200 in 1286ms
+ GET /api/businesses/cmelp3pkq000botz2mabvee9s/contacts 200 in 1281ms
+ GET /api/businesses/cmelp3pko0009otz2nesjjf71/contacts 200 in 1281ms
+ GET /api/businesses/cmelp3le7000fotx17q1nxoet/contacts 200 in 989ms
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 1294ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le3000botx1auiplgtr/contacts 200 in 49ms
+ GET /api/businesses/cmelp3le10007otx1xq6v7xmb/contacts 200 in 73ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le4000dotx1rws0g4hp/contacts 200 in 72ms
+ GET /api/businesses/cmelp3le20009otx14ilvvg5s/contacts 200 in 70ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 324ms
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 58ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 69ms
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+ GET /api/products 200 in 113ms
+ GET /api/businesses 200 in 116ms
+ GET /api/tasks 200 in 115ms
+ GET /api/users 200 in 127ms
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/quotes 200 in 137ms
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 22ms
+ GET /api/messages 200 in 31ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notes 200 in 46ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 46ms
+ GET /api/roles 200 in 26ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkq000botz2mabvee9s/contacts 200 in 39ms
+prisma:query SELECT 1
+prisma:query SELECT 1
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkr000dotz2o1mjhz5h/contacts 200 in 58ms
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 59ms
+ GET /api/businesses/cmelp3pko0009otz2nesjjf71/contacts 200 in 54ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkn0007otz2lc14bh0l/contacts 200 in 56ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le7000fotx17q1nxoet/contacts 200 in 26ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le4000dotx1rws0g4hp/contacts 200 in 14ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le3000botx1auiplgtr/contacts 200 in 28ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le10007otx1xq6v7xmb/contacts 200 in 34ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le20009otx14ilvvg5s/contacts 200 in 35ms
+ ○ Compiling /api/businesses/[id]/products ...
+ ✓ Compiled /api/businesses/[id]/products in 591ms (2007 modules)
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 633ms
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/products 200 in 1050ms
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` = ? ORDER BY `main`.`business_products`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT 1
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/products 200 in 25ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+ GET /api/businesses 200 in 57ms
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 69ms
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/tasks 200 in 78ms
+ GET /api/quotes 200 in 78ms
+ GET /api/users 200 in 77ms
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 18ms
+ GET /api/messages 200 in 14ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notes 200 in 29ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 16ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 33ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkr000dotz2o1mjhz5h/contacts 200 in 63ms
+ GET /api/businesses/cmelp3pkq000botz2mabvee9s/contacts 200 in 58ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 79ms
+ GET /api/businesses/cmelp3pko0009otz2nesjjf71/contacts 200 in 77ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkn0007otz2lc14bh0l/contacts 200 in 76ms
+ GET /api/businesses/cmelp3le7000fotx17q1nxoet/contacts 200 in 17ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le4000dotx1rws0g4hp/contacts 200 in 19ms
+ GET /api/businesses/cmelp3le3000botx1auiplgtr/contacts 200 in 31ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le20009otx14ilvvg5s/contacts 200 in 38ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le10007otx1xq6v7xmb/contacts 200 in 25ms
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` = ? ORDER BY `main`.`business_products`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/products 200 in 34ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 30ms
+ ✓ Compiled /api/businesses/[id]/notes in 427ms (2009 modules)
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` = ? ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/notes 200 in 1310ms
+ ✓ Compiled /api/businesses/[id]/contacts/[contactId] in 402ms (2011 modules)
+prisma:query DELETE FROM `main`.`contacts` WHERE (`main`.`contacts`.`id` = ? AND `main`.`contacts`.`businessId` = ?) RETURNING `id` AS `id`, `name` AS `name`, `email` AS `email`, `phone` AS `phone`, `position` AS `position`, `businessId` AS `businessId`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ DELETE /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts/cmelx2iwh0001n8gpc9oagdlj 200 in 1278ms
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/products 200 in 1068ms
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` = ? ORDER BY `main`.`business_products`.`createdAt` DESC LIMIT ? OFFSET ?
+ ✓ Compiled in 1430ms (943 modules)
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 36ms
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` = ? ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/notes 200 in 35ms
+prisma:query SELECT 1
+prisma:query INSERT INTO `main`.`contacts` (`id`, `name`, `email`, `phone`, `position`, `businessId`, `createdAt`, `updatedAt`) VALUES (?,?,?,?,?,?,?,?) RETURNING `id` AS `id`, `name` AS `name`, `email` AS `email`, `phone` AS `phone`, `position` AS `position`, `businessId` AS `businessId`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+ POST /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 201 in 31ms
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/products 200 in 70ms
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` = ? ORDER BY `main`.`business_products`.`createdAt` DESC LIMIT ? OFFSET ?
+ ✓ Compiled in 465ms (943 modules)
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 22ms
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` = ? ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/notes 200 in 33ms
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 530ms
+ ✓ Compiled in 1088ms (943 modules)
+ ✓ Compiled in 421ms (943 modules)
+ GET /api/businesses 200 in 52ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 93ms
+ GET /api/users 200 in 88ms
+ GET /api/quotes 200 in 87ms
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/products 200 in 101ms
+ GET /api/tasks 200 in 105ms
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 28ms
+ GET /api/messages 200 in 23ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notes 200 in 36ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 41ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 51ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkq000botz2mabvee9s/contacts 200 in 63ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkr000dotz2o1mjhz5h/contacts 200 in 71ms
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 71ms
+ GET /api/businesses/cmelp3pkn0007otz2lc14bh0l/contacts 200 in 62ms
+ GET /api/businesses/cmelp3pko0009otz2nesjjf71/contacts 200 in 63ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le7000fotx17q1nxoet/contacts 200 in 16ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le4000dotx1rws0g4hp/contacts 200 in 46ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le3000botx1auiplgtr/contacts 200 in 32ms
+ GET /api/businesses/cmelp3le20009otx14ilvvg5s/contacts 200 in 35ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le10007otx1xq6v7xmb/contacts 200 in 41ms
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 70ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 34ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses 200 in 57ms
+ GET /api/users 200 in 53ms
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/quotes 200 in 65ms
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/products 200 in 67ms
+ GET /api/tasks 200 in 65ms
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 14ms
+ GET /api/messages 200 in 15ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notes 200 in 17ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 13ms
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 46ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pkt000fotz2lgo4d1e1/contacts 200 in 62ms
+ GET /api/businesses/cmelp3pkr000dotz2o1mjhz5h/contacts 200 in 74ms
+ GET /api/businesses/cmelp3pkq000botz2mabvee9s/contacts 200 in 76ms
+ GET /api/businesses/cmelp3pkn0007otz2lc14bh0l/contacts 200 in 69ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3pko0009otz2nesjjf71/contacts 200 in 81ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le7000fotx17q1nxoet/contacts 200 in 18ms
+ GET /api/businesses/cmelp3le4000dotx1rws0g4hp/contacts 200 in 14ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le3000botx1auiplgtr/contacts 200 in 22ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/businesses/cmelp3le20009otx14ilvvg5s/contacts 200 in 30ms
+ GET /api/businesses/cmelp3le10007otx1xq6v7xmb/contacts 200 in 39ms
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` = ? ORDER BY `main`.`contacts`.`createdAt` DESC LIMIT ? OFFSET ?

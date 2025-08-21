@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
+import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
@@ -38,45 +37,142 @@ interface SidebarNavProps {
   activeTab: string
   onTabChange: (tab: string) => void
   rolePermissions?: any
+  currentUser?: any
 }
 
-export function SidebarNav({ activeTab, onTabChange, rolePermissions }: SidebarNavProps) {
+// Cache for role permissions
+let rolePermissionsCache: any = null
+let cacheTimestamp = 0
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+export function SidebarNav({ activeTab, onTabChange, rolePermissions, currentUser }: SidebarNavProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [localRolePermissions, setLocalRolePermissions] = useState<any>(null)
+  
+  // Load role permissions independently and cache them
+  useEffect(() => {
+    const loadRolePermissions = async () => {
+      // Check cache first
+      const now = Date.now()
+      if (rolePermissionsCache && (now - cacheTimestamp) < CACHE_DURATION) {
+        setLocalRolePermissions(rolePermissionsCache)
+        setIsLoading(false)
+        return
+      }
+
+      try {
+        const response = await fetch('/api/roles')
+        if (response.ok) {
+          const rolesData = await response.json()
+          
+          // Convert roles array to rolePermissions object
+          const dynamicRolePermissions: any = {}
+          rolesData.data?.forEach((role: any) => {
+            const permissions = role.permissions || {}
+            dynamicRolePermissions[role.name] = {
+              tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
+              features: {
+                canCreateBusiness: permissions.canCreateBusiness === true,
+                canViewAllUsers: permissions.canViewUsers === true,
+                canCreateUser: permissions.canCreateUser === true,
+                canViewAnalytics: permissions.canViewAnalytics === true,
+                canAccessSettings: permissions.canAccessSettings === true,
+                canUploadDocument: permissions.canUploadDocument === true,
+                canSendMessage: permissions.canSendMessage === true,
+                canQuickAddBusiness: permissions.canQuickAddBusiness === true,
+                canQuickCreateUser: permissions.canQuickCreateUser === true,
+                canQuickUploadDocument: permissions.canQuickUploadDocument === true,
+                canQuickSendMessage: permissions.canQuickSendMessage === true,
+                canViewDashboardPage: permissions.canViewDashboardPage === true,
+                canViewBusinessesPage: permissions.canViewBusinessesPage === true,
+                canViewInventoryPage: permissions.canViewInventoryPage === true,
+                canViewTasksPage: permissions.canViewTasksPage === true,
+                canViewUsersPage: permissions.canViewUsersPage === true,
+                canViewQuotesPage: permissions.canViewQuotesPage === true,
+                canViewDocumentsPage: permissions.canViewDocumentsPage === true,
+                canViewMessagesPage: permissions.canViewMessagesPage === true,
+                canViewAnalyticsPage: permissions.canViewAnalyticsPage === true,
+                canViewSettingsPage: permissions.canViewSettingsPage === true
+              }
+            }
+          })
+          
+          // Update cache
+          rolePermissionsCache = dynamicRolePermissions
+          cacheTimestamp = now
+          
+          setLocalRolePermissions(dynamicRolePermissions)
+        }
+      } catch (error) {
+        console.error('Failed to load role permissions:', error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadRolePermissions()
+  }, [])
+
+  // Use passed rolePermissions if available, otherwise use local loaded ones
+  const effectiveRolePermissions = rolePermissions || localRolePermissions
   
   const handleTabClick = (tab: string) => {
     onTabChange(tab)
     setIsOpen(false)
   }
 
-  const NavItems = () => (
-    <>
-      {navigation.map((item) => {
-        // Check if user has permission to access this tab
-        if (item.requiredPermission && rolePermissions) {
-          const userRole = rolePermissions[rolePermissions.currentUser?.role || 'User']
-          if (!userRole?.features?.[item.requiredPermission]) {
+  const hasPermission = (permission: string) => {
+    if (!effectiveRolePermissions || !currentUser) return false
+    
+    const userRole = currentUser?.role || 'User'
+    const roleData = effectiveRolePermissions[userRole]
+    
+    return roleData?.features?.[permission] === true
+  }
+
+  const NavItems = () => {
+    if (isLoading) {
+      // Show skeleton loading state
+      return (
+        <>
+          {navigation.map((item) => (
+            <div key={item.name} className="flex items-center w-full px-3 py-2">
+              <Skeleton className="h-4 w-4 mr-3" />
+              <Skeleton className="h-4 w-24" />
+            </div>
+          ))}
+        </>
+      )
+    }
+
+    return (
+      <>
+        {navigation.map((item) => {
+          // Check if user has permission to access this tab
+          if (item.requiredPermission && !hasPermission(item.requiredPermission)) {
             return null
           }
-        }
 
-        return (
-          <button
-            key={item.name}
-            onClick={() => handleTabClick(item.tab)}
-            className={cn(
-              'flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors',
-              activeTab === item.tab
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground hover:bg-muted'
-            )}
-          >
-            <item.icon className="mr-3 h-4 w-4" />
-            {item.name}
-          </button>
-        )
-      })}
-    </>
-  )
+          return (
+            <button
+              key={item.name}
+              onClick={() => handleTabClick(item.tab)}
+              className={cn(
+                'flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                activeTab === item.tab
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+              )}
+            >
+              <item.icon className="mr-3 h-4 w-4" />
+              {item.name}
+            </button>
+          )
+        })}
+      </>
+    )
+  }
 
   return (
     <>
