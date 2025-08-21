@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { db } from '@/lib/db'
+import { PrismaClient } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { generateJWTToken } from '@/lib/jwt'
+
+const prisma = new PrismaClient()
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
     
     // Find user by email
-    const user = await db.user.findUnique({
+    const user = await prisma.user.findUnique({
       where: { email }
     })
     

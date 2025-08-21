@@ -1,0 +1,1056 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { toast } from 'sonner'
+import { 
+  Users, 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  Shield, 
+  Settings,
+  UserPlus,
+  Eye,
+  MoreHorizontal,
+  Check,
+  X,
+  User,
+  Building2,
+  FileText,
+  BarChart3,
+  MessageSquare,
+  Package,
+  CheckSquare,
+  Bell
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Switch } from '@/components/ui/switch'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/hooks/use-auth'
+
+// Import client API
+import * as api from '@/lib/client-api'
+
+interface User {
+  id: string
+  name: string
+  email: string
+  role: string
+  status: string
+  color: string
+  lastLogin?: string
+  joined: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface Role {
+  id: string
+  name: string
+  description?: string
+  color?: string
+  permissions: any
+  createdAt: string
+  updatedAt: string
+}
+
+interface Permission {
+  key: string
+  label: string
+  description: string
+  icon: any
+  category: string
+}
+
+const permissions: Permission[] = [
+  // Dashboard Permissions
+  { key: 'canViewDashboard', label: 'View Dashboard', description: 'Access to main dashboard', icon: BarChart3, category: 'dashboard' },
+  
+  // Business Permissions
+  { key: 'canViewBusinesses', label: 'View Businesses', description: 'View business directory', icon: Building2, category: 'businesses' },
+  { key: 'canCreateBusiness', label: 'Create Business', description: 'Add new businesses', icon: Building2, category: 'businesses' },
+  { key: 'canEditBusiness', label: 'Edit Business', description: 'Modify business details', icon: Building2, category: 'businesses' },
+  { key: 'canDeleteBusiness', label: 'Delete Business', description: 'Remove businesses', icon: Building2, category: 'businesses' },
+  
+  // User Management Permissions
+  { key: 'canViewUsers', label: 'View Users', description: 'View user list', icon: Users, category: 'users' },
+  { key: 'canCreateUser', label: 'Create User', description: 'Add new users', icon: UserPlus, category: 'users' },
+  { key: 'canEditUser', label: 'Edit User', description: 'Modify user details', icon: Edit, category: 'users' },
+  { key: 'canDeleteUser', label: 'Delete User', description: 'Remove users', icon: Trash2, category: 'users' },
+  { key: 'canManageRoles', label: 'Manage Roles', description: 'Create and modify roles', icon: Shield, category: 'users' },
+  
+  // Product/Inventory Permissions
+  { key: 'canViewProducts', label: 'View Products', description: 'View product inventory', icon: Package, category: 'products' },
+  { key: 'canCreateProduct', label: 'Create Product', description: 'Add new products', icon: Package, category: 'products' },
+  { key: 'canEditProduct', label: 'Edit Product', description: 'Modify product details', icon: Package, category: 'products' },
+  { key: 'canDeleteProduct', label: 'Delete Product', description: 'Remove products', icon: Package, category: 'products' },
+  
+  // Task Management Permissions
+  { key: 'canViewTasks', label: 'View Tasks', description: 'View task list', icon: CheckSquare, category: 'tasks' },
+  { key: 'canCreateTask', label: 'Create Task', description: 'Add new tasks', icon: CheckSquare, category: 'tasks' },
+  { key: 'canEditTask', label: 'Edit Task', description: 'Modify task details', icon: CheckSquare, category: 'tasks' },
+  { key: 'canDeleteTask', label: 'Delete Task', description: 'Remove tasks', icon: CheckSquare, category: 'tasks' },
+  { key: 'canAssignTasks', label: 'Assign Tasks', description: 'Assign tasks to users', icon: CheckSquare, category: 'tasks' },
+  
+  // Quote Management Permissions
+  { key: 'canViewQuotes', label: 'View Quotes', description: 'View quote list', icon: FileText, category: 'quotes' },
+  { key: 'canCreateQuote', label: 'Create Quote', description: 'Create new quotes', icon: FileText, category: 'quotes' },
+  { key: 'canEditQuote', label: 'Edit Quote', description: 'Modify quote details', icon: FileText, category: 'quotes' },
+  { key: 'canDeleteQuote', label: 'Delete Quote', description: 'Remove quotes', icon: FileText, category: 'quotes' },
+  { key: 'canApproveQuotes', label: 'Approve Quotes', description: 'Approve quote submissions', icon: FileText, category: 'quotes' },
+  
+  // Document Management Permissions
+  { key: 'canViewDocuments', label: 'View Documents', description: 'View document list', icon: FileText, category: 'documents' },
+  { key: 'canUploadDocument', label: 'Upload Document', description: 'Upload new documents', icon: FileText, category: 'documents' },
+  { key: 'canDeleteDocument', label: 'Delete Document', description: 'Remove documents', icon: FileText, category: 'documents' },
+  
+  // Message Permissions
+  { key: 'canViewMessages', label: 'View Messages', description: 'View message list', icon: MessageSquare, category: 'messages' },
+  { key: 'canSendMessage', label: 'Send Message', description: 'Send messages to users', icon: MessageSquare, category: 'messages' },
+  { key: 'canDeleteMessage', label: 'Delete Message', description: 'Remove messages', icon: MessageSquare, category: 'messages' },
+  
+  // Analytics Permissions
+  { key: 'canViewAnalytics', label: 'View Analytics', description: 'Access analytics dashboard', icon: BarChart3, category: 'analytics' },
+  { key: 'canExportData', label: 'Export Data', description: 'Export system data', icon: BarChart3, category: 'analytics' },
+  
+  // System Permissions
+  { key: 'canAccessSettings', label: 'Access Settings', description: 'Access system settings', icon: Settings, category: 'system' },
+  { key: 'canViewSystemLogs', label: 'View System Logs', description: 'Access system logs', icon: Settings, category: 'system' },
+  { key: 'canManageNotifications', label: 'Manage Notifications', description: 'Manage system notifications', icon: Bell, category: 'system' }
+]
+
+const permissionCategories = [
+  { key: 'dashboard', label: 'Dashboard', icon: BarChart3 },
+  { key: 'businesses', label: 'Businesses', icon: Building2 },
+  { key: 'users', label: 'Users', icon: Users },
+  { key: 'products', label: 'Products', icon: Package },
+  { key: 'tasks', label: 'Tasks', icon: CheckSquare },
+  { key: 'quotes', label: 'Quotes', icon: FileText },
+  { key: 'documents', label: 'Documents', icon: FileText },
+  { key: 'messages', label: 'Messages', icon: MessageSquare },
+  { key: 'analytics', label: 'Analytics', icon: BarChart3 },
+  { key: 'system', label: 'System', icon: Settings }
+]
+
+export default function EnhancedUsersManagement() {
+  const { user: currentUser } = useAuth()
+  const [users, setUsers] = useState<User[]>([])
+  const [roles, setRoles] = useState<Role[]>([])
+  const [loading, setLoading] = useState(true)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedRole, setSelectedRole] = useState('all')
+  const [selectedStatus, setSelectedStatus] = useState('all')
+  
+  // Modal states
+  const [isAddUserOpen, setIsAddUserOpen] = useState(false)
+  const [isEditUserOpen, setIsEditUserOpen] = useState(false)
+  const [isViewUserOpen, setIsViewUserOpen] = useState(false)
+  const [isRoleManagementOpen, setIsRoleManagementOpen] = useState(false)
+  const [isAddRoleOpen, setIsAddRoleOpen] = useState(false)
+  
+  // Form states
+  const [selectedUser, setSelectedUser] = useState<User | null>(null)
+  const [selectedRoleForEdit, setSelectedRoleForEdit] = useState<Role | null>(null)
+  const [newUser, setNewUser] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'User',
+    status: 'Active',
+    color: '#3B82F6'
+  })
+  const [newRole, setNewRole] = useState({
+    name: '',
+    description: '',
+    color: '#3B82F6',
+    permissions: {}
+  })
+
+  // Filter users based on search and filters
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesRole = selectedRole === 'all' || user.role === selectedRole
+    const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus
+    
+    return matchesSearch && matchesRole && matchesStatus
+  })
+
+  // Load data
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load users
+      const usersResponse = await api.getUsers()
+      if (usersResponse.success) {
+        setUsers(usersResponse.data)
+      }
+      
+      // Load roles
+      const rolesResponse = await fetch('/api/roles')
+      if (rolesResponse.ok) {
+        const rolesData = await rolesResponse.json()
+        setRoles(rolesData)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+      toast.error('Failed to load data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (date: string) => {
+    try {
+      const d = new Date(date)
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid date'
+    }
+  }
+
+  const handleAddUser = async () => {
+    try {
+      const response = await api.createUser(newUser)
+      if (response.success) {
+        setUsers([...users, response.data])
+        setIsAddUserOpen(false)
+        setNewUser({
+          name: '',
+          email: '',
+          password: '',
+          role: 'User',
+          status: 'Active',
+          color: '#3B82F6'
+        })
+        toast.success('User created successfully')
+      }
+    } catch (error) {
+      console.error('Error creating user:', error)
+      toast.error('Failed to create user')
+    }
+  }
+
+  const handleUpdateUser = async () => {
+    if (!selectedUser) return
+    
+    try {
+      const response = await fetch(`/api/users/${selectedUser.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(selectedUser)
+      })
+      
+      if (response.ok) {
+        const updatedUser = await response.json()
+        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u))
+        setIsEditUserOpen(false)
+        setSelectedUser(null)
+        toast.success('User updated successfully')
+      }
+    } catch (error) {
+      console.error('Error updating user:', error)
+      toast.error('Failed to update user')
+    }
+  }
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return
+    
+    try {
+      const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' })
+      
+      if (response.ok) {
+        setUsers(users.filter(u => u.id !== userId))
+        toast.success('User deleted successfully')
+      }
+    } catch (error) {
+      console.error('Error deleting user:', error)
+      toast.error('Failed to delete user')
+    }
+  }
+
+  const handleAddRole = async () => {
+    try {
+      const response = await fetch('/api/roles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newRole)
+      })
+      
+      if (response.ok) {
+        const role = await response.json()
+        setRoles([...roles, role])
+        setIsAddRoleOpen(false)
+        setNewRole({
+          name: '',
+          description: '',
+          color: '#3B82F6',
+          permissions: {}
+        })
+        toast.success('Role created successfully')
+      }
+    } catch (error) {
+      console.error('Error creating role:', error)
+      toast.error('Failed to create role')
+    }
+  }
+
+  const handleUpdateRole = async () => {
+    if (!selectedRoleForEdit) return
+    
+    try {
+      const response = await fetch(`/api/roles/${selectedRoleForEdit.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(selectedRoleForEdit)
+      })
+      
+      if (response.ok) {
+        const updatedRole = await response.json()
+        setRoles(roles.map(r => r.id === selectedRoleForEdit.id ? updatedRole : r))
+        setSelectedRoleForEdit(null)
+        toast.success('Role updated successfully')
+      }
+    } catch (error) {
+      console.error('Error updating role:', error)
+      toast.error('Failed to update role')
+    }
+  }
+
+  const handlePermissionToggle = (roleKey: string, permissionKey: string, enabled: boolean) => {
+    if (roleKey === 'new') {
+      setNewRole(prev => ({
+        ...prev,
+        permissions: {
+          ...prev.permissions,
+          [permissionKey]: enabled
+        }
+      }))
+    } else {
+      setSelectedRoleForEdit(prev => {
+        if (!prev) return null
+        return {
+          ...prev,
+          permissions: {
+            ...prev.permissions,
+            [permissionKey]: enabled
+          }
+        }
+      })
+    }
+  }
+
+  const getUserStats = (user: User) => {
+    // This would typically fetch actual stats from the API
+    return {
+      businesses: Math.floor(Math.random() * 10),
+      tasks: Math.floor(Math.random() * 20),
+      quotes: Math.floor(Math.random() * 15)
+    }
+  }
+
+  // Admin-only protection
+  if (currentUser?.role !== 'Admin') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <Shield className="h-12 w-12 text-red-500 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Access Denied</h3>
+            <p className="text-gray-600">You don't have permission to access this page.</p>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Users Management Header */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+            <p className="text-gray-600 mt-1">Manage team members and their permissions</p>
+            <p className="text-sm text-gray-500 mt-2">Total Users: {users.length}</p>
+          </div>
+          <div className="flex space-x-3">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsRoleManagementOpen(true)}
+            >
+              <Shield className="h-4 w-4 mr-2" />
+              Manage Roles
+            </Button>
+            <Button onClick={() => setIsAddUserOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <Card className="bg-white shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                <Input
+                  placeholder="Search users by name or email..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+            </div>
+            <Select value={selectedRole} onValueChange={setSelectedRole}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Roles</SelectItem>
+                {Array.from(new Set(users.map(u => u.role))).map(role => (
+                  <SelectItem key={role} value={role}>{role}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-full sm:w-48">
+                <SelectValue placeholder="Filter by status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="Active">Active</SelectItem>
+                <SelectItem value="Inactive">Inactive</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Users Grid */}
+      {loading ? (
+        <Card className="bg-white shadow-sm">
+          <CardContent className="p-12 text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading users...</p>
+          </CardContent>
+        </Card>
+      ) : filteredUsers.length === 0 ? (
+        <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-12 text-center">
+            <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
+            <p className="text-gray-600 mb-4">Try adjusting your search criteria or create a new user.</p>
+            <Button onClick={() => setIsAddUserOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add User
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredUsers.map((user) => {
+            const userStats = getUserStats(user)
+            return (
+              <Card 
+                key={user.id} 
+                className="bg-white shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer group"
+                onClick={() => {
+                  setSelectedUser(user)
+                  setIsViewUserOpen(true)
+                }}
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <CardTitle className="text-lg truncate group-hover:text-blue-600 transition-colors">
+                        {user.name}
+                      </CardTitle>
+                      <CardDescription className="text-sm line-clamp-2 mt-1">
+                        {user.email}
+                      </CardDescription>
+                    </div>
+                    <div className="flex flex-col items-end space-y-2">
+                      <Badge className={
+                        user.status === 'Active' 
+                          ? "bg-green-100 text-green-800 hover:bg-green-200" 
+                          : "bg-red-100 text-red-800 hover:bg-red-200"
+                      }>
+                        {user.status}
+                      </Badge>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedUser(user)
+                            setIsViewUserOpen(true)
+                          }}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedUser(user)
+                            setIsEditUserOpen(true)
+                          }}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit User
+                          </DropdownMenuItem>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleDeleteUser(user.id)
+                            }}
+                            className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <div className="space-y-3">
+                    {/* Role */}
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-600">Role</span>
+                      <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
+                        {user.role}
+                      </Badge>
+                    </div>
+                    
+                    {/* Join Date */}
+                    <div className="flex items-center text-sm text-gray-600">
+                      <span className="truncate">Joined {formatDate(user.joined)}</span>
+                    </div>
+                    
+                    <Separator className="my-3" />
+                    
+                    {/* Stats */}
+                    <div className="grid grid-cols-3 gap-2">
+                      <div className="text-center p-2 bg-blue-50 rounded-lg">
+                        <div className="text-lg font-bold text-blue-600">{userStats.businesses}</div>
+                        <div className="text-xs text-blue-600">Businesses</div>
+                      </div>
+                      <div className="text-center p-2 bg-green-50 rounded-lg">
+                        <div className="text-lg font-bold text-green-600">{userStats.tasks}</div>
+                        <div className="text-xs text-green-600">Tasks</div>
+                      </div>
+                      <div className="text-center p-2 bg-purple-50 rounded-lg">
+                        <div className="text-lg font-bold text-purple-600">{userStats.quotes}</div>
+                        <div className="text-xs text-purple-600">Quotes</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )
+          })}
+        </div>
+      )}
+
+      {/* Add User Modal */}
+      <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add New User</DialogTitle>
+            <DialogDescription>
+              Create a new user account with specific role and permissions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="name">Full Name</Label>
+              <Input
+                id="name"
+                value={newUser.name}
+                onChange={(e) => setNewUser({...newUser, name: e.target.value})}
+                placeholder="Enter full name"
+              />
+            </div>
+            <div>
+              <Label htmlFor="email">Email Address</Label>
+              <Input
+                id="email"
+                type="email"
+                value={newUser.email}
+                onChange={(e) => setNewUser({...newUser, email: e.target.value})}
+                placeholder="Enter email address"
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                value={newUser.password}
+                onChange={(e) => setNewUser({...newUser, password: e.target.value})}
+                placeholder="Enter password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="role">Role</Label>
+              <Select value={newUser.role} onValueChange={(value) => setNewUser({...newUser, role: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="User">User</SelectItem>
+                  <SelectItem value="Manager">Manager</SelectItem>
+                  <SelectItem value="Admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={newUser.status} onValueChange={(value) => setNewUser({...newUser, status: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Active">Active</SelectItem>
+                  <SelectItem value="Inactive">Inactive</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddUser}>
+                Add User
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit User Modal */}
+      <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+            <DialogDescription>
+              Modify user details and permissions.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-name">Full Name</Label>
+                <Input
+                  id="edit-name"
+                  value={selectedUser.name}
+                  onChange={(e) => setSelectedUser({...selectedUser, name: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-email">Email Address</Label>
+                <Input
+                  id="edit-email"
+                  type="email"
+                  value={selectedUser.email}
+                  onChange={(e) => setSelectedUser({...selectedUser, email: e.target.value})}
+                />
+              </div>
+              <div>
+                <Label htmlFor="edit-role">Role</Label>
+                <Select value={selectedUser.role} onValueChange={(value) => setSelectedUser({...selectedUser, role: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="User">User</SelectItem>
+                    <SelectItem value="Manager">Manager</SelectItem>
+                    <SelectItem value="Admin">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label htmlFor="edit-status">Status</Label>
+                <Select value={selectedUser.status} onValueChange={(value) => setSelectedUser({...selectedUser, status: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Active">Active</SelectItem>
+                    <SelectItem value="Inactive">Inactive</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateUser}>
+                  Update User
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Role Management Modal */}
+      <Dialog open={isRoleManagementOpen} onOpenChange={setIsRoleManagementOpen}>
+        <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Role Management</DialogTitle>
+            <DialogDescription>
+              Manage user roles and their permissions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h3 className="text-lg font-semibold">Roles</h3>
+              <Button onClick={() => setIsAddRoleOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add Role
+              </Button>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {roles.map((role) => (
+                <Card key={role.id} className="cursor-pointer hover:shadow-md transition-shadow">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg">{role.name}</CardTitle>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setSelectedRoleForEdit(role)}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {role.description && (
+                      <CardDescription>{role.description}</CardDescription>
+                    )}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2">
+                      <div className="text-sm text-gray-600">
+                        <strong>Permissions:</strong> {Object.keys(role.permissions || {}).filter(key => role.permissions[key]).length} enabled
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {Object.entries(role.permissions || {})
+                          .filter(([_, enabled]) => enabled)
+                          .slice(0, 3)
+                          .map(([key]) => {
+                            const permission = permissions.find(p => p.key === key)
+                            return permission ? (
+                              <Badge key={key} variant="secondary" className="text-xs">
+                                {permission.label}
+                              </Badge>
+                            ) : null
+                          })}
+                        {Object.keys(role.permissions || {}).filter(key => role.permissions[key]).length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{Object.keys(role.permissions || {}).filter(key => role.permissions[key]).length - 3} more
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Role Modal */}
+      <Dialog open={isAddRoleOpen} onOpenChange={setIsAddRoleOpen}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add New Role</DialogTitle>
+            <DialogDescription>
+              Create a new role with specific permissions.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="role-name">Role Name</Label>
+                <Input
+                  id="role-name"
+                  value={newRole.name}
+                  onChange={(e) => setNewRole({...newRole, name: e.target.value})}
+                  placeholder="Enter role name"
+                />
+              </div>
+              <div>
+                <Label htmlFor="role-color">Color</Label>
+                <Input
+                  id="role-color"
+                  type="color"
+                  value={newRole.color}
+                  onChange={(e) => setNewRole({...newRole, color: e.target.value})}
+                />
+              </div>
+            </div>
+            <div>
+              <Label htmlFor="role-description">Description</Label>
+              <Textarea
+                id="role-description"
+                value={newRole.description}
+                onChange={(e) => setNewRole({...newRole, description: e.target.value})}
+                placeholder="Enter role description"
+                rows={3}
+              />
+            </div>
+            
+            <div>
+              <h4 className="text-lg font-semibold mb-4">Permissions</h4>
+              <Tabs defaultValue="dashboard" className="w-full">
+                <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+                  {permissionCategories.map(category => (
+                    <TabsTrigger key={category.key} value={category.key} className="text-xs">
+                      <category.icon className="h-4 w-4 mr-1" />
+                      {category.label}
+                    </TabsTrigger>
+                  ))}
+                </TabsList>
+                
+                {permissionCategories.map(category => (
+                  <TabsContent key={category.key} value={category.key} className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {permissions
+                        .filter(p => p.category === category.key)
+                        .map(permission => (
+                          <div key={permission.key} className="flex items-start space-x-3 p-3 border rounded-lg">
+                            <Switch
+                              id={`new-${permission.key}`}
+                              checked={newRole.permissions[permission.key] || false}
+                              onCheckedChange={(checked) => handlePermissionToggle('new', permission.key, checked)}
+                            />
+                            <div className="flex-1 min-w-0">
+                              <Label htmlFor={`new-${permission.key}`} className="text-sm font-medium cursor-pointer">
+                                {permission.label}
+                              </Label>
+                              <p className="text-xs text-gray-500 mt-1">{permission.description}</p>
+                            </div>
+                          </div>
+                        ))}
+                    </div>
+                  </TabsContent>
+                ))}
+              </Tabs>
+            </div>
+            
+            <div className="flex justify-end space-x-2">
+              <Button variant="outline" onClick={() => setIsAddRoleOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleAddRole}>
+                Add Role
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Role Modal */}
+      <Dialog open={!!selectedRoleForEdit} onOpenChange={() => setSelectedRoleForEdit(null)}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Role</DialogTitle>
+            <DialogDescription>
+              Modify role permissions.
+            </DialogDescription>
+          </DialogHeader>
+          {selectedRoleForEdit && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="edit-role-name">Role Name</Label>
+                  <Input
+                    id="edit-role-name"
+                    value={selectedRoleForEdit.name}
+                    onChange={(e) => setSelectedRoleForEdit({...selectedRoleForEdit, name: e.target.value})}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="edit-role-color">Color</Label>
+                  <Input
+                    id="edit-role-color"
+                    type="color"
+                    value={selectedRoleForEdit.color || '#3B82F6'}
+                    onChange={(e) => setSelectedRoleForEdit({...selectedRoleForEdit, color: e.target.value})}
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="edit-role-description">Description</Label>
+                <Textarea
+                  id="edit-role-description"
+                  value={selectedRoleForEdit.description || ''}
+                  onChange={(e) => setSelectedRoleForEdit({...selectedRoleForEdit, description: e.target.value})}
+                  rows={3}
+                />
+              </div>
+              
+              <div>
+                <h4 className="text-lg font-semibold mb-4">Permissions</h4>
+                <Tabs defaultValue="dashboard" className="w-full">
+                  <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+                    {permissionCategories.map(category => (
+                      <TabsTrigger key={category.key} value={category.key} className="text-xs">
+                        <category.icon className="h-4 w-4 mr-1" />
+                        {category.label}
+                      </TabsTrigger>
+                    ))}
+                  </TabsList>
+                  
+                  {permissionCategories.map(category => (
+                    <TabsContent key={category.key} value={category.key} className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {permissions
+                          .filter(p => p.category === category.key)
+                          .map(permission => (
+                            <div key={permission.key} className="flex items-start space-x-3 p-3 border rounded-lg">
+                              <Switch
+                                id={`edit-${permission.key}`}
+                                checked={selectedRoleForEdit.permissions?.[permission.key] || false}
+                                onCheckedChange={(checked) => handlePermissionToggle('edit', permission.key, checked)}
+                              />
+                              <div className="flex-1 min-w-0">
+                                <Label htmlFor={`edit-${permission.key}`} className="text-sm font-medium cursor-pointer">
+                                  {permission.label}
+                                </Label>
+                                <p className="text-xs text-gray-500 mt-1">{permission.description}</p>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </TabsContent>
+                  ))}
+                </Tabs>
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setSelectedRoleForEdit(null)}>
+                  Cancel
+                </Button>
+                <Button onClick={handleUpdateRole}>
+                  Update Role
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* View User Modal */}
+      <Dialog open={isViewUserOpen} onOpenChange={setIsViewUserOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>User Details</DialogTitle>
+          </DialogHeader>
+          {selectedUser && (
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback style={{ backgroundColor: selectedUser.color }}>
+                    {selectedUser.name?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+                <div>
+                  <h3 className="text-lg font-semibold">{selectedUser.name}</h3>
+                  <p className="text-gray-600">{selectedUser.email}</p>
+                  <Badge variant={selectedUser.role === 'Admin' ? 'default' : 'secondary'} className="mt-1">
+                    {selectedUser.role}
+                  </Badge>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-gray-500">Status</Label>
+                  <p className="font-medium">{selectedUser.status}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Joined</Label>
+                  <p className="font-medium">{formatDate(selectedUser.joined)}</p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Last Login</Label>
+                  <p className="font-medium">
+                    {selectedUser.lastLogin ? formatDate(selectedUser.lastLogin) : 'Never'}
+                  </p>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Color</Label>
+                  <div className="flex items-center space-x-2">
+                    <div 
+                      className="w-4 h-4 rounded-full border" 
+                      style={{ backgroundColor: selectedUser.color }}
+                    />
+                    <span className="font-medium">{selectedUser.color}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex justify-end space-x-2">
+                <Button variant="outline" onClick={() => setIsViewUserOpen(false)}>
+                  Close
+                </Button>
+                <Button 
+                  onClick={() => {
+                    setIsViewUserOpen(false)
+                    setIsEditUserOpen(true)
+                  }}
+                >
+                  Edit User
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}

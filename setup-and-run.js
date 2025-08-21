@@ -135,7 +135,7 @@ async function main() {
     logInfo('Application will be available at: http://localhost:3000');
     log('');
     log('Demo Accounts:', 'cyan');
-    log('- Admin: admin@example.com / admin123', 'cyan');
+    log('- Admin: admin@businesshub.com / admin123', 'cyan');
     log('- Features: Full system access including user management and analytics', 'cyan');
     log('');
     log('Demo Businesses:', 'cyan');

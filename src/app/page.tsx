@@ -89,6 +89,7 @@ import { Switch } from '@/components/ui/switch'
 import { Checkbox } from '@/components/ui/checkbox'
 import { AnalyticsDashboard } from '@/components/analytics-dashboard'
 import InventoryPage from '@/components/inventory-page'
+import EnhancedUsersManagement from '@/components/enhanced-users-management'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -1653,89 +1654,7 @@ export default function BusinessHub() {
             )}
 
             {activeTab === 'users' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
-                      <p className="text-gray-600 mt-1">Manage team members and their permissions</p>
-                    </div>
-                    <Button onClick={() => setIsAddUserOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add User
-                    </Button>
-                  </div>
-                </div>
-
-                <Card className="bg-white shadow-sm">
-                  <CardContent className="p-6">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Joined</TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {users.map((user) => (
-                          <TableRow key={user.id}>
-                            <TableCell>
-                              <div className="flex items-center space-x-3">
-                                <Avatar className="h-8 w-8">
-                                  <AvatarImage src={user.avatar} />
-                                  <AvatarFallback style={{ backgroundColor: user.color }}>
-                                    {user.name?.charAt(0)}
-                                  </AvatarFallback>
-                                </Avatar>
-                                <div>
-                                  <p className="font-medium text-gray-900">{user.name}</p>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell>{user.email}</TableCell>
-                            <TableCell>
-                              <Badge variant={user.role === 'Admin' ? 'default' : 'secondary'}>
-                                {user.role}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <Badge variant={user.status === 'Active' ? 'default' : 'destructive'}>
-                                {user.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              {formatDate(user.joined)}
-                            </TableCell>
-                            <TableCell className="text-right">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem>
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Edit
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem className="text-red-600">
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </div>
+              <EnhancedUsersManagement />
             )}
 
             {activeTab === 'quotes' && (

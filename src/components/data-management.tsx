@@ -163,7 +163,7 @@ export function DataManagement() {
       
       case 'users':
         return `email,name,role,status,color
-"john.doe@example.com","John Doe","Admin","Active","#3B82F6"`
+"john.doe@businesshub.com","John Doe","Admin","Active","#3B82F6"`
       
       case 'contacts':
         return `name,email,phone,position,businessId
