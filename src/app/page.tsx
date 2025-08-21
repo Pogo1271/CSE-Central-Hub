@@ -1435,93 +1435,12 @@ export default function BusinessHub() {
                     <div>
                       <h1 className="text-2xl font-bold text-gray-900">Business Directory</h1>
                       <p className="text-gray-600 mt-1">Manage your business contacts and relationships</p>
+                      <p className="text-sm text-gray-500 mt-2">Total Businesses: {businessList.length}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500">Total Businesses</p>
-                      <p className="text-2xl font-bold text-gray-900">{businessList.length}</p>
-                    </div>
-                  </div>
-                  <div className="mt-4">
                     <Button onClick={() => setIsAddBusinessOpen(true)}>
                       <Plus className="h-4 w-4 mr-2" />
                       Add Business
                     </Button>
-                  </div>
-                </div>
-
-                {/* Filters */}
-                <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                      {/* Search Bar - Takes most space */}
-                      <div className="lg:col-span-6">
-                        <Label htmlFor="search">Search Businesses</Label>
-                        <div className="relative">
-                          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                          <Input
-                            id="search"
-                            placeholder="Search by name, description, or category..."
-                            className="pl-10"
-                            value={businessSearchTerm}
-                            onChange={(e) => setBusinessSearchTerm(e.target.value)}
-                          />
-                        </div>
-                      </div>
-                      
-                      {/* Category Filter */}
-                      <div className="lg:col-span-3">
-                        <Label htmlFor="category">Category</Label>
-                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="All Categories" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories.map((category) => (
-                              <SelectItem key={category} value={category}>
-                                {category}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      
-                      {/* Location Filter */}
-                      <div className="lg:col-span-3">
-                        <Label htmlFor="location">Location</Label>
-                        <Select value={selectedLocation} onValueChange={setSelectedLocation}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="All Locations" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {locations.map((location) => (
-                              <SelectItem key={location} value={location}>
-                                {location}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {/* Results Count */}
-                <div className="bg-white rounded-lg shadow-sm p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600">
-                        Showing {filteredBusinessList.length} of {businessList.length} businesses
-                      </p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setBusinessSearchTerm('')
-                        setSelectedCategory('All Categories')
-                        setSelectedLocation('All Locations')
-                      }}>
-                        Clear Filters
-                      </Button>
-                    </div>
                   </div>
                 </div>
 
@@ -1574,16 +1493,25 @@ export default function BusinessHub() {
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem onClick={() => handleViewBusiness(business)}>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleViewBusiness(business);
+                                    }}>
                                       <Eye className="h-4 w-4 mr-2" />
                                       View Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem onClick={() => handleEditBusiness(business)}>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleEditBusiness(business);
+                                    }}>
                                       <Edit className="h-4 w-4 mr-2" />
                                       Edit Details
                                     </DropdownMenuItem>
                                     <DropdownMenuItem 
-                                      onClick={() => handleDeleteBusiness(business.id)}
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleDeleteBusiness(business.id);
+                                      }}
                                       className="text-red-600 focus:text-red-600 focus:bg-red-50"
                                     >
                                       <Trash2 className="h-4 w-4 mr-2" />
@@ -1636,7 +1564,7 @@ export default function BusinessHub() {
             )}
 
             {activeTab === 'inventory' && (
-              <InventoryPage />
+              <InventoryPage searchTerm={searchTerm} />
             )}
 
             {activeTab === 'tasks' && (

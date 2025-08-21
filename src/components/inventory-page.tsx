@@ -5,7 +5,6 @@ import {
   Package, 
   Plus, 
   Search, 
-  Filter, 
   Edit, 
   Trash2, 
   PoundSterling, 
@@ -14,10 +13,7 @@ import {
   AlertTriangle,
   CheckCircle,
   Clock,
-  Zap,
-  Server,
-  Monitor,
-  Headphones
+  Zap
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,35 +31,24 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
-
-const productCategories = [
-  'All Categories',
-  'Hardware',
-  'Software',
-  'Services',
-  'Support'
-]
-
-const productIcons = {
-  'Hardware': Monitor,
-  'Software': Server,
-  'Services': Zap,
-  'Support': Headphones
-}
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 
 const pricingTypes = [
   { value: 'one-off', label: 'One-off', icon: PoundSterling },
   { value: 'monthly', label: 'Monthly', icon: Calendar }
 ]
 
-export default function InventoryPage() {
+export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) {
   const [products, setProducts] = useState<any[]>([])
   const [filteredProducts, setFilteredProducts] = useState<any[]>([])
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All Categories')
+  const [searchTerm, setSearchTerm] = useState(propSearchTerm)
   const [isAddProductOpen, setIsAddProductOpen] = useState(false)
   const [isEditProductOpen, setIsEditProductOpen] = useState(false)
   const [selectedProduct, setSelectedProduct] = useState(null)
+  const [deleteProductDialog, setDeleteProductDialog] = useState({
+    open: false,
+    productId: null
+  })
   
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -74,7 +59,7 @@ export default function InventoryPage() {
     sku: ''
   })
 
-  // Filter products based on search and category
+  // Filter products based on search only
   const filterProducts = useCallback(() => {
     let filtered = products
 
@@ -86,12 +71,8 @@ export default function InventoryPage() {
       )
     }
 
-    if (selectedCategory !== 'All Categories') {
-      filtered = filtered.filter(product => product.category === selectedCategory)
-    }
-
     setFilteredProducts(filtered)
-  }, [products, searchTerm, selectedCategory])
+  }, [products, searchTerm])
 
   // Load products from database
   useEffect(() => {
@@ -114,6 +95,11 @@ export default function InventoryPage() {
   useEffect(() => {
     filterProducts()
   }, [filterProducts])
+
+  // Sync with props when they change
+  useEffect(() => {
+    setSearchTerm(propSearchTerm)
+  }, [propSearchTerm])
 
   const handleAddProduct = async () => {
     try {
@@ -139,9 +125,13 @@ export default function InventoryPage() {
           sku: ''
         })
         setIsAddProductOpen(false)
+      } else {
+        const errorData = await response.json()
+        alert(`Error: ${errorData.error || 'Failed to create product'}`)
       }
     } catch (error) {
       console.error('Error creating product:', error)
+      alert('Network error: Failed to create product')
     }
   }
 
@@ -192,8 +182,14 @@ export default function InventoryPage() {
   }
 
   const handleDeleteProduct = async (productId) => {
-    if (!confirm('Are you sure you want to delete this product?')) return
+    setDeleteProductDialog({
+      open: true,
+      productId
+    })
+  }
 
+  const confirmDeleteProduct = async () => {
+    const { productId } = deleteProductDialog
     try {
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE'
@@ -203,19 +199,17 @@ export default function InventoryPage() {
         const updatedProducts = products.filter(p => p.id !== productId)
         setProducts(updatedProducts)
         setFilteredProducts(updatedProducts)
+        setDeleteProductDialog({ open: false, productId: null })
       }
     } catch (error) {
       console.error('Error deleting product:', error)
+      setDeleteProductDialog({ open: false, productId: null })
     }
   }
 
   const getPricingTypeIcon = (type) => {
     const pricingType = pricingTypes.find(pt => pt.value === type)
     return pricingType ? pricingType.icon : PoundSterling
-  }
-
-  const getCategoryIcon = (category) => {
-    return productIcons[category] || Package
   }
 
   const formatPrice = (price, pricingType) => {
@@ -245,104 +239,104 @@ export default function InventoryPage() {
   return (
     <div className="flex flex-col h-full space-y-6">
       {/* Header */}
-      <div className="flex-shrink-0">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
-            <p className="text-gray-600">Manage your products, hardware, software, and services</p>
-          </div>
-          <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-rose-600 hover:bg-rose-700">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Product
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
-              <DialogHeader>
-                <DialogTitle>Add New Product</DialogTitle>
-                <DialogDescription>
-                  Create a new product to add to your inventory
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
+      <div className="bg-white rounded-lg shadow-sm p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
+              <p className="text-gray-600 mt-1">Manage your products, hardware, software, and services</p>
+            </div>
+            <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+              <DialogTrigger asChild>
+                <Button className="bg-rose-600 hover:bg-rose-700">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Product
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Add New Product</DialogTitle>
+                  <DialogDescription>
+                    Create a new product to add to your inventory
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Product Name *</Label>
+                      <Input
+                        id="name"
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                        placeholder="Enter product name"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="category">Category *</Label>
+                      <Select 
+                        value={newProduct.category} 
+                        onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select category" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Hardware">Hardware</SelectItem>
+                          <SelectItem value="Software">Software</SelectItem>
+                          <SelectItem value="Services">Services</SelectItem>
+                          <SelectItem value="Support">Support</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <Label htmlFor="name">Product Name *</Label>
-                    <Input
-                      id="name"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                      placeholder="Enter product name"
+                    <Label htmlFor="description">Description</Label>
+                    <Textarea
+                      id="description"
+                      value={newProduct.description}
+                      onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
+                      placeholder="Enter product description"
+                      rows={3}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="category">Category *</Label>
-                    <Select 
-                      value={newProduct.category} 
-                      onValueChange={(value) => setNewProduct({ ...newProduct, category: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="Hardware">Hardware</SelectItem>
-                        <SelectItem value="Software">Software</SelectItem>
-                        <SelectItem value="Services">Services</SelectItem>
-                        <SelectItem value="Support">Support</SelectItem>
-                      </SelectContent>
-                    </Select>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="price">Price *</Label>
+                      <Input
+                        id="price"
+                        type="number"
+                        step="0.01"
+                        value={newProduct.price}
+                        onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="pricingType">Pricing Type *</Label>
+                      <Select 
+                        value={newProduct.pricingType} 
+                        onValueChange={(value) => setNewProduct({ ...newProduct, pricingType: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="one-off">One-off</SelectItem>
+                          <SelectItem value="monthly">Monthly</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="sku">SKU</Label>
+                      <Input
+                        id="sku"
+                        value={newProduct.sku}
+                        onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
+                        placeholder="Auto-generated"
+                      />
+                    </div>
                   </div>
                 </div>
-                <div className="space-y-2">
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct({ ...newProduct, description: e.target.value })}
-                    placeholder="Enter product description"
-                    rows={3}
-                  />
-                </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="price">Price *</Label>
-                    <Input
-                      id="price"
-                      type="number"
-                      step="0.01"
-                      value={newProduct.price}
-                      onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="pricingType">Pricing Type *</Label>
-                    <Select 
-                      value={newProduct.pricingType} 
-                      onValueChange={(value) => setNewProduct({ ...newProduct, pricingType: value })}
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="one-off">One-off</SelectItem>
-                        <SelectItem value="monthly">Monthly</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="sku">SKU</Label>
-                    <Input
-                      id="sku"
-                      value={newProduct.sku}
-                      onChange={(e) => setNewProduct({ ...newProduct, sku: e.target.value })}
-                      placeholder="Auto-generated"
-                    />
-                  </div>
-                </div>
-              </div>
-              <div className="flex justify-end space-x-2">
+                <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>
                   Cancel
                 </Button>
@@ -356,100 +350,71 @@ export default function InventoryPage() {
               </div>
             </DialogContent>
           </Dialog>
+          </div>
         </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mt-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{totalProducts}</div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-              <PoundSterling className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {new Intl.NumberFormat('en-GB', {
-                  style: 'currency',
-                  currency: 'GBP'
-                }).format(totalValue)}
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-              <AlertTriangle className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-yellow-600">{lowStockCount}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-red-600">{outOfStockCount}</div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">MRR</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600">
-                {new Intl.NumberFormat('en-GB', {
-                  style: 'currency',
-                  currency: 'GBP'
-                }).format(monthlyRecurringRevenue)}
-              </div>
-              <p className="text-xs text-muted-foreground">Monthly Recurring Revenue</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mt-6 p-4 bg-gray-50 rounded-xl">
-          <div className="flex-grow">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search products..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalProducts}</div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Value</CardTitle>
+            <PoundSterling className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {new Intl.NumberFormat('en-GB', {
+                style: 'currency',
+                currency: 'GBP'
+              }).format(totalValue)}
             </div>
-          </div>
-          <div className="w-full md:w-48">
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {productCategories.map(category => (
-                  <SelectItem key={category} value={category}>
-                    {category}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-yellow-600">{lowStockCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+            <Clock className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-red-600">{outOfStockCount}</div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">MRR</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-green-600">
+              {new Intl.NumberFormat('en-GB', {
+                style: 'currency',
+                currency: 'GBP'
+              }).format(monthlyRecurringRevenue)}
+            </div>
+            <p className="text-xs text-muted-foreground">Monthly Recurring Revenue</p>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Products Grid */}
@@ -459,12 +424,12 @@ export default function InventoryPage() {
             <Package className="h-12 w-12 mb-4" />
             <h3 className="text-lg font-medium mb-2">No products found</h3>
             <p className="text-sm mb-4">
-              {searchTerm || selectedCategory !== 'All Categories' 
-                ? 'Try adjusting your search or filters' 
+              {searchTerm 
+                ? 'Try adjusting your search' 
                 : 'Get started by adding your first product'
               }
             </p>
-            {(!searchTerm && selectedCategory === 'All Categories') && (
+            {(!searchTerm) && (
               <Button onClick={() => setIsAddProductOpen(true)} className="bg-rose-600 hover:bg-rose-700">
                 <Plus className="mr-2 h-4 w-4" />
                 Add Product
@@ -475,7 +440,6 @@ export default function InventoryPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredProducts.map((product) => {
               const stockStatus = getStockStatus(product.stock, product.lowStockThreshold)
-              const CategoryIcon = getCategoryIcon(product.category)
               const PricingTypeIcon = getPricingTypeIcon(product.pricingType)
               
               return (
@@ -483,7 +447,7 @@ export default function InventoryPage() {
                   <CardHeader className="pb-3">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center space-x-2">
-                        <CategoryIcon className="h-5 w-5 text-gray-600" />
+                        <Package className="h-5 w-5 text-gray-600" />
                         <div>
                           <CardTitle className="text-lg">{product.name}</CardTitle>
                           <CardDescription className="text-sm">
@@ -658,6 +622,15 @@ export default function InventoryPage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Product Confirmation Dialog */}
+      <ConfirmDialog
+        open={deleteProductDialog.open}
+        onOpenChange={(open) => setDeleteProductDialog({ ...deleteProductDialog, open })}
+        title="Delete Product"
+        description="Are you sure you want to delete this product? This action cannot be undone."
+        onConfirm={confirmDeleteProduct}
+      />
     </div>
   )
 }

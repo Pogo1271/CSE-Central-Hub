@@ -39,6 +39,8 @@ export async function POST(request: NextRequest) {
         pricingType,
         category,
         sku: sku || `${category.toUpperCase()}-${Date.now()}`,
+        stock: 0, // Default value
+        lowStockThreshold: 10, // Default value
         createdAt: new Date(),
         updatedAt: new Date()
       }
