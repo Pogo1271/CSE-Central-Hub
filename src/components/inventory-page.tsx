@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { MoreHorizontal } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { useAuth } from '@/hooks/use-auth'
 
 const pricingTypes = [
   { value: 'one-off', label: 'One-off', icon: PoundSterling },
@@ -39,6 +40,7 @@ const pricingTypes = [
 ]
 
 export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) {
+  const { user: currentUser } = useAuth()
   const [products, setProducts] = useState<any[]>([])
   const [filteredProducts, setFilteredProducts] = useState<any[]>([])
   const [searchTerm, setSearchTerm] = useState(propSearchTerm)
@@ -49,6 +51,25 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
     open: false,
     productId: null
   })
+  
+  // Permission checking function
+  const hasPermission = (feature: string) => {
+    if (!currentUser) return false
+    
+    // Simple permission check based on role
+    switch (currentUser.role) {
+      case 'Admin':
+        return true // Admin has all permissions
+      case 'Manager':
+        // Managers can create products
+        return feature === 'canCreateProduct' || feature === 'canViewProducts' || feature === 'canEditProduct'
+      case 'User':
+        // Users cannot create products
+        return feature === 'canViewProducts'
+      default:
+        return false
+    }
+  }
   
   const [newProduct, setNewProduct] = useState({
     name: '',
@@ -245,13 +266,14 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
               <h1 className="text-2xl font-bold text-gray-900">Inventory Management</h1>
               <p className="text-gray-600 mt-1">Manage your products, hardware, software, and services</p>
             </div>
-            <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
-              <DialogTrigger asChild>
-                <Button className="bg-rose-600 hover:bg-rose-700">
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add Product
-                </Button>
-              </DialogTrigger>
+            {hasPermission('canCreateProduct') && (
+              <Dialog open={isAddProductOpen} onOpenChange={setIsAddProductOpen}>
+                <DialogTrigger asChild>
+                  <Button className="bg-rose-600 hover:bg-rose-700">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Product
+                  </Button>
+                </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
                   <DialogTitle>Add New Product</DialogTitle>
@@ -350,6 +372,7 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
               </div>
             </DialogContent>
           </Dialog>
+            )}
           </div>
         </div>
 
@@ -466,13 +489,15 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={() => handleDeleteProduct(product.id)}
-                            className="text-red-600"
-                          >
-                            <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
-                          </DropdownMenuItem>
+                          {hasPermission('canDeleteProduct') && (
+                            <DropdownMenuItem 
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="text-red-600"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" />
+                              Delete
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>

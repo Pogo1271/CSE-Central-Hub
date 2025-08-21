@@ -22,7 +22,9 @@ import {
   MessageSquare,
   Package,
   CheckSquare,
-  Bell
+  Bell,
+  Upload,
+  Send
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -84,57 +86,67 @@ const permissions: Permission[] = [
   // Dashboard Permissions
   { key: 'canViewDashboard', label: 'View Dashboard', description: 'Access to main dashboard', icon: BarChart3, category: 'dashboard' },
   
+  // Dashboard Quick Actions Permissions
+  { key: 'canQuickAddBusiness', label: 'Quick Add Business', description: 'Show "Add Business" quick action on dashboard', icon: Building2, category: 'dashboard' },
+  { key: 'canQuickCreateUser', label: 'Quick Create User', description: 'Show "Create User" quick action on dashboard', icon: UserPlus, category: 'dashboard' },
+  { key: 'canQuickUploadDocument', label: 'Quick Upload Document', description: 'Show "Upload Document" quick action on dashboard', icon: Upload, category: 'dashboard' },
+  { key: 'canQuickSendMessage', label: 'Quick Send Message', description: 'Show "Send Message" quick action on dashboard', icon: Send, category: 'dashboard' },
+  
   // Business Permissions
-  { key: 'canViewBusinesses', label: 'View Businesses', description: 'View business directory', icon: Building2, category: 'businesses' },
   { key: 'canCreateBusiness', label: 'Create Business', description: 'Add new businesses', icon: Building2, category: 'businesses' },
   { key: 'canEditBusiness', label: 'Edit Business', description: 'Modify business details', icon: Building2, category: 'businesses' },
   { key: 'canDeleteBusiness', label: 'Delete Business', description: 'Remove businesses', icon: Building2, category: 'businesses' },
   
   // User Management Permissions
-  { key: 'canViewUsers', label: 'View Users', description: 'View user list', icon: Users, category: 'users' },
   { key: 'canCreateUser', label: 'Create User', description: 'Add new users', icon: UserPlus, category: 'users' },
   { key: 'canEditUser', label: 'Edit User', description: 'Modify user details', icon: Edit, category: 'users' },
   { key: 'canDeleteUser', label: 'Delete User', description: 'Remove users', icon: Trash2, category: 'users' },
   { key: 'canManageRoles', label: 'Manage Roles', description: 'Create and modify roles', icon: Shield, category: 'users' },
   
   // Product/Inventory Permissions
-  { key: 'canViewProducts', label: 'View Products', description: 'View product inventory', icon: Package, category: 'products' },
   { key: 'canCreateProduct', label: 'Create Product', description: 'Add new products', icon: Package, category: 'products' },
   { key: 'canEditProduct', label: 'Edit Product', description: 'Modify product details', icon: Package, category: 'products' },
   { key: 'canDeleteProduct', label: 'Delete Product', description: 'Remove products', icon: Package, category: 'products' },
   
   // Task Management Permissions
-  { key: 'canViewTasks', label: 'View Tasks', description: 'View task list', icon: CheckSquare, category: 'tasks' },
   { key: 'canCreateTask', label: 'Create Task', description: 'Add new tasks', icon: CheckSquare, category: 'tasks' },
   { key: 'canEditTask', label: 'Edit Task', description: 'Modify task details', icon: CheckSquare, category: 'tasks' },
   { key: 'canDeleteTask', label: 'Delete Task', description: 'Remove tasks', icon: CheckSquare, category: 'tasks' },
   { key: 'canAssignTasks', label: 'Assign Tasks', description: 'Assign tasks to users', icon: CheckSquare, category: 'tasks' },
   
   // Quote Management Permissions
-  { key: 'canViewQuotes', label: 'View Quotes', description: 'View quote list', icon: FileText, category: 'quotes' },
   { key: 'canCreateQuote', label: 'Create Quote', description: 'Create new quotes', icon: FileText, category: 'quotes' },
   { key: 'canEditQuote', label: 'Edit Quote', description: 'Modify quote details', icon: FileText, category: 'quotes' },
   { key: 'canDeleteQuote', label: 'Delete Quote', description: 'Remove quotes', icon: FileText, category: 'quotes' },
   { key: 'canApproveQuotes', label: 'Approve Quotes', description: 'Approve quote submissions', icon: FileText, category: 'quotes' },
   
   // Document Management Permissions
-  { key: 'canViewDocuments', label: 'View Documents', description: 'View document list', icon: FileText, category: 'documents' },
   { key: 'canUploadDocument', label: 'Upload Document', description: 'Upload new documents', icon: FileText, category: 'documents' },
   { key: 'canDeleteDocument', label: 'Delete Document', description: 'Remove documents', icon: FileText, category: 'documents' },
   
   // Message Permissions
-  { key: 'canViewMessages', label: 'View Messages', description: 'View message list', icon: MessageSquare, category: 'messages' },
   { key: 'canSendMessage', label: 'Send Message', description: 'Send messages to users', icon: MessageSquare, category: 'messages' },
   { key: 'canDeleteMessage', label: 'Delete Message', description: 'Remove messages', icon: MessageSquare, category: 'messages' },
   
   // Analytics Permissions
-  { key: 'canViewAnalytics', label: 'View Analytics', description: 'Access analytics dashboard', icon: BarChart3, category: 'analytics' },
   { key: 'canExportData', label: 'Export Data', description: 'Export system data', icon: BarChart3, category: 'analytics' },
   
   // System Permissions
   { key: 'canAccessSettings', label: 'Access Settings', description: 'Access system settings', icon: Settings, category: 'system' },
   { key: 'canViewSystemLogs', label: 'View System Logs', description: 'Access system logs', icon: Settings, category: 'system' },
-  { key: 'canManageNotifications', label: 'Manage Notifications', description: 'Manage system notifications', icon: Bell, category: 'system' }
+  { key: 'canManageNotifications', label: 'Manage Notifications', description: 'Manage system notifications', icon: Bell, category: 'system' },
+  
+  // Page Access Permissions (controls sidebar visibility and data access)
+  { key: 'canViewDashboardPage', label: 'Dashboard Page', description: 'Access Dashboard and view its data', icon: BarChart3, category: 'pages' },
+  { key: 'canViewBusinessesPage', label: 'Businesses Page', description: 'Access Businesses and view business data', icon: Building2, category: 'pages' },
+  { key: 'canViewInventoryPage', label: 'Inventory Page', description: 'Access Inventory and view product data', icon: Package, category: 'pages' },
+  { key: 'canViewTasksPage', label: 'Tasks Page', description: 'Access Tasks and view task data', icon: CheckSquare, category: 'pages' },
+  { key: 'canViewUsersPage', label: 'Users Page', description: 'Access Users and view user data', icon: Users, category: 'pages' },
+  { key: 'canViewQuotesPage', label: 'Quotes Page', description: 'Access Quotes and view quote data', icon: FileText, category: 'pages' },
+  { key: 'canViewDocumentsPage', label: 'Documents Page', description: 'Access Documents and view document data', icon: FileText, category: 'pages' },
+  { key: 'canViewMessagesPage', label: 'Messages Page', description: 'Access Messages and view message data', icon: MessageSquare, category: 'pages' },
+  { key: 'canViewAnalyticsPage', label: 'Analytics Page', description: 'Access Analytics and view analytics data', icon: BarChart3, category: 'pages' },
+  { key: 'canViewSettingsPage', label: 'Settings Page', description: 'Access Settings and view configuration data', icon: Settings, category: 'pages' }
 ]
 
 const permissionCategories = [
@@ -147,7 +159,8 @@ const permissionCategories = [
   { key: 'documents', label: 'Documents', icon: FileText },
   { key: 'messages', label: 'Messages', icon: MessageSquare },
   { key: 'analytics', label: 'Analytics', icon: BarChart3 },
-  { key: 'system', label: 'System', icon: Settings }
+  { key: 'system', label: 'System', icon: Settings },
+  { key: 'pages', label: 'Pages', icon: Eye }
 ]
 
 export default function EnhancedUsersManagement() {
@@ -155,9 +168,17 @@ export default function EnhancedUsersManagement() {
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<Role[]>([])
   const [loading, setLoading] = useState(true)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedRole, setSelectedRole] = useState('all')
-  const [selectedStatus, setSelectedStatus] = useState('all')
+  
+  // Permission checking function
+  const hasPermission = (feature: string) => {
+    if (!currentUser) return false
+    
+    // Find the user's role
+    const userRole = roles.find(role => role.name === currentUser.role)
+    if (!userRole) return false
+    
+    return userRole.permissions?.[feature] === true
+  }
   
   // Modal states
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
@@ -183,16 +204,13 @@ export default function EnhancedUsersManagement() {
     color: '#3B82F6',
     permissions: {}
   })
+  
+  // Tab states for permission modals
+  const [addRoleActiveTab, setAddRoleActiveTab] = useState('dashboard')
+  const [editRoleActiveTab, setEditRoleActiveTab] = useState('dashboard')
 
-  // Filter users based on search and filters
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === 'all' || user.role === selectedRole
-    const matchesStatus = selectedStatus === 'all' || user.status === selectedStatus
-    
-    return matchesSearch && matchesRole && matchesStatus
-  })
+  // All users (no filtering)
+  const displayUsers = users
 
   // Load data
   useEffect(() => {
@@ -368,14 +386,7 @@ export default function EnhancedUsersManagement() {
     }
   }
 
-  const getUserStats = (user: User) => {
-    // This would typically fetch actual stats from the API
-    return {
-      businesses: Math.floor(Math.random() * 10),
-      tasks: Math.floor(Math.random() * 20),
-      quotes: Math.floor(Math.random() * 15)
-    }
-  }
+  
 
   // Admin-only protection
   if (currentUser?.role !== 'Admin') {
@@ -410,53 +421,17 @@ export default function EnhancedUsersManagement() {
               <Shield className="h-4 w-4 mr-2" />
               Manage Roles
             </Button>
-            <Button onClick={() => setIsAddUserOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+            {hasPermission('canCreateUser') && (
+              <Button onClick={() => setIsAddUserOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Filters */}
-      <Card className="bg-white shadow-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                <Input
-                  placeholder="Search users by name or email..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={selectedRole} onValueChange={setSelectedRole}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by role" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Roles</SelectItem>
-                {Array.from(new Set(users.map(u => u.role))).map(role => (
-                  <SelectItem key={role} value={role}>{role}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-              <SelectTrigger className="w-full sm:w-48">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Status</SelectItem>
-                <SelectItem value="Active">Active</SelectItem>
-                <SelectItem value="Inactive">Inactive</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </CardContent>
-      </Card>
+  
 
       {/* Users Grid */}
       {loading ? (
@@ -466,22 +441,23 @@ export default function EnhancedUsersManagement() {
             <p className="text-gray-600">Loading users...</p>
           </CardContent>
         </Card>
-      ) : filteredUsers.length === 0 ? (
+      ) : displayUsers.length === 0 ? (
         <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-12 text-center">
             <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-900 mb-2">No users found</h3>
             <p className="text-gray-600 mb-4">Try adjusting your search criteria or create a new user.</p>
-            <Button onClick={() => setIsAddUserOpen(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add User
-            </Button>
+            {hasPermission('canCreateUser') && (
+              <Button onClick={() => setIsAddUserOpen(true)}>
+                <Plus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredUsers.map((user) => {
-            const userStats = getUserStats(user)
+          {displayUsers.map((user) => {
             return (
               <Card 
                 key={user.id} 
@@ -537,16 +513,18 @@ export default function EnhancedUsersManagement() {
                             <Edit className="h-4 w-4 mr-2" />
                             Edit User
                           </DropdownMenuItem>
-                          <DropdownMenuItem 
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleDeleteUser(user.id)
-                            }}
-                            className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete
-                          </DropdownMenuItem>
+                          {hasPermission('canDeleteUser') && (
+                              <DropdownMenuItem 
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  handleDeleteUser(user.id)
+                                }}
+                                className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
@@ -565,24 +543,6 @@ export default function EnhancedUsersManagement() {
                     {/* Join Date */}
                     <div className="flex items-center text-sm text-gray-600">
                       <span className="truncate">Joined {formatDate(user.joined)}</span>
-                    </div>
-                    
-                    <Separator className="my-3" />
-                    
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="text-center p-2 bg-blue-50 rounded-lg">
-                        <div className="text-lg font-bold text-blue-600">{userStats.businesses}</div>
-                        <div className="text-xs text-blue-600">Businesses</div>
-                      </div>
-                      <div className="text-center p-2 bg-green-50 rounded-lg">
-                        <div className="text-lg font-bold text-green-600">{userStats.tasks}</div>
-                        <div className="text-xs text-green-600">Tasks</div>
-                      </div>
-                      <div className="text-center p-2 bg-purple-50 rounded-lg">
-                        <div className="text-lg font-bold text-purple-600">{userStats.quotes}</div>
-                        <div className="text-xs text-purple-600">Quotes</div>
-                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -746,7 +706,10 @@ export default function EnhancedUsersManagement() {
           <div className="space-y-6">
             <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold">Roles</h3>
-              <Button onClick={() => setIsAddRoleOpen(true)}>
+              <Button onClick={() => {
+                setIsAddRoleOpen(true)
+                setAddRoleActiveTab('dashboard')
+              }}>
                 <Plus className="h-4 w-4 mr-2" />
                 Add Role
               </Button>
@@ -761,7 +724,10 @@ export default function EnhancedUsersManagement() {
                       <Button 
                         variant="outline" 
                         size="sm"
-                        onClick={() => setSelectedRoleForEdit(role)}
+                        onClick={() => {
+                          setSelectedRoleForEdit(role)
+                          setEditRoleActiveTab('dashboard')
+                        }}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -773,11 +739,11 @@ export default function EnhancedUsersManagement() {
                   <CardContent>
                     <div className="space-y-2">
                       <div className="text-sm text-gray-600">
-                        <strong>Permissions:</strong> {Object.keys(role.permissions || {}).filter(key => role.permissions[key]).length} enabled
+                        <strong>Permissions:</strong> {Object.keys(role.permissions || {}).filter(key => role.permissions[key] === true).length} enabled
                       </div>
                       <div className="flex flex-wrap gap-1">
                         {Object.entries(role.permissions || {})
-                          .filter(([_, enabled]) => enabled)
+                          .filter(([_, enabled]) => enabled === true)
                           .slice(0, 3)
                           .map(([key]) => {
                             const permission = permissions.find(p => p.key === key)
@@ -787,9 +753,9 @@ export default function EnhancedUsersManagement() {
                               </Badge>
                             ) : null
                           })}
-                        {Object.keys(role.permissions || {}).filter(key => role.permissions[key]).length > 3 && (
+                        {Object.keys(role.permissions || {}).filter(key => role.permissions[key] === true).length > 3 && (
                           <Badge variant="secondary" className="text-xs">
-                            +{Object.keys(role.permissions || {}).filter(key => role.permissions[key]).length - 3} more
+                            +{Object.keys(role.permissions || {}).filter(key => role.permissions[key] === true).length - 3} more
                           </Badge>
                         )}
                       </div>
@@ -845,40 +811,65 @@ export default function EnhancedUsersManagement() {
             
             <div>
               <h4 className="text-lg font-semibold mb-4">Permissions</h4>
-              <Tabs defaultValue="dashboard" className="w-full">
-                <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+              <div className="flex gap-6">
+                {/* Sidebar with categories */}
+                <div className="w-48 space-y-2">
                   {permissionCategories.map(category => (
-                    <TabsTrigger key={category.key} value={category.key} className="text-xs">
-                      <category.icon className="h-4 w-4 mr-1" />
-                      {category.label}
-                    </TabsTrigger>
+                    <button
+                      key={category.key}
+                      onClick={() => setAddRoleActiveTab(category.key)}
+                      className={`w-full flex items-center space-x-2 p-2 text-left rounded-md transition-colors ${addRoleActiveTab === category.key ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
+                    >
+                      <category.icon className="h-4 w-4" />
+                      <span className="text-sm font-medium">{category.label}</span>
+                    </button>
                   ))}
-                </TabsList>
+                </div>
                 
-                {permissionCategories.map(category => (
-                  <TabsContent key={category.key} value={category.key} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {permissions
-                        .filter(p => p.category === category.key)
-                        .map(permission => (
-                          <div key={permission.key} className="flex items-start space-x-3 p-3 border rounded-lg">
-                            <Switch
-                              id={`new-${permission.key}`}
-                              checked={newRole.permissions[permission.key] || false}
-                              onCheckedChange={(checked) => handlePermissionToggle('new', permission.key, checked)}
-                            />
-                            <div className="flex-1 min-w-0">
-                              <Label htmlFor={`new-${permission.key}`} className="text-sm font-medium cursor-pointer">
-                                {permission.label}
-                              </Label>
-                              <p className="text-xs text-gray-500 mt-1">{permission.description}</p>
-                            </div>
-                          </div>
-                        ))}
-                    </div>
-                  </TabsContent>
-                ))}
-              </Tabs>
+                {/* Permissions content */}
+                <div className="flex-1">
+                  <Tabs value={addRoleActiveTab} onValueChange={setAddRoleActiveTab} className="w-full">
+                    <TabsList className="hidden">
+                      {permissionCategories.map(category => (
+                        <TabsTrigger key={category.key} value={category.key}>
+                          {category.label}
+                        </TabsTrigger>
+                      ))}
+                    </TabsList>
+                    
+                    {permissionCategories.map(category => (
+                      <TabsContent key={category.key} value={category.key} className="space-y-3">
+                        <div className="mb-4">
+                          <h5 className="font-medium text-gray-900 flex items-center space-x-2">
+                            <category.icon className="h-5 w-5" />
+                            <span>{category.label} Permissions</span>
+                          </h5>
+                        </div>
+                        <div className="space-y-3">
+                          {permissions
+                            .filter(p => p.category === category.key)
+                            .map(permission => (
+                              <div key={permission.key} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                <Switch
+                                  id={`new-${permission.key}`}
+                                  checked={newRole.permissions[permission.key] === true}
+                                  onCheckedChange={(checked) => handlePermissionToggle('new', permission.key, checked)}
+                                  className="mt-1"
+                                />
+                                <div className="flex-1 min-w-0">
+                                  <Label htmlFor={`new-${permission.key}`} className="text-sm font-medium cursor-pointer">
+                                    {permission.label}
+                                  </Label>
+                                  <p className="text-xs text-gray-500 mt-1 leading-relaxed">{permission.description}</p>
+                                </div>
+                              </div>
+                            ))}
+                        </div>
+                      </TabsContent>
+                    ))}
+                  </Tabs>
+                </div>
+              </div>
             </div>
             
             <div className="flex justify-end space-x-2">
@@ -935,40 +926,65 @@ export default function EnhancedUsersManagement() {
               
               <div>
                 <h4 className="text-lg font-semibold mb-4">Permissions</h4>
-                <Tabs defaultValue="dashboard" className="w-full">
-                  <TabsList className="grid w-full grid-cols-5 lg:grid-cols-10">
+                <div className="flex gap-6">
+                  {/* Sidebar with categories */}
+                  <div className="w-48 space-y-2">
                     {permissionCategories.map(category => (
-                      <TabsTrigger key={category.key} value={category.key} className="text-xs">
-                        <category.icon className="h-4 w-4 mr-1" />
-                        {category.label}
-                      </TabsTrigger>
+                      <button
+                        key={category.key}
+                        onClick={() => setEditRoleActiveTab(category.key)}
+                        className={`w-full flex items-center space-x-2 p-2 text-left rounded-md transition-colors ${editRoleActiveTab === category.key ? 'bg-blue-100 text-blue-700' : 'hover:bg-gray-100'}`}
+                      >
+                        <category.icon className="h-4 w-4" />
+                        <span className="text-sm font-medium">{category.label}</span>
+                      </button>
                     ))}
-                  </TabsList>
+                  </div>
                   
-                  {permissionCategories.map(category => (
-                    <TabsContent key={category.key} value={category.key} className="space-y-4">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {permissions
-                          .filter(p => p.category === category.key)
-                          .map(permission => (
-                            <div key={permission.key} className="flex items-start space-x-3 p-3 border rounded-lg">
-                              <Switch
-                                id={`edit-${permission.key}`}
-                                checked={selectedRoleForEdit.permissions?.[permission.key] || false}
-                                onCheckedChange={(checked) => handlePermissionToggle('edit', permission.key, checked)}
-                              />
-                              <div className="flex-1 min-w-0">
-                                <Label htmlFor={`edit-${permission.key}`} className="text-sm font-medium cursor-pointer">
-                                  {permission.label}
-                                </Label>
-                                <p className="text-xs text-gray-500 mt-1">{permission.description}</p>
-                              </div>
-                            </div>
-                          ))}
-                      </div>
-                    </TabsContent>
-                  ))}
-                </Tabs>
+                  {/* Permissions content */}
+                  <div className="flex-1">
+                    <Tabs value={editRoleActiveTab} onValueChange={setEditRoleActiveTab} className="w-full">
+                      <TabsList className="hidden">
+                        {permissionCategories.map(category => (
+                          <TabsTrigger key={category.key} value={category.key}>
+                            {category.label}
+                          </TabsTrigger>
+                        ))}
+                      </TabsList>
+                      
+                      {permissionCategories.map(category => (
+                        <TabsContent key={category.key} value={category.key} className="space-y-3">
+                          <div className="mb-4">
+                            <h5 className="font-medium text-gray-900 flex items-center space-x-2">
+                              <category.icon className="h-5 w-5" />
+                              <span>{category.label} Permissions</span>
+                            </h5>
+                          </div>
+                          <div className="space-y-3">
+                            {permissions
+                              .filter(p => p.category === category.key)
+                              .map(permission => (
+                                <div key={permission.key} className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
+                                  <Switch
+                                    id={`edit-${permission.key}`}
+                                    checked={selectedRoleForEdit.permissions?.[permission.key] === true}
+                                    onCheckedChange={(checked) => handlePermissionToggle('edit', permission.key, checked)}
+                                    className="mt-1"
+                                  />
+                                  <div className="flex-1 min-w-0">
+                                    <Label htmlFor={`edit-${permission.key}`} className="text-sm font-medium cursor-pointer">
+                                      {permission.label}
+                                    </Label>
+                                    <p className="text-xs text-gray-500 mt-1 leading-relaxed">{permission.description}</p>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        </TabsContent>
+                      ))}
+                    </Tabs>
+                  </div>
+                </div>
               </div>
               
               <div className="flex justify-end space-x-2">

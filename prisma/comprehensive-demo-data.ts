@@ -59,14 +59,61 @@ export async function seedComprehensiveDemoData() {
       description: 'Full system access',
       color: '#EF4444',
       permissions: {
-        tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
-        features: {
-          canCreateBusiness: true,
-          canViewAllUsers: true,
-          canCreateUser: true,
-          canViewAnalytics: true,
-          canAccessSettings: true
-        }
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: true,
+        canQuickCreateUser: true,
+        canQuickUploadDocument: true,
+        canQuickSendMessage: true,
+        // Business permissions
+        canCreateBusiness: true,
+        canEditBusiness: true,
+        canDeleteBusiness: true,
+        // User permissions
+        canCreateUser: true,
+        canEditUser: true,
+        canDeleteUser: true,
+        canManageRoles: true,
+        canViewUsers: true,
+        // Product permissions
+        canCreateProduct: true,
+        canEditProduct: true,
+        canDeleteProduct: true,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: true,
+        canDeleteTask: true,
+        canAssignTasks: true,
+        // Quote permissions
+        canCreateQuote: true,
+        canEditQuote: true,
+        canDeleteQuote: true,
+        canApproveQuotes: true,
+        // Document permissions
+        canUploadDocument: true,
+        canDeleteDocument: true,
+        // Message permissions
+        canSendMessage: true,
+        canDeleteMessage: true,
+        // Analytics permissions
+        canViewAnalytics: true,
+        canExportData: true,
+        // System permissions
+        canAccessSettings: true,
+        canViewSystemLogs: true,
+        canManageNotifications: true,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: true,
+        canViewInventoryPage: true,
+        canViewTasksPage: true,
+        canViewUsersPage: true,
+        canViewQuotesPage: true,
+        canViewDocumentsPage: true,
+        canViewMessagesPage: true,
+        canViewAnalyticsPage: true,
+        canViewSettingsPage: true
       }
     },
   })
@@ -79,14 +126,61 @@ export async function seedComprehensiveDemoData() {
       description: 'Limited admin access',
       color: '#F59E0B',
       permissions: {
-        tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'quotes', 'documents', 'messages', 'analytics'],
-        features: {
-          canCreateBusiness: true,
-          canViewAllUsers: false,
-          canCreateUser: true,
-          canViewAnalytics: true,
-          canAccessSettings: false
-        }
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: true,
+        canQuickCreateUser: false,
+        canQuickUploadDocument: true,
+        canQuickSendMessage: true,
+        // Business permissions
+        canCreateBusiness: true,
+        canEditBusiness: true,
+        canDeleteBusiness: false,
+        // User permissions
+        canCreateUser: false,
+        canEditUser: true,
+        canDeleteUser: false,
+        canManageRoles: false,
+        canViewUsers: true,
+        // Product permissions
+        canCreateProduct: true,
+        canEditProduct: true,
+        canDeleteProduct: false,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: true,
+        canDeleteTask: false,
+        canAssignTasks: true,
+        // Quote permissions
+        canCreateQuote: true,
+        canEditQuote: true,
+        canDeleteQuote: false,
+        canApproveQuotes: true,
+        // Document permissions
+        canUploadDocument: true,
+        canDeleteDocument: false,
+        // Message permissions
+        canSendMessage: true,
+        canDeleteMessage: false,
+        // Analytics permissions
+        canViewAnalytics: false,
+        canExportData: false,
+        // System permissions
+        canAccessSettings: false,
+        canViewSystemLogs: false,
+        canManageNotifications: true,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: true,
+        canViewInventoryPage: true,
+        canViewTasksPage: true,
+        canViewUsersPage: true,
+        canViewQuotesPage: true,
+        canViewDocumentsPage: true,
+        canViewMessagesPage: true,
+        canViewAnalyticsPage: false,
+        canViewSettingsPage: false
       }
     },
   })
@@ -99,14 +193,61 @@ export async function seedComprehensiveDemoData() {
       description: 'Basic user access',
       color: '#3B82F6',
       permissions: {
-        tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'quotes', 'documents', 'messages'],
-        features: {
-          canCreateBusiness: false,
-          canViewAllUsers: false,
-          canCreateUser: false,
-          canViewAnalytics: false,
-          canAccessSettings: false
-        }
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: false,
+        canQuickCreateUser: false,
+        canQuickUploadDocument: false,
+        canQuickSendMessage: false,
+        // Business permissions
+        canCreateBusiness: false,
+        canEditBusiness: false,
+        canDeleteBusiness: false,
+        // User permissions
+        canCreateUser: false,
+        canEditUser: false,
+        canDeleteUser: false,
+        canManageRoles: false,
+        canViewUsers: false,
+        // Product permissions
+        canCreateProduct: false,
+        canEditProduct: false,
+        canDeleteProduct: false,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: false,
+        canDeleteTask: false,
+        canAssignTasks: false,
+        // Quote permissions
+        canCreateQuote: false,
+        canEditQuote: false,
+        canDeleteQuote: false,
+        canApproveQuotes: false,
+        // Document permissions
+        canUploadDocument: false,
+        canDeleteDocument: false,
+        // Message permissions
+        canSendMessage: false,
+        canDeleteMessage: false,
+        // Analytics permissions
+        canViewAnalytics: false,
+        canExportData: false,
+        // System permissions
+        canAccessSettings: false,
+        canViewSystemLogs: false,
+        canManageNotifications: false,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: false,
+        canViewInventoryPage: false,
+        canViewTasksPage: true,
+        canViewUsersPage: false,
+        canViewQuotesPage: false,
+        canViewDocumentsPage: false,
+        canViewMessagesPage: false,
+        canViewAnalyticsPage: false,
+        canViewSettingsPage: false
       }
     },
   })
@@ -310,8 +451,6 @@ export async function seedComprehensiveDemoData() {
     data: {
       businessId: cornwallScales.id,
       productId: supportPackage.id,
-      assignedAt: new Date(),
-      assignedBy: adminUser.id,
     },
   })
 
@@ -319,8 +458,6 @@ export async function seedComprehensiveDemoData() {
     data: {
       businessId: techSolutions.id,
       productId: eposPro.id,
-      assignedAt: new Date(),
-      assignedBy: adminUser.id,
     },
   })
 
@@ -387,6 +524,17 @@ export async function seedComprehensiveDemoData() {
     'Retail Store Plus',
     'Restaurant Biz'
   ])
+  console.log('')
+  console.log('Role Permissions Summary:')
+  console.log('- Admin: Full access to all pages and features')
+  console.log('- Manager: Access to Dashboard, Businesses, Inventory, Tasks, Users, Quotes, Documents, Messages')
+  console.log('- User: Access to Dashboard and Tasks only')
+  console.log('')
+  console.log('Sidebar Navigation Fix:')
+  console.log('- Page access permissions (canView*Page) now control sidebar visibility')
+  console.log('- Admin users will see all navigation items')
+  console.log('- Manager users will see relevant navigation items based on permissions')
+  console.log('- User users will see only Dashboard and Tasks navigation items')
 }
 
 // Export for direct execution

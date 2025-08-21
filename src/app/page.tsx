@@ -97,16 +97,16 @@ import { useAuth } from '@/hooks/use-auth'
 import * as api from '@/lib/client-api'
 
 const navigation = [
-  { name: 'Dashboard', href: '#', icon: Building2, tab: 'dashboard' },
-  { name: 'Business Directory', href: '#', icon: Building2, tab: 'businesses' },
-  { name: 'Inventory', href: '#', icon: Package, tab: 'inventory' },
-  { name: 'Tasks', href: '#', icon: CheckSquare, tab: 'tasks' },
-  { name: 'Users', href: '#', icon: Users, tab: 'users', requiredPermission: 'canViewAllUsers' },
-  { name: 'Quotes', href: '#', icon: FileSignature, tab: 'quotes' },
-  { name: 'Documents', href: '#', icon: FolderOpen, tab: 'documents' },
-  { name: 'Messages', href: '#', icon: MessageSquare, tab: 'messages' },
-  { name: 'Analytics', href: '#', icon: BarChart3, tab: 'analytics', requiredPermission: 'canViewAnalytics' },
-  { name: 'Settings', href: '#', icon: Settings, tab: 'settings', requiredPermission: 'canAccessSettings' },
+  { name: 'Dashboard', href: '#', icon: Building2, tab: 'dashboard', requiredPermission: 'canViewDashboardPage' },
+  { name: 'Business Directory', href: '#', icon: Building2, tab: 'businesses', requiredPermission: 'canViewBusinessesPage' },
+  { name: 'Inventory', href: '#', icon: Package, tab: 'inventory', requiredPermission: 'canViewInventoryPage' },
+  { name: 'Tasks', href: '#', icon: CheckSquare, tab: 'tasks', requiredPermission: 'canViewTasksPage' },
+  { name: 'Users', href: '#', icon: Users, tab: 'users', requiredPermission: 'canViewUsersPage' },
+  { name: 'Quotes', href: '#', icon: FileSignature, tab: 'quotes', requiredPermission: 'canViewQuotesPage' },
+  { name: 'Documents', href: '#', icon: FolderOpen, tab: 'documents', requiredPermission: 'canViewDocumentsPage' },
+  { name: 'Messages', href: '#', icon: MessageSquare, tab: 'messages', requiredPermission: 'canViewMessagesPage' },
+  { name: 'Analytics', href: '#', icon: BarChart3, tab: 'analytics', requiredPermission: 'canViewAnalyticsPage' },
+  { name: 'Settings', href: '#', icon: Settings, tab: 'settings', requiredPermission: 'canViewSettingsPage' },
 ]
 
 const categories = [
@@ -136,7 +136,7 @@ const locations = [
 
 export default function BusinessHub() {
   const { isAuthenticated, user: currentUser, isLoading, logout } = useAuth()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarOpen, setSidebarOpen] = useState(true)
   const [activeTab, setActiveTab] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
@@ -163,39 +163,8 @@ export default function BusinessHub() {
     return 'User'
   })
   
-  // Role-based permissions
-  const [rolePermissions, setRolePermissions] = useState({
-    User: {
-      tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'quotes', 'documents', 'messages'],
-      features: {
-        canCreateBusiness: false,
-        canViewAllUsers: false,
-        canCreateUser: false,
-        canViewAnalytics: false,
-        canAccessSettings: false
-      }
-    },
-    Admin: {
-      tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
-      features: {
-        canCreateBusiness: true,
-        canViewAllUsers: true,
-        canCreateUser: true,
-        canViewAnalytics: true,
-        canAccessSettings: true
-      }
-    },
-    Manager: {
-      tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'quotes', 'documents', 'messages', 'analytics'],
-      features: {
-        canCreateBusiness: true,
-        canViewAllUsers: false,
-        canCreateUser: true,
-        canViewAnalytics: true,
-        canAccessSettings: false
-      }
-    }
-  })
+  // Role-based permissions - will be populated dynamically from backend
+  const [rolePermissions, setRolePermissions] = useState<any>({})
   
   // Data state
   const [roles, setRoles] = useState<any[]>([])
@@ -207,6 +176,15 @@ export default function BusinessHub() {
   const [businessList, setBusinessList] = useState<any[]>([])
   const [quotes, setQuotes] = useState<any[]>([])
   const [notes, setNotes] = useState<any[]>([])
+  
+  // Debug logging - moved after state declarations
+  console.log('BusinessHub render:', {
+    isAuthenticated,
+    currentUser: currentUser?.email,
+    userRole: currentUser?.role,
+    isLoading,
+    rolePermissionsLoaded: Object.keys(rolePermissions).length
+  })
   
   // Dashboard stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -335,32 +313,43 @@ export default function BusinessHub() {
     return <span>{displayName}</span>
   }
   const getUserPermissions = () => {
-    const adminPermissions = {
-      tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
-      features: {
-        canCreateBusiness: true,
-        canViewAllUsers: true,
-        canCreateUser: true,
-        canViewAnalytics: true,
-        canAccessSettings: true
-      }
-    }
-    
+    // Remove hardcoded fallback - only use permissions loaded from backend
     if (currentUser && rolePermissions[currentUser.role]) {
       return rolePermissions[currentUser.role]
     }
     
-    return adminPermissions
+    // Try case-insensitive matching
+    if (currentUser) {
+      const userRoleLower = currentUser.role.toLowerCase()
+      const matchingRole = Object.keys(rolePermissions).find(role => 
+        role.toLowerCase() === userRoleLower
+      )
+      
+      if (matchingRole) {
+        return rolePermissions[matchingRole]
+      }
+    }
+    
+    // Return minimal permissions if role not found (no hardcoded fallback)
+    console.log('No role match found for:', currentUser?.role, 'Available roles:', Object.keys(rolePermissions))
+    return {
+      tabs: ['dashboard'],
+      features: {}
+    }
   }
   
   const hasPermission = (feature) => {
     const permissions = getUserPermissions()
-    return permissions.features && permissions.features[feature] || false
+    const result = permissions.features && permissions.features[feature] === true
+    return result
   }
 
   const canAccessTab = (tab) => {
-    const permissions = getUserPermissions()
-    return permissions.tabs && permissions.tabs.includes(tab) || false
+    // Find the navigation item to get its required permission
+    const navItem = navigation.find(item => item.tab === tab)
+    if (!navItem || !navItem.requiredPermission) return false
+    
+    return hasPermission(navItem.requiredPermission)
   }
 
   // Load data from backend
@@ -368,12 +357,59 @@ export default function BusinessHub() {
     const loadData = async () => {
       // Only load data if user is authenticated
       if (!isAuthenticated || !currentUser) {
-        console.log('Skipping data load - user not authenticated')
+        console.log('Skipping data load - user not authenticated', { isAuthenticated, currentUser })
         return
       }
       
       try {
-        console.log('Starting to load data...')
+        console.log('Starting to load data...', { 
+          currentUser: currentUser?.email, 
+          userRole: currentUser?.role,
+          isLoading 
+        })
+        
+        // Load roles first to get permissions
+        const rolesResponse = await api.getRoles()
+        if (rolesResponse.success) {
+          setRoles(rolesResponse.data)
+          
+          // Convert roles array to rolePermissions object
+          const dynamicRolePermissions: any = {}
+          rolesResponse.data.forEach((role: any) => {
+            const permissions = role.permissions || {}
+            dynamicRolePermissions[role.name] = {
+              tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
+              features: {
+                canCreateBusiness: permissions.canCreateBusiness === true,
+                canViewAllUsers: permissions.canViewUsers === true, // Map backend canViewUsers to frontend canViewAllUsers
+                canCreateUser: permissions.canCreateUser === true,
+                canViewAnalytics: permissions.canViewAnalytics === true,
+                canAccessSettings: permissions.canAccessSettings === true,
+                canUploadDocument: permissions.canUploadDocument === true,
+                canSendMessage: permissions.canSendMessage === true, // Strict true check
+                // Dashboard Quick Actions permissions
+                canQuickAddBusiness: permissions.canQuickAddBusiness === true,
+                canQuickCreateUser: permissions.canQuickCreateUser === true,
+                canQuickUploadDocument: permissions.canQuickUploadDocument === true,
+                canQuickSendMessage: permissions.canQuickSendMessage === true,
+                // Page access permissions for sidebar visibility
+                canViewDashboardPage: permissions.canViewDashboardPage === true,
+                canViewBusinessesPage: permissions.canViewBusinessesPage === true,
+                canViewInventoryPage: permissions.canViewInventoryPage === true,
+                canViewTasksPage: permissions.canViewTasksPage === true,
+                canViewUsersPage: permissions.canViewUsersPage === true,
+                canViewQuotesPage: permissions.canViewQuotesPage === true,
+                canViewDocumentsPage: permissions.canViewDocumentsPage === true,
+                canViewMessagesPage: permissions.canViewMessagesPage === true,
+                canViewAnalyticsPage: permissions.canViewAnalyticsPage === true,
+                canViewSettingsPage: permissions.canViewSettingsPage === true
+              }
+            }
+          })
+          setRolePermissions(dynamicRolePermissions)
+        } else {
+          console.error('Failed to load roles:', rolesResponse.error)
+        }
         
         // Load businesses
         const businessesResponse = await api.getBusinesses()
@@ -1293,7 +1329,22 @@ export default function BusinessHub() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {quickActions.map((action, index) => (
+                  {quickActions
+                    .filter(action => {
+                      switch (action.title) {
+                        case 'Add Business':
+                          return hasPermission('canQuickAddBusiness')
+                        case 'Create User':
+                          return hasPermission('canQuickCreateUser')
+                        case 'Upload Document':
+                          return hasPermission('canQuickUploadDocument')
+                        case 'Send Message':
+                          return hasPermission('canQuickSendMessage')
+                        default:
+                          return true
+                      }
+                    })
+                    .map((action, index) => (
                     <button
                       key={index}
                       onClick={action.action}
@@ -1438,10 +1489,12 @@ export default function BusinessHub() {
                       <p className="text-gray-600 mt-1">Manage your business contacts and relationships</p>
                       <p className="text-sm text-gray-500 mt-2">Total Businesses: {businessList.length}</p>
                     </div>
-                    <Button onClick={() => setIsAddBusinessOpen(true)}>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Business
-                    </Button>
+                    {hasPermission('canCreateBusiness') && (
+                      <Button onClick={() => setIsAddBusinessOpen(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Business
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1452,10 +1505,12 @@ export default function BusinessHub() {
                       <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                       <h3 className="text-lg font-medium text-gray-900 mb-2">No businesses found</h3>
                       <p className="text-gray-600 mb-4">Try adjusting your search criteria or create a new business.</p>
-                      <Button onClick={() => setIsAddBusinessOpen(true)}>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Business
-                      </Button>
+                      {hasPermission('canCreateBusiness') && (
+                        <Button onClick={() => setIsAddBusinessOpen(true)}>
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add Business
+                        </Button>
+                      )}
                     </CardContent>
                   </Card>
                 ) : (
@@ -1508,16 +1563,18 @@ export default function BusinessHub() {
                                       <Edit className="h-4 w-4 mr-2" />
                                       Edit Details
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem 
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteBusiness(business.id);
-                                      }}
-                                      className="text-red-600 focus:text-red-600 focus:bg-red-50"
-                                    >
-                                      <Trash2 className="h-4 w-4 mr-2" />
-                                      Delete
-                                    </DropdownMenuItem>
+                                    {hasPermission('canDeleteBusiness') && (
+                                      <DropdownMenuItem 
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleDeleteBusiness(business.id);
+                                        }}
+                                        className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                                      >
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </DropdownMenuItem>
+                                    )}
                                   </DropdownMenuContent>
                                 </DropdownMenu>
                               </div>
@@ -1576,10 +1633,12 @@ export default function BusinessHub() {
                       <h2 className="text-2xl font-bold text-gray-900">Task Management</h2>
                       <p className="text-gray-600 mt-1">Track and manage your team's tasks</p>
                     </div>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Task
-                    </Button>
+                    {hasPermission('canCreateTask') && (
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Task
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1665,10 +1724,12 @@ export default function BusinessHub() {
                       <h2 className="text-2xl font-bold text-gray-900">Quotes & Proposals</h2>
                       <p className="text-gray-600 mt-1">Manage client quotes and business proposals</p>
                     </div>
-                    <Button className="bg-blue-600 hover:bg-blue-700">
-                      <Plus className="h-4 w-4 mr-2" />
-                      New Quote
-                    </Button>
+                    {hasPermission('canCreateQuote') && (
+                      <Button className="bg-blue-600 hover:bg-blue-700">
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Quote
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -1724,10 +1785,12 @@ export default function BusinessHub() {
                       <h2 className="text-2xl font-bold text-gray-900">Document Management</h2>
                       <p className="text-gray-600 mt-1">Store and organize your business documents</p>
                     </div>
-                    <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                      <Upload className="h-4 w-4 mr-2" />
-                      Upload Document
-                    </Button>
+                    {hasPermission('canUploadDocument') && (
+                      <Button onClick={() => setIsUploadDialogOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+                        <Upload className="h-4 w-4 mr-2" />
+                        Upload Document
+                      </Button>
+                    )}
                   </div>
                 </div>
 

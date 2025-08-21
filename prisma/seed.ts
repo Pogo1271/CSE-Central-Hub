@@ -6,6 +6,10 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
+  // Delete existing roles to start fresh
+  await prisma.role.deleteMany({})
+  console.log('Deleted existing roles')
+
   // Create default admin user
   const hashedPassword = await bcrypt.hash('admin123', 10)
   
@@ -22,68 +26,230 @@ async function main() {
     },
   })
 
-  // Create default roles
-  const adminRole = await prisma.role.upsert({
-    where: { name: 'Admin' },
+  // Create manager user
+  const managerHashedPassword = await bcrypt.hash('manager123', 10)
+  
+  const managerUser = await prisma.user.upsert({
+    where: { email: 'manager@businesshub.com' },
     update: {},
     create: {
+      email: 'manager@businesshub.com',
+      password: managerHashedPassword,
+      name: 'Manager User',
+      role: 'Manager',
+      status: 'Active',
+      color: '#F59E0B',
+    },
+  })
+
+  // Create regular user
+  const userHashedPassword = await bcrypt.hash('user123', 10)
+  
+  const regularUser = await prisma.user.upsert({
+    where: { email: 'user@businesshub.com' },
+    update: {},
+    create: {
+      email: 'user@businesshub.com',
+      password: userHashedPassword,
+      name: 'Regular User',
+      role: 'User',
+      status: 'Active',
+      color: '#3B82F6',
+    },
+  })
+
+  // Create default roles
+  const adminRole = await prisma.role.create({
+    data: {
       name: 'Admin',
       description: 'Full system access',
       color: '#EF4444',
       permissions: {
-        tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
-        features: {
-          canCreateBusiness: true,
-          canViewAllUsers: true,
-          canCreateUser: true,
-          canViewAnalytics: true,
-          canAccessSettings: true
-        }
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: true,
+        canQuickCreateUser: true,
+        canQuickUploadDocument: true,
+        canQuickSendMessage: true,
+        // Business permissions
+        canCreateBusiness: true,
+        canEditBusiness: true,
+        canDeleteBusiness: true,
+        // User permissions
+        canCreateUser: true,
+        canEditUser: true,
+        canDeleteUser: true,
+        canManageRoles: true,
+        // Product permissions
+        canCreateProduct: true,
+        canEditProduct: true,
+        canDeleteProduct: true,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: true,
+        canDeleteTask: true,
+        canAssignTasks: true,
+        // Quote permissions
+        canCreateQuote: true,
+        canEditQuote: true,
+        canDeleteQuote: true,
+        canApproveQuotes: true,
+        // Document permissions
+        canUploadDocument: true,
+        canDeleteDocument: true,
+        // Message permissions
+        canSendMessage: true,
+        canDeleteMessage: true,
+        // Analytics permissions
+        canExportData: true,
+        // System permissions
+        canAccessSettings: true,
+        canViewSystemLogs: true,
+        canManageNotifications: true,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: true,
+        canViewInventoryPage: true,
+        canViewTasksPage: true,
+        canViewUsersPage: true,
+        canViewQuotesPage: true,
+        canViewDocumentsPage: true,
+        canViewMessagesPage: true,
+        canViewAnalyticsPage: true,
+        canViewSettingsPage: true
       }
     },
   })
 
-  const managerRole = await prisma.role.upsert({
-    where: { name: 'Manager' },
-    update: {},
-    create: {
+  const managerRole = await prisma.role.create({
+    data: {
       name: 'Manager',
       description: 'Limited admin access',
       color: '#F59E0B',
       permissions: {
-        tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'quotes', 'documents', 'messages', 'analytics'],
-        features: {
-          canCreateBusiness: true,
-          canViewAllUsers: false,
-          canCreateUser: true,
-          canViewAnalytics: true,
-          canAccessSettings: false
-        }
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: true,
+        canQuickCreateUser: false,
+        canQuickUploadDocument: true,
+        canQuickSendMessage: true,
+        // Business permissions
+        canCreateBusiness: true,
+        canEditBusiness: true,
+        canDeleteBusiness: false,
+        // User permissions
+        canCreateUser: false,
+        canEditUser: true,
+        canDeleteUser: false,
+        canManageRoles: false,
+        // Product permissions
+        canCreateProduct: true,
+        canEditProduct: true,
+        canDeleteProduct: false,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: true,
+        canDeleteTask: false,
+        canAssignTasks: true,
+        // Quote permissions
+        canCreateQuote: true,
+        canEditQuote: true,
+        canDeleteQuote: false,
+        canApproveQuotes: true,
+        // Document permissions
+        canUploadDocument: true,
+        canDeleteDocument: false,
+        // Message permissions
+        canSendMessage: true,
+        canDeleteMessage: false,
+        // Analytics permissions
+        canExportData: false,
+        // System permissions
+        canAccessSettings: false,
+        canViewSystemLogs: false,
+        canManageNotifications: true,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: true,
+        canViewInventoryPage: true,
+        canViewTasksPage: true,
+        canViewUsersPage: true,
+        canViewQuotesPage: true,
+        canViewDocumentsPage: true,
+        canViewMessagesPage: true,
+        canViewAnalyticsPage: false,
+        canViewSettingsPage: false
       }
     },
   })
 
-  const userRole = await prisma.role.upsert({
-    where: { name: 'User' },
-    update: {},
-    create: {
+  const userRole = await prisma.role.create({
+    data: {
       name: 'User',
       description: 'Basic user access',
       color: '#3B82F6',
       permissions: {
-        tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'quotes', 'documents', 'messages'],
-        features: {
-          canCreateBusiness: false,
-          canViewAllUsers: false,
-          canCreateUser: false,
-          canViewAnalytics: false,
-          canAccessSettings: false
-        }
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: false,
+        canQuickCreateUser: false,
+        canQuickUploadDocument: false,
+        canQuickSendMessage: false,
+        // Business permissions
+        canCreateBusiness: false,
+        canEditBusiness: false,
+        canDeleteBusiness: false,
+        // User permissions
+        canCreateUser: false,
+        canEditUser: false,
+        canDeleteUser: false,
+        canManageRoles: false,
+        // Product permissions
+        canCreateProduct: false,
+        canEditProduct: false,
+        canDeleteProduct: false,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: false,
+        canDeleteTask: false,
+        canAssignTasks: false,
+        // Quote permissions
+        canCreateQuote: false,
+        canEditQuote: false,
+        canDeleteQuote: false,
+        canApproveQuotes: false,
+        // Document permissions
+        canUploadDocument: false,
+        canDeleteDocument: false,
+        // Message permissions
+        canSendMessage: false,
+        canDeleteMessage: false,
+        // Analytics permissions
+        canExportData: false,
+        // System permissions
+        canAccessSettings: false,
+        canViewSystemLogs: false,
+        canManageNotifications: false,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: false,
+        canViewInventoryPage: false,
+        canViewTasksPage: true,
+        canViewUsersPage: false,
+        canViewQuotesPage: false,
+        canViewDocumentsPage: false,
+        canViewMessagesPage: false,
+        canViewAnalyticsPage: false,
+        canViewSettingsPage: false
       }
     },
   })
 
   // Create sample businesses
+  /*
   const techBusiness = await prisma.business.create({
     data: {
       name: 'Tech Solutions Inc.',
@@ -206,11 +372,24 @@ async function main() {
       uploadedBy: 'Admin User',
     },
   })
+  */
 
   console.log('Database seeded successfully!')
-  console.log('Default admin user:', {
+  console.log('Default users:')
+  console.log('Admin:', {
     email: 'admin@businesshub.com',
     password: 'admin123',
+    role: 'Admin'
+  })
+  console.log('Manager:', {
+    email: 'manager@businesshub.com',
+    password: 'manager123',
+    role: 'Manager'
+  })
+  console.log('User:', {
+    email: 'user@businesshub.com',
+    password: 'user123',
+    role: 'User'
   })
 }
 

@@ -98,12 +98,16 @@ async function main() {
     // Step 5: Seed database with comprehensive demo data
     logInfo('Step 5: Creating comprehensive demo data...');
     try {
-        // Use the comprehensive demo data script
+        // First run the basic seed to ensure roles and users are created
+        runCommand('npx tsx seed.js', 'Running basic seed script...', { continueOnError: true });
+        
+        // Then run the comprehensive demo data for additional sample data
         runCommand('npx tsx prisma/comprehensive-demo-data.ts', 'Running comprehensive demo data script...', { continueOnError: true });
+        
+        logSuccess('Demo data creation completed!');
     } catch (error) {
-        logWarning('Comprehensive demo data seeding had issues, falling back to basic seed...');
-        // Fallback to basic seed if comprehensive fails
-        runCommand('npx tsx prisma/seed.ts', 'Running basic database seed script...', { continueOnError: true });
+        logWarning('Demo data seeding had some issues, but continuing with setup...');
+        // Continue even if demo data fails, as the basic seed should have worked
     }
 
     // Step 6: Verify installation and provide helpful information
@@ -137,6 +141,16 @@ async function main() {
     log('Demo Accounts:', 'cyan');
     log('- Admin: admin@businesshub.com / admin123', 'cyan');
     log('- Features: Full system access including user management and analytics', 'cyan');
+    log('- Manager: manager@businesshub.com / manager123', 'cyan');
+    log('- Features: Business management, tasks, quotes, documents (limited admin access)', 'cyan');
+    log('- User: user@businesshub.com / user123', 'cyan');
+    log('- Features: Dashboard and tasks only (basic access)', 'cyan');
+    log('');
+    log('Sidebar Navigation Fix:', 'cyan');
+    log('- Page access permissions now control sidebar visibility correctly', 'cyan');
+    log('- Admin users see all navigation items', 'cyan');
+    log('- Manager users see relevant navigation items based on permissions', 'cyan');
+    log('- User users see only Dashboard and Tasks navigation items', 'cyan');
     log('');
     log('Demo Businesses:', 'cyan');
     log('- Cornwall Scales (Technology) - Active with Support Contract', 'cyan');
@@ -171,6 +185,7 @@ async function main() {
     log('- ✅ Custom notification system (replaced browser alerts)', 'cyan');
     log('- ✅ Responsive design for all screen sizes', 'cyan');
     log('- ✅ Real-time updates via Socket.IO', 'cyan');
+    log('- ✅ Sidebar navigation with role-based visibility controls', 'cyan');
     log('');
     log('Press Ctrl+C to stop the server', 'yellow');
     log('');

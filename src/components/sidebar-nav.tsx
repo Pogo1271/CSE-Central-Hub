@@ -22,16 +22,16 @@ import {
 } from 'lucide-react'
 
 const navigation = [
-  { name: 'Dashboard', href: '/#dashboard', icon: Building2, tab: 'dashboard' },
-  { name: 'Business Directory', href: '/#businesses', icon: Building2, tab: 'businesses' },
-  { name: 'Inventory', href: '/#inventory', icon: Package, tab: 'inventory' },
-  { name: 'Tasks', href: '/#tasks', icon: CheckSquare, tab: 'tasks' },
-  { name: 'Users', href: '/#users', icon: Users, tab: 'users', requiredPermission: 'canViewAllUsers' },
-  { name: 'Quotes', href: '/#quotes', icon: FileSignature, tab: 'quotes' },
-  { name: 'Documents', href: '/#documents', icon: FolderOpen, tab: 'documents' },
-  { name: 'Messages', href: '/#messages', icon: MessageSquare, tab: 'messages' },
-  { name: 'Analytics', href: '/#analytics', icon: BarChart3, tab: 'analytics', requiredPermission: 'canViewAnalytics' },
-  { name: 'Settings', href: '/#settings', icon: Settings, tab: 'settings', requiredPermission: 'canAccessSettings' },
+  { name: 'Dashboard', href: '/#dashboard', icon: Building2, tab: 'dashboard', requiredPermission: 'canViewDashboardPage' },
+  { name: 'Business Directory', href: '/#businesses', icon: Building2, tab: 'businesses', requiredPermission: 'canViewBusinessesPage' },
+  { name: 'Inventory', href: '/#inventory', icon: Package, tab: 'inventory', requiredPermission: 'canViewInventoryPage' },
+  { name: 'Tasks', href: '/#tasks', icon: CheckSquare, tab: 'tasks', requiredPermission: 'canViewTasksPage' },
+  { name: 'Users', href: '/#users', icon: Users, tab: 'users', requiredPermission: 'canViewUsersPage' },
+  { name: 'Quotes', href: '/#quotes', icon: FileSignature, tab: 'quotes', requiredPermission: 'canViewQuotesPage' },
+  { name: 'Documents', href: '/#documents', icon: FolderOpen, tab: 'documents', requiredPermission: 'canViewDocumentsPage' },
+  { name: 'Messages', href: '/#messages', icon: MessageSquare, tab: 'messages', requiredPermission: 'canViewMessagesPage' },
+  { name: 'Analytics', href: '/#analytics', icon: BarChart3, tab: 'analytics', requiredPermission: 'canViewAnalyticsPage' },
+  { name: 'Settings', href: '/#settings', icon: Settings, tab: 'settings', requiredPermission: 'canViewSettingsPage' },
 ]
 
 interface SidebarNavProps {
