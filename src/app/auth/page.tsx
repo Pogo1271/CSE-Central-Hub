@@ -121,6 +121,7 @@ export default function AuthPage() {
         setTimeout(() => {
           localStorage.setItem('isAuthenticated', 'true')
           localStorage.setItem('currentUser', JSON.stringify(data.user))
+          localStorage.setItem('authToken', data.token)
           window.location.href = '/'
         }, 1500)
       } else {
@@ -161,6 +162,7 @@ export default function AuthPage() {
         setTimeout(() => {
           localStorage.setItem('isAuthenticated', 'true')
           localStorage.setItem('currentUser', JSON.stringify(data.user))
+          localStorage.setItem('authToken', data.token)
           window.location.href = '/'
         }, 1500)
       } else {

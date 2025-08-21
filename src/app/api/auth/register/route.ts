@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { generateJWTToken } from '@/lib/jwt'
 
 export async function POST(request: NextRequest) {
   try {
@@ -37,11 +38,15 @@ export async function POST(request: NextRequest) {
       }
     })
     
-    // Return user data without password
+    // Return user data without password and JWT token
     const { password: _, ...userWithoutPassword } = user
+    
+    // Generate JWT token
+    const token = generateJWTToken(userWithoutPassword)
     
     return NextResponse.json({
       user: userWithoutPassword,
+      token,
       message: 'Registration successful'
     })
     

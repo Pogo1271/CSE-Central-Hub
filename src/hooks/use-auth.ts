@@ -10,6 +10,7 @@ export function useAuth(): AuthState & {
   const [authState, setAuthState] = useState<AuthState>({
     isAuthenticated: false,
     user: null,
+    token: null,
     isLoading: true
   })
 
@@ -27,7 +28,7 @@ export function useAuth(): AuthState & {
 
     // Listen for storage changes (for multi-tab support)
     const handleStorageChange = (event: StorageEvent) => {
-      if (event.key === 'isAuthenticated' || event.key === 'currentUser') {
+      if (event.key === 'isAuthenticated' || event.key === 'currentUser' || event.key === 'authToken') {
         checkAuth()
       }
     }
@@ -43,9 +44,11 @@ export function useAuth(): AuthState & {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('isAuthenticated')
       localStorage.removeItem('currentUser')
+      localStorage.removeItem('authToken')
       setAuthState({
         isAuthenticated: false,
         user: null,
+        token: null,
         isLoading: false
       })
       // Redirect to login page

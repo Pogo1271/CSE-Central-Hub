@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
 import bcrypt from 'bcryptjs'
+import { generateJWTToken } from '@/lib/jwt'
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,11 +39,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Account is not active' }, { status: 401 })
     }
     
-    // Return user data without password
+    // Return user data without password and JWT token
     const { password: _, ...userWithoutPassword } = user
+    
+    // Generate JWT token
+    const token = generateJWTToken(userWithoutPassword)
     
     return NextResponse.json({
       user: userWithoutPassword,
+      token,
       message: 'Login successful'
     })
     
