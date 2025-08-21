@@ -91,7 +91,6 @@ import { AnalyticsDashboard } from '@/components/analytics-dashboard'
 import InventoryPage from '@/components/inventory-page'
 import EnhancedUsersManagement from '@/components/enhanced-users-management'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { SidebarNav } from '@/components/sidebar-nav'
 import { useAuth } from '@/hooks/use-auth'
 
 // Import client API
@@ -166,6 +165,7 @@ export default function BusinessHub() {
   
   // Role-based permissions - will be populated dynamically from backend
   const [rolePermissions, setRolePermissions] = useState<any>({})
+  const [permissionsLoaded, setPermissionsLoaded] = useState(false)
   
   // Data state
   const [roles, setRoles] = useState<any[]>([])
@@ -177,7 +177,6 @@ export default function BusinessHub() {
   const [businessList, setBusinessList] = useState<any[]>([])
   const [quotes, setQuotes] = useState<any[]>([])
   const [notes, setNotes] = useState<any[]>([])
-  const [contacts, setContacts] = useState<any[]>([])
   
   // Debug logging - moved after state declarations
   console.log('BusinessHub render:', {
@@ -185,6 +184,7 @@ export default function BusinessHub() {
     currentUser: currentUser?.email,
     userRole: currentUser?.role,
     isLoading,
+    permissionsLoaded,
     rolePermissionsLoaded: Object.keys(rolePermissions).length
   })
   
@@ -315,6 +315,27 @@ export default function BusinessHub() {
     return <span>{displayName}</span>
   }
   const getUserPermissions = () => {
+    // If permissions are still loading, return default permissions based on user role
+    if (!permissionsLoaded && currentUser) {
+      // Provide default permissions during loading to prevent UI flicker
+      const defaultPermissions = {
+        tabs: ['dashboard'],
+        features: {
+          canViewDashboardPage: true,
+          canViewTasksPage: currentUser.role === 'User',
+          canViewBusinessesPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canViewInventoryPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canViewUsersPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canViewQuotesPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canViewDocumentsPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canViewMessagesPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canViewAnalyticsPage: currentUser.role === 'Admin',
+          canViewSettingsPage: currentUser.role === 'Admin'
+        }
+      }
+      return defaultPermissions
+    }
+    
     // Remove hardcoded fallback - only use permissions loaded from backend
     if (currentUser && rolePermissions[currentUser.role]) {
       return rolePermissions[currentUser.role]
@@ -354,14 +375,13 @@ export default function BusinessHub() {
     return hasPermission(navItem.requiredPermission)
   }
 
-  // Navigation items moved to sidebar-nav component
-
-  // Load data from backend - optimized for parallel loading
+  // Load data from backend
   useEffect(() => {
     const loadData = async () => {
       // Only load data if user is authenticated
       if (!isAuthenticated || !currentUser) {
         console.log('Skipping data load - user not authenticated', { isAuthenticated, currentUser })
+        setPermissionsLoaded(true) // Set to true to prevent loading state
         return
       }
       
@@ -372,20 +392,8 @@ export default function BusinessHub() {
           isLoading 
         })
         
-        // Load roles and other data in parallel for better performance
-        const [rolesResponse, businessesResponse, usersResponse, productsResponse, tasksResponse, quotesResponse, documentsResponse, messagesResponse, notesResponse] = await Promise.all([
-          api.getRoles(),
-          api.getBusinesses(),
-          api.getUsers(),
-          api.getProducts(),
-          api.getTasks(),
-          api.getQuotes(),
-          api.getDocuments(),
-          api.getMessages(),
-          api.getNotes()
-        ])
-        
-        // Process roles response
+        // Load roles first to get permissions
+        const rolesResponse = await api.getRoles()
         if (rolesResponse.success) {
           setRoles(rolesResponse.data)
           
@@ -423,73 +431,76 @@ export default function BusinessHub() {
             }
           })
           setRolePermissions(dynamicRolePermissions)
+          setPermissionsLoaded(true)
         } else {
           console.error('Failed to load roles:', rolesResponse.error)
+          setPermissionsLoaded(true) // Set to true even on error to prevent infinite loading
         }
         
-        // Process other responses in parallel
+        // Load businesses
+        const businessesResponse = await api.getBusinesses()
+        console.log('Businesses response:', businessesResponse)
         if (businessesResponse.success) {
           setBusinessList(businessesResponse.data)
           setFilteredBusinesses(businessesResponse.data)
           console.log('Businesses loaded:', businessesResponse.data.length)
         }
 
+        // Load users
+        const usersResponse = await api.getUsers()
+        console.log('Users response:', usersResponse)
         if (usersResponse.success) {
           setUsers(usersResponse.data)
           setFilteredUsers(usersResponse.data)
           console.log('Users loaded:', usersResponse.data.length)
         }
 
+        // Load products
+        const productsResponse = await api.getProducts()
+        console.log('Products response:', productsResponse)
         if (productsResponse.success) {
           setProducts(productsResponse.data)
           console.log('Products loaded:', productsResponse.data.length)
         }
 
+        // Load tasks
+        const tasksResponse = await api.getTasks()
+        console.log('Tasks response:', tasksResponse)
         if (tasksResponse.success) {
           setTasks(tasksResponse.data)
           console.log('Tasks loaded:', tasksResponse.data.length)
         }
 
+        // Load quotes
+        const quotesResponse = await api.getQuotes()
+        console.log('Quotes response:', quotesResponse)
         if (quotesResponse.success) {
           setQuotes(quotesResponse.data)
           console.log('Quotes loaded:', quotesResponse.data.length)
         }
 
+        // Load documents
+        const documentsResponse = await api.getDocuments()
+        console.log('Documents response:', documentsResponse)
         if (documentsResponse.success) {
           setDocuments(documentsResponse.data)
           console.log('Documents loaded:', documentsResponse.data.length)
         }
 
+        // Load messages
+        const messagesResponse = await api.getMessages()
+        console.log('Messages response:', messagesResponse)
         if (messagesResponse.success) {
           setMessages(messagesResponse.data)
           console.log('Messages loaded:', messagesResponse.data.length)
         }
 
+        // Load notes
+        const notesResponse = await api.getNotes()
+        console.log('Notes response:', notesResponse)
         if (notesResponse.success) {
           setNotes(notesResponse.data)
           console.log('Notes loaded:', notesResponse.data.length)
-        }
-        
-        console.log('All data loaded in parallel')
-        
-        // Load contacts for all businesses
-        if (businessesResponse.success) {
-          try {
-            const allContacts: any[] = []
-            const contactPromises = businessesResponse.data.map((business: any) => 
-              api.getBusinessContacts(business.id).then(response => {
-                if (response.success) {
-                  allContacts.push(...response.data)
-                }
-              })
-            )
-            
-            await Promise.all(contactPromises)
-            setContacts(allContacts)
-            console.log('Contacts loaded for all businesses:', allContacts.length)
-          } catch (error) {
-            console.error('Error loading contacts:', error)
-          }
         }
 
         // Update dashboard stats
@@ -743,9 +754,6 @@ export default function BusinessHub() {
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
-        // Update global contacts state
-        setContacts(prevContacts => [...prevContacts, response.data])
-        
         // Reset form and close modal
         setNewContact({
           name: '',
@@ -783,13 +791,6 @@ export default function BusinessHub() {
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
-        // Update global contacts state
-        setContacts(prevContacts => 
-          prevContacts.map(contact => 
-            contact.id === selectedContact.id ? response.data : contact
-          )
-        )
-        
         // Reset form and close modal
         setSelectedContact(null)
         setNewContact({
@@ -824,9 +825,6 @@ export default function BusinessHub() {
         // Refresh the business related data
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
-        
-        // Update global contacts state
-        setContacts(prevContacts => prevContacts.filter(contact => contact.id !== contactId))
         
         setDeleteContactDialog({ open: false, contactId: null })
         toast.success('Contact deleted successfully!')
@@ -993,8 +991,9 @@ export default function BusinessHub() {
     // Get products for this business
     const businessProducts = products.filter(product => product.businessId === business.id)
     
-    // Get contacts for this business from the global contacts state
-    const businessContacts = contacts.filter(contact => contact.businessId === business.id)
+    // For contacts, we'll show 0 since they're loaded on-demand per business
+    // The actual contact count will be visible in the business detail view
+    const businessContacts = []
     
     return {
       contacts: businessContacts,
@@ -1185,12 +1184,43 @@ export default function BusinessHub() {
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar */}
-      <SidebarNav 
-        activeTab={activeTab} 
-        onTabChange={setActiveTab} 
-        rolePermissions={rolePermissions}
-        currentUser={currentUser}
-      />
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0`}>
+        <div className="flex items-center justify-between h-16 px-6 border-b">
+          <div className="flex items-center">
+            <Building2 className="h-8 w-8 text-blue-600" />
+            <span className="ml-2 text-xl font-bold text-gray-900">BusinessHub</span>
+          </div>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className="lg:hidden text-gray-500 hover:text-gray-700"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+        
+        <nav className="mt-6 px-3">
+          <div className="space-y-1">
+            {navigation.map((item) => {
+              if (!canAccessTab(item.tab)) return null
+              
+              return (
+                <button
+                  key={item.name}
+                  onClick={() => setActiveTab(item.tab)}
+                  className={`w-full flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    activeTab === item.tab
+                      ? 'bg-blue-50 text-blue-700 border-r-2 border-blue-700'
+                      : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
+                  }`}
+                >
+                  <item.icon className="mr-3 h-5 w-5" />
+                  {item.name}
+                </button>
+              )
+            })}
+          </div>
+        </nav>
+      </div>
 
       {/* Main content */}
       <div className="flex-1 flex flex-col overflow-hidden">

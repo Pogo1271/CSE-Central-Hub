@@ -406,3 +406,41 @@ prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`
 prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
 prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
  GET /api/notes 200 in 20ms
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3000
+> Socket.IO server running at ws://localhost:3000/api/socketio
+> Server bound to 0.0.0.0:3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Server startup error: [Error: ENOENT: no such file or directory, open '/home/z/my-project/.next/types/routes.d.ts'] {
+  errno: -2,
+  code: 'ENOENT',
+  syscall: 'open',
+  path: '/home/z/my-project/.next/types/routes.d.ts'
+}
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
