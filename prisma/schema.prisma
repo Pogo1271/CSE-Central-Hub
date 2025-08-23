@@ -31,6 +31,7 @@ model User {
   createdTasks  Task[] @relation("createdTasks")
   businesses    Business[]
   quotes        Quote[]
+  privilegedLogs PrivilegedLog[]
   
   @@map("users")
 }
@@ -222,4 +223,29 @@ model Post {
   authorId  String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model PrivilegedLog {
+  id          String   @id @default(cuid())
+  userId      String
+  action      String
+  targetId    String?
+  targetEmail String?
+  ipAddress   String?
+  userAgent   String?
+  timestamp   DateTime @default(now())
+  details     String?
+  
+  user        User     @relation(fields: [userId], references: [id])
+  
+  @@map("privileged_logs")
+}
+
+model SystemConfig {
+  key         String   @id
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+  
+  @@map("system_configs")
 }

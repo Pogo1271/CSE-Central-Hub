@@ -54,6 +54,26 @@ export function SidebarNav({ activeTab, onTabChange, rolePermissions }: SidebarN
         // Check if user has permission to access this tab
         if (item.requiredPermission && rolePermissions) {
           const userRole = rolePermissions[rolePermissions.currentUser?.role || 'User']
+          
+          // SuperUser has access to everything
+          if (rolePermissions.currentUser?.role === 'SuperUser') {
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleTabClick(item.tab)}
+                className={cn(
+                  'flex items-center w-full px-3 py-2 text-sm font-medium rounded-md transition-colors',
+                  activeTab === item.tab
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+                )}
+              >
+                <item.icon className="mr-3 h-4 w-4" />
+                {item.name}
+              </button>
+            )
+          }
+          
           if (!userRole?.features?.[item.requiredPermission]) {
             return null
           }

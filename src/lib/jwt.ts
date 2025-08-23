@@ -3,7 +3,8 @@ import { User } from './auth'
 
 // JWT Secret - should be stored in environment variables in production
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production'
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d' // 7 days
+const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d' // 7 days for regular users
+const SUPERUSER_JWT_EXPIRES_IN = process.env.SUPERUSER_JWT_EXPIRES_IN || '1h' // 1 hour for SuperUser
 
 export interface JWTPayload {
   userId: string
@@ -23,8 +24,11 @@ export function generateJWTToken(user: User): string {
     role: user.role
   }
 
+  // Use shorter expiration for SuperUser for security
+  const expiresIn = user.role === 'SuperUser' ? SUPERUSER_JWT_EXPIRES_IN : JWT_EXPIRES_IN
+
   return jwt.sign(payload, JWT_SECRET, {
-    expiresIn: JWT_EXPIRES_IN
+    expiresIn
   })
 }
 
@@ -67,6 +71,18 @@ export function isTokenExpired(token: string): boolean {
 }
 
 /**
+ * Check if token belongs to a SuperUser
+ */
+export function isSuperUserToken(token: string): boolean {
+  try {
+    const payload = verifyJWTToken(token)
+    return payload?.role === 'SuperUser'
+  } catch (error) {
+    return false
+  }
+}
+
+/**
  * Get time until token expiration (in milliseconds)
  */
 export function getTokenExpirationTime(token: string): number {
@@ -79,6 +95,20 @@ export function getTokenExpirationTime(token: string): number {
   } catch (error) {
     return 0
   }
+}
+
+/**
+ * Check if SuperUser token needs refresh (within 5 minutes of expiration)
+ */
+export function shouldSuperUserTokenRefresh(token: string): boolean {
+  if (!isSuperUserToken(token)) {
+    return false
+  }
+  
+  const timeLeft = getTokenExpirationTime(token)
+  const fiveMinutesInMs = 5 * 60 * 1000
+  
+  return timeLeft < fiveMinutesInMs && timeLeft > 0
 }
 
 /**

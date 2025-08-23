@@ -87,10 +87,12 @@ export async function getUsers() {
 
 export async function createUser(userData: any) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch('/api/users', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(userData),
     })
@@ -107,10 +109,17 @@ export async function createUser(userData: any) {
 
 export async function updateUser(id: string, userData: any) {
   try {
+    const token = localStorage.getItem('authToken')
+    
+    // Check if only color is being updated
+    const keys = Object.keys(userData)
+    const isColorOnly = keys.length === 1 && keys.includes('color')
+    
     const response = await fetch(`/api/users/${id}`, {
-      method: 'PUT',
+      method: isColorOnly ? 'PATCH' : 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(userData),
     })
@@ -127,8 +136,12 @@ export async function updateUser(id: string, userData: any) {
 
 export async function deleteUser(id: string) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/users/${id}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
     })
     if (!response.ok) {
       throw new Error('Failed to delete user')
@@ -805,5 +818,19 @@ export async function removeBusinessProduct(businessId: string, productId: strin
   } catch (error) {
     console.error('Error removing business product:', error)
     return { success: false, error: 'Failed to remove business product' }
+  }
+}
+
+export async function getBusinessQuotes(businessId: string) {
+  try {
+    const response = await fetch(`/api/businesses/${businessId}/quotes`)
+    if (!response.ok) {
+      throw new Error('Failed to fetch business quotes')
+    }
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching business quotes:', error)
+    return { success: false, error: 'Failed to fetch business quotes' }
   }
 }

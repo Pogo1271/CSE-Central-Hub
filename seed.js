@@ -207,10 +207,82 @@ async function main() {
     }
   })
 
+  // Create SuperUser role with all permissions
+  const superUserRole = await prisma.role.upsert({
+    where: { name: 'SuperUser' },
+    update: {},
+    create: {
+      name: 'SuperUser',
+      description: 'Ultimate system access with emergency controls',
+      color: '#8B5CF6',
+      permissions: {
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: true,
+        canQuickCreateUser: true,
+        canQuickUploadDocument: true,
+        canQuickSendMessage: true,
+        // Business permissions
+        canCreateBusiness: true,
+        canEditBusiness: true,
+        canDeleteBusiness: true,
+        // User permissions
+        canCreateUser: true,
+        canEditUser: true,
+        canDeleteUser: true,
+        canManageRoles: true,
+        canViewUsers: true,
+        // Product permissions
+        canCreateProduct: true,
+        canEditProduct: true,
+        canDeleteProduct: true,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: true,
+        canDeleteTask: true,
+        canAssignTasks: true,
+        // Quote permissions
+        canCreateQuote: true,
+        canEditQuote: true,
+        canDeleteQuote: true,
+        canApproveQuotes: true,
+        // Document permissions
+        canUploadDocument: true,
+        canDeleteDocument: true,
+        // Message permissions
+        canSendMessage: true,
+        canDeleteMessage: true,
+        // Analytics permissions
+        canViewAnalytics: true,
+        canExportData: true,
+        // System permissions
+        canAccessSettings: true,
+        canViewSystemLogs: true,
+        canManageNotifications: true,
+        canClearActivityLogs: true,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: true,
+        canViewInventoryPage: true,
+        canViewTasksPage: true,
+        canViewUsersPage: true,
+        canViewQuotesPage: true,
+        canViewDocumentsPage: true,
+        canViewMessagesPage: true,
+        canViewAnalyticsPage: true,
+        canViewActivityLogsPage: true,
+        canViewEmergencyControlPage: true,
+        canViewSettingsPage: true
+      }
+    }
+  })
+
   // Create demo users with proper passwords
   const adminPassword = await bcrypt.hash('admin123', 10)
   const managerPassword = await bcrypt.hash('manager123', 10)
   const userPassword = await bcrypt.hash('user123', 10)
+  const superUserPassword = await bcrypt.hash('superuser123', 10)
 
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@businesshub.com' },
@@ -251,8 +323,21 @@ async function main() {
     }
   })
 
+  const superUser = await prisma.user.upsert({
+    where: { email: 'superuser@businesshub.com' },
+    update: { password: superUserPassword },
+    create: {
+      email: 'superuser@businesshub.com',
+      password: superUserPassword,
+      name: 'Super User',
+      role: 'SuperUser',
+      status: 'Active',
+      color: '#8B5CF6'
+    }
+  })
+
   console.log('Database seeded successfully!')
-  console.log('Created roles:', { adminRole, managerRole, userRole })
+  console.log('Created roles:', { adminRole, managerRole, userRole, superUserRole })
   console.log('Created users:', { 
     adminUser: { 
       email: adminUser.email, 
@@ -271,23 +356,32 @@ async function main() {
       name: businessUser.name, 
       role: businessUser.role,
       password: '***'
+    },
+    superUser: { 
+      email: superUser.email, 
+      name: superUser.name, 
+      role: superUser.role,
+      password: '***'
     }
   })
   console.log('Demo credentials:')
   console.log('- Admin: admin@businesshub.com / admin123')
   console.log('- Manager: manager@businesshub.com / manager123') 
   console.log('- User: user@businesshub.com / user123')
+  console.log('- SuperUser: superuser@businesshub.com / superuser123')
   console.log('')
   console.log('Role Permissions Summary:')
   console.log('- Admin: Full access to all pages and features')
   console.log('- Manager: Access to Dashboard, Businesses, Inventory, Tasks, Users, Quotes, Documents, Messages')
   console.log('- User: Access to Dashboard and Tasks only')
+  console.log('- SuperUser: Ultimate system access with emergency controls and activity logs management')
   console.log('')
   console.log('Sidebar Navigation Fix:')
   console.log('- Page access permissions (canView*Page) now control sidebar visibility')
   console.log('- Admin users will see all navigation items')
   console.log('- Manager users will see relevant navigation items based on permissions')
   console.log('- User users will see only Dashboard and Tasks navigation items')
+  console.log('- SuperUser users will see all navigation items including emergency controls')
 }
 
 main()

@@ -135,6 +135,7 @@ const permissions: Permission[] = [
   { key: 'canAccessSettings', label: 'Access Settings', description: 'Access system settings', icon: Settings, category: 'system' },
   { key: 'canViewSystemLogs', label: 'View System Logs', description: 'Access system logs', icon: Settings, category: 'system' },
   { key: 'canManageNotifications', label: 'Manage Notifications', description: 'Manage system notifications', icon: Bell, category: 'system' },
+  { key: 'canClearActivityLogs', label: 'Clear Activity Logs', description: 'Clear and delete activity logs', icon: Settings, category: 'system' },
   
   // Page Access Permissions (controls sidebar visibility and data access)
   { key: 'canViewDashboardPage', label: 'Dashboard Page', description: 'Access Dashboard and view its data', icon: BarChart3, category: 'pages' },
@@ -146,6 +147,8 @@ const permissions: Permission[] = [
   { key: 'canViewDocumentsPage', label: 'Documents Page', description: 'Access Documents and view document data', icon: FileText, category: 'pages' },
   { key: 'canViewMessagesPage', label: 'Messages Page', description: 'Access Messages and view message data', icon: MessageSquare, category: 'pages' },
   { key: 'canViewAnalyticsPage', label: 'Analytics Page', description: 'Access Analytics and view analytics data', icon: BarChart3, category: 'pages' },
+  { key: 'canViewActivityLogsPage', label: 'Activity Logs Page', description: 'Access Activity Logs and view privileged actions data', icon: BarChart3, category: 'pages' },
+  { key: 'canViewEmergencyControlPage', label: 'Emergency Control Page', description: 'Access Emergency Control and manage system emergency features', icon: Settings, category: 'pages' },
   { key: 'canViewSettingsPage', label: 'Settings Page', description: 'Access Settings and view configuration data', icon: Settings, category: 'pages' }
 ]
 
@@ -280,15 +283,9 @@ export default function EnhancedUsersManagement() {
     if (!selectedUser) return
     
     try {
-      const response = await fetch(`/api/users/${selectedUser.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(selectedUser)
-      })
-      
-      if (response.ok) {
-        const updatedUser = await response.json()
-        setUsers(users.map(u => u.id === selectedUser.id ? updatedUser : u))
+      const response = await api.updateUser(selectedUser.id, selectedUser)
+      if (response.success) {
+        setUsers(users.map(u => u.id === selectedUser.id ? response.data : u))
         setIsEditUserOpen(false)
         setSelectedUser(null)
         toast.success('User updated successfully')
@@ -300,12 +297,19 @@ export default function EnhancedUsersManagement() {
   }
 
   const handleDeleteUser = async (userId: string) => {
+    // Find the user to check if they are a SuperUser
+    const userToDelete = users.find(u => u.id === userId)
+    
+    if (userToDelete?.role === 'SuperUser') {
+      toast.error('Cannot delete SuperUser account')
+      return
+    }
+    
     if (!confirm('Are you sure you want to delete this user?')) return
     
     try {
-      const response = await fetch(`/api/users/${userId}`, { method: 'DELETE' })
-      
-      if (response.ok) {
+      const response = await api.deleteUser(userId)
+      if (response.success) {
         setUsers(users.filter(u => u.id !== userId))
         toast.success('User deleted successfully')
       }
@@ -388,8 +392,8 @@ export default function EnhancedUsersManagement() {
 
   
 
-  // Admin-only protection
-  if (currentUser?.role !== 'Admin') {
+  // Admin and SuperUser protection
+  if (currentUser?.role !== 'Admin' && currentUser?.role !== 'SuperUser') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="w-full max-w-md">
@@ -505,15 +509,18 @@ export default function EnhancedUsersManagement() {
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedUser(user)
-                            setIsEditUserOpen(true)
-                          }}>
+                          <DropdownMenuItem 
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedUser(user)
+                              setIsEditUserOpen(true)
+                            }}
+                            disabled={user.role === 'SuperUser' && currentUser?.role !== 'SuperUser'}
+                          >
                             <Edit className="h-4 w-4 mr-2" />
                             Edit User
                           </DropdownMenuItem>
-                          {hasPermission('canDeleteUser') && (
+                          {hasPermission('canDeleteUser') && user.role !== 'SuperUser' && (
                               <DropdownMenuItem 
                                 onClick={(e) => {
                                   e.stopPropagation()
@@ -616,6 +623,15 @@ export default function EnhancedUsersManagement() {
                 </SelectContent>
               </Select>
             </div>
+            <div>
+              <Label htmlFor="color">Color</Label>
+              <Input
+                id="color"
+                type="color"
+                value={newUser.color}
+                onChange={(e) => setNewUser({...newUser, color: e.target.value})}
+              />
+            </div>
             <div className="flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsAddUserOpen(false)}>
                 Cancel
@@ -658,7 +674,11 @@ export default function EnhancedUsersManagement() {
               </div>
               <div>
                 <Label htmlFor="edit-role">Role</Label>
-                <Select value={selectedUser.role} onValueChange={(value) => setSelectedUser({...selectedUser, role: value})}>
+                <Select 
+                  value={selectedUser.role} 
+                  onValueChange={(value) => setSelectedUser({...selectedUser, role: value})}
+                  disabled={selectedUser.role === 'SuperUser' && currentUser?.role !== 'SuperUser'}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -668,6 +688,9 @@ export default function EnhancedUsersManagement() {
                     <SelectItem value="Admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
+                {selectedUser.role === 'SuperUser' && currentUser?.role !== 'SuperUser' && (
+                  <p className="text-sm text-red-600 mt-1">Only SuperUser can modify SuperUser accounts</p>
+                )}
               </div>
               <div>
                 <Label htmlFor="edit-status">Status</Label>
@@ -681,11 +704,23 @@ export default function EnhancedUsersManagement() {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label htmlFor="edit-color">Color</Label>
+                <Input
+                  id="edit-color"
+                  type="color"
+                  value={selectedUser.color || '#3B82F6'}
+                  onChange={(e) => setSelectedUser({...selectedUser, color: e.target.value})}
+                />
+              </div>
               <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsEditUserOpen(false)}>
                   Cancel
                 </Button>
-                <Button onClick={handleUpdateUser}>
+                <Button 
+                  onClick={handleUpdateUser}
+                  disabled={selectedUser.role === 'SuperUser' && currentUser?.role !== 'SuperUser'}
+                >
                   Update User
                 </Button>
               </div>
@@ -716,7 +751,9 @@ export default function EnhancedUsersManagement() {
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {roles.map((role) => (
+              {roles
+                .filter(role => currentUser?.role === 'SuperUser' || role.name !== 'SuperUser')
+                .map((role) => (
                 <Card key={role.id} className="cursor-pointer hover:shadow-md transition-shadow">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
@@ -728,6 +765,7 @@ export default function EnhancedUsersManagement() {
                           setSelectedRoleForEdit(role)
                           setEditRoleActiveTab('dashboard')
                         }}
+                        disabled={role.name === 'SuperUser' && currentUser?.role !== 'SuperUser'}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -778,7 +816,7 @@ export default function EnhancedUsersManagement() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4">
               <div>
                 <Label htmlFor="role-name">Role Name</Label>
                 <Input
@@ -786,15 +824,6 @@ export default function EnhancedUsersManagement() {
                   value={newRole.name}
                   onChange={(e) => setNewRole({...newRole, name: e.target.value})}
                   placeholder="Enter role name"
-                />
-              </div>
-              <div>
-                <Label htmlFor="role-color">Color</Label>
-                <Input
-                  id="role-color"
-                  type="color"
-                  value={newRole.color}
-                  onChange={(e) => setNewRole({...newRole, color: e.target.value})}
                 />
               </div>
             </div>
@@ -895,22 +924,13 @@ export default function EnhancedUsersManagement() {
           </DialogHeader>
           {selectedRoleForEdit && (
             <div className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <Label htmlFor="edit-role-name">Role Name</Label>
                   <Input
                     id="edit-role-name"
                     value={selectedRoleForEdit.name}
                     onChange={(e) => setSelectedRoleForEdit({...selectedRoleForEdit, name: e.target.value})}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="edit-role-color">Color</Label>
-                  <Input
-                    id="edit-role-color"
-                    type="color"
-                    value={selectedRoleForEdit.color || '#3B82F6'}
-                    onChange={(e) => setSelectedRoleForEdit({...selectedRoleForEdit, color: e.target.value})}
                   />
                 </div>
               </div>
@@ -1059,6 +1079,7 @@ export default function EnhancedUsersManagement() {
                     setIsViewUserOpen(false)
                     setIsEditUserOpen(true)
                   }}
+                  disabled={selectedUser.role === 'SuperUser' && currentUser?.role !== 'SuperUser'}
                 >
                   Edit User
                 </Button>

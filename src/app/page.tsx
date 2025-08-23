@@ -1,7 +1,7 @@
 'use client'
 // Force rebuild
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { 
   Building2, 
@@ -34,6 +34,7 @@ import {
   PoundSterling,
   ShoppingCart,
   UserPlus,
+  User,
   Upload,
   Send,
   MoreHorizontal,
@@ -43,7 +44,12 @@ import {
   Edit,
   Trash2,
   LogOut,
-  Circle
+  Circle,
+  HardDrive,
+  Cloud,
+  Save,
+  PlusCircle,
+  MinusCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -90,6 +96,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { AnalyticsDashboard } from '@/components/analytics-dashboard'
 import InventoryPage from '@/components/inventory-page'
 import EnhancedUsersManagement from '@/components/enhanced-users-management'
+import ActivityLogsPage from '@/components/activity-logs-page'
+import EmergencyControlPage from '@/components/emergency-control-page'
+import QuoteManagement from '@/components/quote-management'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -106,6 +115,8 @@ const navigation = [
   { name: 'Documents', href: '#', icon: FolderOpen, tab: 'documents', requiredPermission: 'canViewDocumentsPage' },
   { name: 'Messages', href: '#', icon: MessageSquare, tab: 'messages', requiredPermission: 'canViewMessagesPage' },
   { name: 'Analytics', href: '#', icon: BarChart3, tab: 'analytics', requiredPermission: 'canViewAnalyticsPage' },
+  { name: 'Activity Logs', href: '#', icon: BarChart3, tab: 'activity-logs', requiredPermission: 'canViewActivityLogsPage' },
+  { name: 'Emergency Control', href: '#', icon: Settings, tab: 'emergency-control', requiredPermission: 'canViewEmergencyControlPage' },
   { name: 'Settings', href: '#', icon: Settings, tab: 'settings', requiredPermission: 'canViewSettingsPage' },
 ]
 
@@ -203,6 +214,26 @@ export default function BusinessHub() {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false)
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
   const [isSendMessageOpen, setIsSendMessageOpen] = useState(false)
+  const [isViewQuoteOpen, setIsViewQuoteOpen] = useState(false)
+  const [isEditQuoteOpen, setIsEditQuoteOpen] = useState(false)
+  
+  // Quote edit form states
+  const [quoteFormData, setQuoteFormData] = useState({
+    title: '',
+    description: '',
+    businessId: '',
+    status: 'draft',
+    items: []
+  })
+  const [businesses, setBusinesses] = useState([])
+  const [hardwareSearchTerm, setHardwareSearchTerm] = useState('')
+  const [softwareSearchTerm, setSoftwareSearchTerm] = useState('')
+  const [showHardwareDropdown, setShowHardwareDropdown] = useState(false)
+  const [showSoftwareDropdown, setShowSoftwareDropdown] = useState(false)
+  
+  // Refs for dropdown click-outside detection
+  const hardwareDropdownRef = useRef<HTMLDivElement>(null)
+  const softwareDropdownRef = useRef<HTMLDivElement>(null)
   
   // Product Assignment Modal state
   const [isAssignProductOpen, setIsAssignProductOpen] = useState(false)
@@ -233,6 +264,8 @@ export default function BusinessHub() {
   const [isViewBusinessOpen, setIsViewBusinessOpen] = useState(false)
   const [isEditBusinessOpen, setIsEditBusinessOpen] = useState(false)
   const [selectedBusiness, setSelectedBusiness] = useState(null)
+  const [selectedQuote, setSelectedQuote] = useState(null)
+  const [editQuoteId, setEditQuoteId] = useState(null)
   const [businessRelatedData, setBusinessRelatedData] = useState({
     products: [],
     tasks: [],
@@ -293,6 +326,10 @@ export default function BusinessHub() {
     open: false,
     noteId: null
   })
+  const [deleteQuoteDialog, setDeleteQuoteDialog] = useState({
+    open: false,
+    quoteId: null
+  })
 
   // Utility function to format dates consistently
   const formatDate = (date: Date | string) => {
@@ -308,6 +345,14 @@ export default function BusinessHub() {
       console.error('Error formatting date:', error)
       return 'Invalid date'
     }
+  }
+
+  // Utility function to format currency consistently
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(amount)
   }
 
   // Simplified welcome component that uses the parent's authentication state
@@ -327,9 +372,13 @@ export default function BusinessHub() {
           canViewInventoryPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
           canViewUsersPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
           canViewQuotesPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
+          canEditQuote: currentUser.role === 'Manager' || currentUser.role === 'Admin', // Same as view permission
+          canDeleteQuote: currentUser.role === 'Manager' || currentUser.role === 'Admin', // Same as view permission
           canViewDocumentsPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
           canViewMessagesPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
           canViewAnalyticsPage: currentUser.role === 'Admin',
+          canViewActivityLogsPage: currentUser.role === 'Admin',
+          canViewEmergencyControlPage: currentUser.role === 'Admin',
           canViewSettingsPage: currentUser.role === 'Admin'
         }
       }
@@ -362,12 +411,22 @@ export default function BusinessHub() {
   }
   
   const hasPermission = (feature) => {
+    // SuperUser has access to everything
+    if (currentUser?.role === 'SuperUser') {
+      return true
+    }
+    
     const permissions = getUserPermissions()
     const result = permissions.features && permissions.features[feature] === true
     return result
   }
 
   const canAccessTab = (tab) => {
+    // SuperUser has access to all tabs
+    if (currentUser?.role === 'SuperUser') {
+      return true
+    }
+    
     // Find the navigation item to get its required permission
     const navItem = navigation.find(item => item.tab === tab)
     if (!navItem || !navItem.requiredPermission) return false
@@ -423,9 +482,14 @@ export default function BusinessHub() {
                 canViewTasksPage: permissions.canViewTasksPage === true,
                 canViewUsersPage: permissions.canViewUsersPage === true,
                 canViewQuotesPage: permissions.canViewQuotesPage === true,
+                canEditQuote: permissions.canViewQuotesPage === true, // Base edit permission on view permission for now
+                canDeleteQuote: permissions.canViewQuotesPage === true, // Base delete permission on view permission for now
+                canApproveQuotes: permissions.canApproveQuotes === true,
                 canViewDocumentsPage: permissions.canViewDocumentsPage === true,
                 canViewMessagesPage: permissions.canViewMessagesPage === true,
                 canViewAnalyticsPage: permissions.canViewAnalyticsPage === true,
+                canViewActivityLogsPage: permissions.canViewActivityLogsPage === true,
+                canViewEmergencyControlPage: permissions.canViewEmergencyControlPage === true,
                 canViewSettingsPage: permissions.canViewSettingsPage === true
               }
             }
@@ -544,6 +608,23 @@ export default function BusinessHub() {
     
     loadBusinessRelatedData()
   }, [selectedBusiness])
+
+  // Handle click outside for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (hardwareDropdownRef.current && !hardwareDropdownRef.current.contains(event.target as Node)) {
+        setShowHardwareDropdown(false)
+      }
+      if (softwareDropdownRef.current && !softwareDropdownRef.current.contains(event.target as Node)) {
+        setShowSoftwareDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
 
   // Update dashboard statistics
   const updateDashboardStats = () => {
@@ -837,6 +918,214 @@ export default function BusinessHub() {
     }
   }
 
+  // Quote Management Handlers
+  const handleViewQuote = (quote) => {
+    setSelectedQuote(quote)
+    setIsViewQuoteOpen(true)
+  }
+
+  const handleEditQuote = (quote) => {
+    setSelectedQuote(quote)
+    setIsViewQuoteOpen(false) // Close view modal if open
+    
+    // Load businesses and products for the edit form
+    loadBusinessesAndProducts()
+    
+    // Set up form data
+    setQuoteFormData({
+      title: quote.title,
+      description: quote.description || '',
+      businessId: quote.businessId,
+      status: quote.status,
+      items: quote.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.product.pricingType === 'one-off' ? 'hardware' : 'software'
+      }))
+    })
+    
+    setIsEditQuoteOpen(true)
+  }
+
+  const loadBusinessesAndProducts = async () => {
+    try {
+      // Load businesses
+      const businessesResponse = await api.getBusinesses()
+      if (businessesResponse.success) {
+        setBusinesses(businessesResponse.data)
+      }
+      
+      // Load products
+      const productsResponse = await api.getProducts()
+      if (productsResponse.success) {
+        setProducts(productsResponse.data)
+      }
+    } catch (error) {
+      console.error('Error loading businesses and products:', error)
+      toast.error('Failed to load data')
+    }
+  }
+
+  const handleUpdateQuote = async () => {
+    if (!selectedQuote) return
+    
+    try {
+      const response = await api.updateQuote(selectedQuote.id, quoteFormData)
+      if (response.success) {
+        // Update the quotes list
+        setQuotes(quotes.map(q => q.id === selectedQuote.id ? response.data : q))
+        
+        // If this quote belongs to the currently selected business, refresh business data
+        if (selectedBusiness && selectedQuote.businessId === selectedBusiness.id) {
+          const businessData = await getBusinessRelatedData(selectedBusiness.id)
+          setBusinessRelatedData(businessData)
+        }
+        
+        // Close modal and reset form
+        setIsEditQuoteOpen(false)
+        setSelectedQuote(null)
+        resetQuoteForm()
+        toast.success('Quote updated successfully')
+      }
+    } catch (error) {
+      console.error('Error updating quote:', error)
+      toast.error('Failed to update quote')
+    }
+  }
+
+  const resetQuoteForm = () => {
+    setQuoteFormData({
+      title: '',
+      description: '',
+      businessId: '',
+      status: 'draft',
+      items: []
+    })
+    setHardwareSearchTerm('')
+    setSoftwareSearchTerm('')
+  }
+
+  const addProductToQuote = (product, category) => {
+    const existingItemIndex = quoteFormData.items.findIndex(item => 
+      item.productId === product.id && item.category === category
+    )
+    
+    if (existingItemIndex >= 0) {
+      // Update quantity if product already exists
+      const updatedItems = [...quoteFormData.items]
+      updatedItems[existingItemIndex].quantity += 1
+      setQuoteFormData(prev => ({ ...prev, items: updatedItems }))
+    } else {
+      // Add new product
+      const newItem = {
+        productId: product.id,
+        quantity: 1,
+        price: product.price,
+        category
+      }
+      setQuoteFormData(prev => ({ 
+        ...prev, 
+        items: [...prev.items, newItem] 
+      }))
+    }
+    
+    // Clear search and hide dropdown
+    if (category === 'hardware') {
+      setHardwareSearchTerm('')
+      setShowHardwareDropdown(false)
+    } else {
+      setSoftwareSearchTerm('')
+      setShowSoftwareDropdown(false)
+    }
+  }
+
+  const removeQuoteItem = (index) => {
+    const updatedItems = quoteFormData.items.filter((_, i) => i !== index)
+    setQuoteFormData(prev => ({ ...prev, items: updatedItems }))
+  }
+
+  const updateQuoteItemQuantity = (index, quantity) => {
+    if (quantity < 1) return
+    
+    const updatedItems = [...quoteFormData.items]
+    updatedItems[index].quantity = quantity
+    setQuoteFormData(prev => ({ ...prev, items: updatedItems }))
+  }
+
+  // Filter products for dropdowns
+  const hardwareProducts = products.filter(product => 
+    product.pricingType === 'one-off' && 
+    product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
+  )
+  
+  const softwareProducts = products.filter(product => 
+    product.pricingType === 'monthly' && 
+    product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
+  )
+
+  const calculateQuoteTotals = () => {
+    const hardwareItems = quoteFormData.items.filter(item => item.category === 'hardware')
+    const softwareItems = quoteFormData.items.filter(item => item.category === 'software')
+    
+    const hardwareTotal = hardwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const softwareTotal = softwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const subtotal = hardwareTotal + softwareTotal
+    const vat = subtotal * 0.20 // 20% VAT
+    const total = subtotal + vat
+    
+    return {
+      hardwareTotal,
+      softwareTotal,
+      subtotal,
+      vat,
+      total
+    }
+  }
+
+  const handleDeleteQuote = async (quoteId) => {
+    setDeleteQuoteDialog({
+      open: true,
+      quoteId
+    })
+  }
+
+  // Clear editQuoteId when switching away from quotes tab
+  useEffect(() => {
+    if (activeTab !== 'quotes') {
+      setEditQuoteId(null)
+    }
+  }, [activeTab])
+
+  const confirmDeleteQuote = async () => {
+    const { quoteId } = deleteQuoteDialog
+    try {
+      const response = await fetch(`/api/quotes/${quoteId}`, {
+        method: 'DELETE'
+      })
+      
+      if (response.ok) {
+        // Refresh the business related data
+        const data = await getBusinessRelatedData(selectedBusiness.id)
+        setBusinessRelatedData(data)
+        
+        // Also refresh the main quotes state
+        const quotesResponse = await api.getQuotes()
+        if (quotesResponse.success) {
+          setQuotes(quotesResponse.data)
+        }
+        
+        setDeleteQuoteDialog({ open: false, quoteId: null })
+        toast.success('Quote deleted successfully!')
+      } else {
+        toast.error('Failed to delete quote')
+      }
+    } catch (error) {
+      console.error('Error deleting quote:', error)
+      toast.error('Error deleting quote. Please try again.')
+    }
+  }
+
   // Note Management Handlers
   const handleAddNote = async () => {
     try {
@@ -1032,22 +1321,28 @@ export default function BusinessHub() {
   // Get related data for a business (async version for detailed view)
   const getBusinessRelatedData = async (businessId) => {
     try {
-      // Get business products using the API
-      const businessProductsResponse = await api.getBusinessProducts(businessId)
+      console.log('Loading business related data for businessId:', businessId)
+      
+      // Make parallel API calls for better performance
+      const [businessProductsResponse, businessContactsResponse, businessNotesResponse, businessQuotesResponse] = await Promise.all([
+        api.getBusinessProducts(businessId),
+        api.getBusinessContacts(businessId),
+        api.getBusinessNotes(businessId),
+        api.getBusinessQuotes(businessId) // Get quotes specifically for this business
+      ])
+      
       const businessProducts = businessProductsResponse.success ? businessProductsResponse.data : []
-      
-      // Get business contacts using the API
-      const businessContactsResponse = await api.getBusinessContacts(businessId)
       const businessContacts = businessContactsResponse.success ? businessContactsResponse.data : []
-      
-      // Get business notes using the API
-      const businessNotesResponse = await api.getBusinessNotes(businessId)
       const businessNotes = businessNotesResponse.success ? businessNotesResponse.data : []
+      const businessQuotes = businessQuotesResponse.success ? businessQuotesResponse.data : []
       
       // Filter other related data from local state
       const businessTasks = tasks.filter(t => t.businessId === businessId)
-      const businessQuotes = quotes.filter(q => q.businessId === businessId)
       const businessDocuments = documents.filter(d => d.businessId === businessId)
+      
+      console.log('API businessQuotes:', businessQuotes)
+      console.log('Expected businessId:', businessId)
+      console.log('Found quotes for business:', businessQuotes.length)
       
       return {
         products: businessProducts,
@@ -1258,7 +1553,7 @@ export default function BusinessHub() {
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     type="text"
-                    placeholder="Search..."
+                    placeholder={activeTab === 'quotes' ? "Search quotes..." : "Search..."}
                     className="pl-10 w-64"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
@@ -1743,64 +2038,19 @@ export default function BusinessHub() {
             )}
 
             {activeTab === 'quotes' && (
-              <div className="space-y-6">
-                <div className="bg-white rounded-lg shadow-sm p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-2xl font-bold text-gray-900">Quotes & Proposals</h2>
-                      <p className="text-gray-600 mt-1">Manage client quotes and business proposals</p>
-                    </div>
-                    {hasPermission('canCreateQuote') && (
-                      <Button className="bg-blue-600 hover:bg-blue-700">
-                        <Plus className="h-4 w-4 mr-2" />
-                        New Quote
-                      </Button>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {quotes.map((quote) => (
-                    <Card key={quote.id} className="bg-white shadow-sm">
-                      <CardHeader>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <CardTitle className="text-lg font-semibold text-gray-900">{quote.title}</CardTitle>
-                            <CardDescription className="text-sm text-gray-500">
-                              {quote.businessName}
-                            </CardDescription>
-                          </div>
-                          <Badge variant={quote.status === 'Accepted' ? 'default' : 'secondary'}>
-                            {quote.status}
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <div className="space-y-3">
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-500">Total Amount</span>
-                            <span className="text-lg font-semibold text-gray-900">
-                              £{quote.total?.toLocaleString()}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-500">Created</span>
-                            <span className="text-sm text-gray-900">
-                              {formatDate(quote.createdAt)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-500">Valid Until</span>
-                            <span className="text-sm text-gray-900">
-                              {formatDate(quote.validUntil)}
-                            </span>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              </div>
+              <QuoteManagement 
+                editQuoteId={editQuoteId} 
+                onEditComplete={() => {
+                  setEditQuoteId(null)
+                  // Refresh business data if a business is currently selected
+                  if (selectedBusiness) {
+                    getBusinessRelatedData(selectedBusiness.id).then(data => {
+                      setBusinessRelatedData(data)
+                    })
+                  }
+                }} 
+                searchTerm={searchTerm}
+              />
             )}
 
             {activeTab === 'documents' && (
@@ -1906,6 +2156,14 @@ export default function BusinessHub() {
 
             {activeTab === 'analytics' && (
               <AnalyticsDashboard />
+            )}
+
+            {activeTab === 'activity-logs' && (
+              <ActivityLogsPage />
+            )}
+
+            {activeTab === 'emergency-control' && (
+              <EmergencyControlPage />
             )}
 
             {activeTab === 'settings' && (
@@ -2285,7 +2543,7 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
           <DialogHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -2301,10 +2559,11 @@ export default function BusinessHub() {
           </DialogHeader>
           
           <Tabs value={businessOverviewActiveTab} onValueChange={setBusinessOverviewActiveTab} className="mt-4">
-            <TabsList className="grid w-full grid-cols-5 h-10">
+            <TabsList className="grid w-full grid-cols-6 h-10">
               <TabsTrigger value="overview" className="text-sm font-medium py-2">Overview</TabsTrigger>
               <TabsTrigger value="contacts" className="text-sm font-medium py-2">Contacts</TabsTrigger>
               <TabsTrigger value="tasks" className="text-sm font-medium py-2">Tasks</TabsTrigger>
+              <TabsTrigger value="quotes" className="text-sm font-medium py-2">Quotes</TabsTrigger>
               <TabsTrigger value="notes" className="text-sm font-medium py-2">Notes</TabsTrigger>
               <TabsTrigger value="products" className="text-sm font-medium py-2">Products</TabsTrigger>
             </TabsList>
@@ -2650,23 +2909,77 @@ export default function BusinessHub() {
                     {businessRelatedData.quotes.length > 0 ? (
                       <div className="space-y-3">
                         {businessRelatedData.quotes.map((quote) => (
-                          <Card key={quote.id} className="bg-white shadow-sm">
+                          <Card key={quote.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
                             <CardContent className="p-4">
-                              <div className="flex justify-between items-start">
-                                <div>
-                                  <h4 className="font-medium text-gray-900">{quote.title}</h4>
-                                  <p className="text-lg font-semibold text-gray-900 mt-2">
-                                    £{quote.total?.toLocaleString()}
-                                  </p>
-                                  <div className="flex items-center mt-2 space-x-4">
+                              <div className="space-y-3">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <h4 className="font-semibold text-gray-900 truncate">{quote.title}</h4>
+                                    <div className="flex items-center gap-2 mt-2">
+                                      <Building2 className="h-4 w-4 text-gray-500" />
+                                      <span className="text-sm text-gray-600 truncate">{quote.business?.name || selectedBusiness?.name}</span>
+                                    </div>
+                                  </div>
+                                  <div className="flex flex-col items-end gap-2">
                                     <Badge variant={quote.status === 'Accepted' ? 'default' : 'secondary'}>
                                       {quote.status}
                                     </Badge>
-                                    <span className="text-sm text-gray-500">
-                                      Valid until {formatDate(quote.validUntil)}
-                                    </span>
+                                    <DropdownMenu>
+                                      <DropdownMenuTrigger asChild>
+                                        <Button variant="ghost" size="sm">
+                                          <MoreHorizontal className="h-4 w-4" />
+                                        </Button>
+                                      </DropdownMenuTrigger>
+                                      <DropdownMenuContent align="end">
+                                        <DropdownMenuItem onClick={() => handleViewQuote(quote)}>
+                                          <Eye className="h-4 w-4 mr-2" />
+                                          View
+                                        </DropdownMenuItem>
+                                        {hasPermission('canEditQuote') && (
+                                          <DropdownMenuItem onClick={() => handleEditQuote(quote)}>
+                                            <Edit className="h-4 w-4 mr-2" />
+                                            Edit
+                                          </DropdownMenuItem>
+                                        )}
+                                        {hasPermission('canDeleteQuote') && (
+                                          <DropdownMenuItem 
+                                            onClick={() => setDeleteQuoteDialog({ open: true, quoteId: quote.id })}
+                                            className="text-red-600"
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2" />
+                                            Delete
+                                          </DropdownMenuItem>
+                                        )}
+                                      </DropdownMenuContent>
+                                    </DropdownMenu>
                                   </div>
                                 </div>
+                                
+                                {quote.description && (
+                                  <p className="text-sm text-gray-600 line-clamp-2">{quote.description}</p>
+                                )}
+                                
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-2">
+                                    <Calendar className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-600">{formatDate(quote.createdAt)}</span>
+                                  </div>
+                                  <div className="text-right">
+                                    <p className="text-lg font-semibold text-gray-900">
+                                      £{quote.totalAmount?.toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {quote.items?.length || 0} items
+                                    </p>
+                                  </div>
+                                </div>
+
+                                {quote.user && (
+                                  <div className="flex items-center gap-2 pt-2 border-t">
+                                    <User className="h-4 w-4 text-gray-500" />
+                                    <span className="text-sm text-gray-600">{quote.user.name}</span>
+                                  </div>
+                                )}
                               </div>
                             </CardContent>
                           </Card>
@@ -2752,9 +3065,10 @@ export default function BusinessHub() {
                           <Card key={product.id} className="bg-white shadow-sm">
                             <CardContent className="p-4">
                               <div className="flex justify-between items-start">
-                                <div>
+                                <div className="flex-1">
                                   <h4 className="font-medium text-gray-900">{product.name}</h4>
                                   <p className="text-sm text-gray-600">{product.description}</p>
+                                  <p className="text-sm font-medium text-gray-900 mt-1">£{product.price}</p>
                                   <div className="flex items-center mt-2 space-x-4">
                                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{product.category}</Badge>
                                     <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
@@ -2762,8 +3076,7 @@ export default function BusinessHub() {
                                     </Badge>
                                   </div>
                                 </div>
-                                <div className="text-right">
-                                  <p className="font-semibold text-gray-900">£{product.price}</p>
+                                <div className="flex space-x-1">
                                   <Button
                                     variant="ghost"
                                     size="sm"
@@ -3341,6 +3654,555 @@ export default function BusinessHub() {
         title="Delete Note"
         description="Are you sure you want to delete this note?"
         onConfirm={confirmDeleteNote}
+      />
+
+      <ConfirmDialog
+        open={deleteQuoteDialog.open}
+        onOpenChange={(open) => setDeleteQuoteDialog({ ...deleteQuoteDialog, open })}
+        title="Delete Quote"
+        description="Are you sure you want to delete this quote?"
+        onConfirm={confirmDeleteQuote}
+      />
+
+      {/* View Quote Modal */}
+      <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+          <DialogHeader>
+            <DialogTitle>Quote Details</DialogTitle>
+            <DialogDescription>View quote information and items</DialogDescription>
+          </DialogHeader>
+          
+          {selectedQuote && (
+            <div className="space-y-6">
+              {/* Header Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Quote Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600">Title:</span>
+                      <p className="font-medium">{selectedQuote.title}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <div className="mt-1">
+                        <Badge variant={selectedQuote.status === 'Accepted' ? 'default' : 'secondary'}>
+                          {selectedQuote.status}
+                        </Badge>
+                      </div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Created:</span>
+                      <p className="font-medium">{formatDate(selectedQuote.createdAt)}</p>
+                    </div>
+                    {selectedQuote.description && (
+                      <div>
+                        <span className="text-sm text-gray-600">Description:</span>
+                        <p className="font-medium">{selectedQuote.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Business Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600">Business:</span>
+                      <p className="font-medium">{selectedQuote.business?.name || 'N/A'}</p>
+                    </div>
+                    {selectedQuote.business?.email && (
+                      <div>
+                        <span className="text-sm text-gray-600">Email:</span>
+                        <p className="font-medium">{selectedQuote.business.email}</p>
+                      </div>
+                    )}
+                    {selectedQuote.business?.phone && (
+                      <div>
+                        <span className="text-sm text-gray-600">Phone:</span>
+                        <p className="font-medium">{selectedQuote.business.phone}</p>
+                      </div>
+                    )}
+                    {selectedQuote.business?.location && (
+                      <div>
+                        <span className="text-sm text-gray-600">Location:</span>
+                        <p className="font-medium">{selectedQuote.business.location}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quote Items */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-4">Quote Items</h3>
+                
+                {/* Hardware Items */}
+                {selectedQuote.items && selectedQuote.items.filter(item => item.product?.pricingType === 'one-off').length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <HardDrive className="h-5 w-5 text-blue-600" />
+                      <h4 className="font-medium">Hardware (One-off)</h4>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedQuote.items
+                          .filter(item => item.product?.pricingType === 'one-off')
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.product?.name || 'N/A'}</TableCell>
+                              <TableCell>{item.product?.description || '-'}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Software Items */}
+                {selectedQuote.items && selectedQuote.items.filter(item => item.product?.pricingType === 'monthly').length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Cloud className="h-5 w-5 text-green-600" />
+                      <h4 className="font-medium">Software (Monthly)</h4>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total/Month</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedQuote.items
+                          .filter(item => item.product?.pricingType === 'monthly')
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.product?.name || 'N/A'}</TableCell>
+                              <TableCell>{item.product?.description || '-'}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Quote Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quote Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {selectedQuote.items && selectedQuote.items.filter(item => item.product?.pricingType === 'one-off').length > 0 && (
+                        <div className="flex justify-between">
+                          <span>Hardware Total:</span>
+                          <span>{formatCurrency(
+                            selectedQuote.items
+                              .filter(item => item.product?.pricingType === 'one-off')
+                              .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                          )}</span>
+                        </div>
+                      )}
+                      {selectedQuote.items && selectedQuote.items.filter(item => item.product?.pricingType === 'monthly').length > 0 && (
+                        <div className="flex justify-between">
+                          <span>Software Total:</span>
+                          <span>{formatCurrency(
+                            selectedQuote.items
+                              .filter(item => item.product?.pricingType === 'monthly')
+                              .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                          )}/month</span>
+                        </div>
+                      )}
+                      <Separator />
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount / 1.2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>VAT (20%):</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount - (selectedQuote.totalAmount / 1.2))}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span>Total:</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Quote Modal */}
+      <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+          <DialogHeader>
+            <DialogTitle>Edit Quote</DialogTitle>
+            <DialogDescription>Update quote details and items</DialogDescription>
+          </DialogHeader>
+          
+          {selectedQuote && (
+            <div className="space-y-6">
+              {/* Basic Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="title">Quote Title</Label>
+                  <Input
+                    id="title"
+                    value={quoteFormData.title}
+                    onChange={(e) => setQuoteFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Enter quote title"
+                  />
+                </div>
+                
+                <div>
+                  <Label htmlFor="business">Business</Label>
+                  <Select 
+                    value={quoteFormData.businessId} 
+                    onValueChange={(value) => setQuoteFormData(prev => ({ ...prev, businessId: value }))}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select business" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {businesses.map((business) => (
+                        <SelectItem key={business.id} value={business.id}>
+                          {business.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label htmlFor="description">Description</Label>
+                <Textarea
+                  id="description"
+                  value={quoteFormData.description}
+                  onChange={(e) => setQuoteFormData(prev => ({ ...prev, description: e.target.value }))}
+                  placeholder="Enter quote description"
+                  rows={3}
+                />
+              </div>
+
+              {/* Items Section */}
+              <div className="space-y-6">
+                <h3 className="text-lg font-semibold">Quote Items</h3>
+                
+                {/* Hardware Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <HardDrive className="h-5 w-5 text-blue-600" />
+                    <h4 className="font-medium">Hardware (One-off)</h4>
+                  </div>
+                  
+                  <div className="relative mb-3" ref={hardwareDropdownRef}>
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search hardware products..."
+                          value={hardwareSearchTerm}
+                          onChange={(e) => setHardwareSearchTerm(e.target.value)}
+                          onFocus={() => setShowHardwareDropdown(true)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowHardwareDropdown(!showHardwareDropdown)}
+                      >
+                        <Filter className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {showHardwareDropdown && hardwareProducts.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {hardwareProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            onClick={() => addProductToQuote(product, 'hardware')}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium">{product.name}</p>
+                                {product.description && (
+                                  <p className="text-sm text-gray-600">{product.description}</p>
+                                )}
+                                {product.sku && (
+                                  <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">{formatCurrency(product.price)}</p>
+                                <p className="text-xs text-gray-500">Stock: {product.stock}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {quoteFormData.items
+                      .filter(item => item.category === 'hardware')
+                      .map((item, index) => {
+                        const product = products.find(p => p.id === item.productId)
+                        const originalIndex = quoteFormData.items.findIndex(i => 
+                          i.productId === item.productId && i.category === 'hardware'
+                        )
+                        
+                        return (
+                          <div key={`${item.productId}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium">{product?.name}</p>
+                              <p className="text-sm text-gray-600">{formatCurrency(item.price)} each</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity - 1)}
+                              >
+                                <MinusCircle className="h-4 w-4" />
+                              </Button>
+                              <span className="w-12 text-center">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity + 1)}
+                              >
+                                <PlusCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeQuoteItem(originalIndex)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+
+                {/* Software Section */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <Cloud className="h-5 w-5 text-green-600" />
+                    <h4 className="font-medium">Software (Monthly)</h4>
+                  </div>
+                  
+                  <div className="relative mb-3" ref={softwareDropdownRef}>
+                    <div className="flex gap-2">
+                      <div className="flex-1 relative">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input
+                          placeholder="Search software products..."
+                          value={softwareSearchTerm}
+                          onChange={(e) => setSoftwareSearchTerm(e.target.value)}
+                          onFocus={() => setShowSoftwareDropdown(true)}
+                          className="pl-10"
+                        />
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setShowSoftwareDropdown(!showSoftwareDropdown)}
+                      >
+                        <Filter className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    
+                    {showSoftwareDropdown && softwareProducts.length > 0 && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                        {softwareProducts.map((product) => (
+                          <div
+                            key={product.id}
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            onClick={() => addProductToQuote(product, 'software')}
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="font-medium">{product.name}</p>
+                                {product.description && (
+                                  <p className="text-sm text-gray-600">{product.description}</p>
+                                )}
+                                {product.sku && (
+                                  <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="font-medium">{formatCurrency(product.price)}/month</p>
+                                <p className="text-xs text-gray-500">Stock: {product.stock}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  <div className="space-y-2">
+                    {quoteFormData.items
+                      .filter(item => item.category === 'software')
+                      .map((item, index) => {
+                        const product = products.find(p => p.id === item.productId)
+                        const originalIndex = quoteFormData.items.findIndex(i => 
+                          i.productId === item.productId && i.category === 'software'
+                        )
+                        
+                        return (
+                          <div key={`${item.productId}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex-1">
+                              <p className="font-medium">{product?.name}</p>
+                              <p className="text-sm text-gray-600">{formatCurrency(item.price)}/month</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity - 1)}
+                              >
+                                <MinusCircle className="h-4 w-4" />
+                              </Button>
+                              <span className="w-12 text-center">{item.quantity}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity + 1)}
+                              >
+                                <PlusCircle className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => removeQuoteItem(originalIndex)}
+                                className="text-red-600"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quote Summary */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Quote Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex justify-between">
+                      <span>Hardware Total:</span>
+                      <span>{formatCurrency(calculateQuoteTotals().hardwareTotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>Software Total:</span>
+                      <span>{formatCurrency(calculateQuoteTotals().softwareTotal)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>{formatCurrency(calculateQuoteTotals().subtotal)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span>VAT (20%):</span>
+                      <span>{formatCurrency(calculateQuoteTotals().vat)}</span>
+                    </div>
+                    <Separator />
+                    <div className="flex justify-between font-semibold text-lg">
+                      <span>Total:</span>
+                      <span>{formatCurrency(calculateQuoteTotals().total)}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Status Selection */}
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select 
+                  value={quoteFormData.status} 
+                  onValueChange={(value) => setQuoteFormData(prev => ({ ...prev, status: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="draft">Draft</SelectItem>
+                    <SelectItem value="sent">Sent</SelectItem>
+                    <SelectItem value="accepted">Accepted</SelectItem>
+                    <SelectItem value="rejected">Rejected</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setIsEditQuoteOpen(false)
+                    setSelectedQuote(null)
+                    resetForm()
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button 
+                  onClick={handleUpdateQuote}
+                  disabled={!quoteFormData.title || !quoteFormData.businessId || quoteFormData.items.length === 0}
+                >
+                  <Save className="h-4 w-4 mr-2" />
+                  Update Quote
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <ConfirmDialog
+        open={deleteQuoteDialog.open}
+        onOpenChange={(open) => setDeleteQuoteDialog({ ...deleteQuoteDialog, open })}
+        title="Delete Quote"
+        description="Are you sure you want to delete this quote? This action cannot be undone."
+        onConfirm={confirmDeleteQuote}
       />
     </div>
   )

@@ -14,6 +14,15 @@ export async function GET(
         businessId: businessId
       },
       include: {
+        business: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            phone: true,
+            location: true
+          }
+        },
         user: {
           select: {
             id: true,
@@ -28,7 +37,9 @@ export async function GET(
                 id: true,
                 name: true,
                 price: true,
-                category: true
+                category: true,
+                description: true,
+                pricingType: true
               }
             }
           }
