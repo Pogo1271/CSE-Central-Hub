@@ -103,26 +103,11 @@ import { lazy, Suspense } from 'react'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useAuth } from '@/hooks/use-auth'
 
+// Import simplified quote management component
+import SimpleQuoteManagement from '@/components/simple-quote-management'
+
 // Import client API
 import * as api from '@/lib/client-api'
-
-// Import PDF generation
-// PDF components are now handled by the quote-management component
-
-// Lazy load quote management component
-const LazyQuoteManagement = lazy(() => import('@/components/quote-management').then(module => ({
-  default: module.QuoteManagement
-})))
-
-// Loading component for quotes
-const QuoteManagementLoading = () => (
-  <div className="flex items-center justify-center min-h-[400px]">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading quote management...</p>
-    </div>
-  </div>
-)
 
 const navigation = [
   { name: 'Dashboard', href: '#', icon: Building2, tab: 'dashboard', requiredPermission: 'canViewDashboardPage' },
@@ -2111,21 +2096,7 @@ export default function BusinessHub() {
             )}
 
             {activeTab === 'quotes' && (
-              <Suspense fallback={<QuoteManagementLoading />}>
-                <LazyQuoteManagement 
-                  editQuoteId={editQuoteId} 
-                  onEditComplete={() => {
-                    setEditQuoteId(null)
-                    // Refresh business data if a business is currently selected
-                    if (selectedBusiness) {
-                      getBusinessRelatedData(selectedBusiness.id).then(data => {
-                        setBusinessRelatedData(data)
-                      })
-                    }
-                  }} 
-                  searchTerm={searchTerm}
-                />
-              </Suspense>
+              <SimpleQuoteManagement />
             )}
 
             {activeTab === 'documents' && (

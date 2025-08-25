@@ -6,9 +6,26 @@ const prisma = new PrismaClient()
 async function main() {
   console.log('Seeding database...')
 
-  // Delete existing roles to start fresh
+  // Delete existing data to start fresh
   await prisma.role.deleteMany({})
-  console.log('Deleted existing roles')
+  await prisma.user.deleteMany({})
+  console.log('Deleted existing data')
+
+  // Create superuser
+  const superuserHashedPassword = await bcrypt.hash('super123', 10)
+  
+  const superUser = await prisma.user.upsert({
+    where: { email: 'superuser@businesshub.com' },
+    update: {},
+    create: {
+      email: 'superuser@businesshub.com',
+      password: superuserHashedPassword,
+      name: 'Super User',
+      role: 'SuperUser',
+      status: 'Active',
+      color: '#8B5CF6',
+    },
+  })
 
   // Create default admin user
   const hashedPassword = await bcrypt.hash('admin123', 10)
@@ -59,6 +76,71 @@ async function main() {
   })
 
   // Create default roles
+  const superuserRole = await prisma.role.create({
+    data: {
+      name: 'SuperUser',
+      description: 'Superuser with all permissions',
+      color: '#8B5CF6',
+      permissions: {
+        // Dashboard permissions
+        canViewDashboard: true,
+        // Dashboard Quick Actions permissions
+        canQuickAddBusiness: true,
+        canQuickCreateUser: true,
+        canQuickUploadDocument: true,
+        canQuickSendMessage: true,
+        // Business permissions
+        canCreateBusiness: true,
+        canEditBusiness: true,
+        canDeleteBusiness: true,
+        // User permissions
+        canCreateUser: true,
+        canEditUser: true,
+        canDeleteUser: true,
+        canManageRoles: true,
+        // Product permissions
+        canCreateProduct: true,
+        canEditProduct: true,
+        canDeleteProduct: true,
+        // Task permissions
+        canCreateTask: true,
+        canEditTask: true,
+        canDeleteTask: true,
+        canAssignTasks: true,
+        // Quote permissions
+        canCreateQuote: true,
+        canEditQuote: true,
+        canDeleteQuote: true,
+        canApproveQuotes: true,
+        // Document permissions
+        canUploadDocument: true,
+        canDeleteDocument: true,
+        // Message permissions
+        canSendMessage: true,
+        canDeleteMessage: true,
+        // Analytics permissions
+        canExportData: true,
+        // System permissions
+        canAccessSettings: true,
+        canViewSystemLogs: true,
+        canManageNotifications: true,
+        // Page access permissions (controls sidebar visibility and data access)
+        canViewDashboardPage: true,
+        canViewBusinessesPage: true,
+        canViewInventoryPage: true,
+        canViewTasksPage: true,
+        canViewUsersPage: true,
+        canViewQuotesPage: true,
+        canViewDocumentsPage: true,
+        canViewMessagesPage: true,
+        canViewAnalyticsPage: true,
+        canViewSettingsPage: true,
+        canViewActivityLogsPage: true,
+        canViewEmergencyControlPage: true
+      }
+    },
+  })
+
   const adminRole = await prisma.role.create({
     data: {
       name: 'Admin',
@@ -249,7 +331,6 @@ async function main() {
   })
 
   // Create sample businesses
-  /*
   const techBusiness = await prisma.business.create({
     data: {
       name: 'Tech Solutions Inc.',
@@ -278,6 +359,20 @@ async function main() {
     },
   })
 
+  const retailBusiness = await prisma.business.create({
+    data: {
+      name: 'Retail Store Co.',
+      description: 'Chain of retail stores specializing in consumer electronics.',
+      category: 'Retail',
+      location: 'Los Angeles, CA',
+      phone: '+1 (555) 345-6789',
+      email: 'contact@retailstore.com',
+      website: 'www.retailstore.com',
+      status: 'Active',
+      userId: managerUser.id,
+    },
+  })
+
   // Create sample products
   const eposPro = await prisma.product.create({
     data: {
@@ -287,6 +382,7 @@ async function main() {
       pricingType: 'one-off',
       category: 'Hardware',
       sku: 'EPOS-PRO-001',
+      stock: 15,
     },
   })
 
@@ -298,6 +394,43 @@ async function main() {
       pricingType: 'monthly',
       category: 'Services',
       sku: 'SUPPORT-001',
+      stock: 50,
+    },
+  })
+
+  const inventorySoftware = await prisma.product.create({
+    data: {
+      name: 'Inventory Management Software',
+      description: 'Advanced inventory tracking and management system',
+      price: 1499.99,
+      pricingType: 'one-off',
+      category: 'Software',
+      sku: 'INV-SOFT-001',
+      stock: 25,
+    },
+  })
+
+  const hardwareBundle = await prisma.product.create({
+    data: {
+      name: 'Hardware Bundle',
+      description: 'Complete hardware setup including barcode scanner and receipt printer',
+      price: 899.99,
+      pricingType: 'one-off',
+      category: 'Hardware',
+      sku: 'HW-BUNDLE-001',
+      stock: 30,
+    },
+  })
+
+  const cloudBackup = await prisma.product.create({
+    data: {
+      name: 'Cloud Backup Service',
+      description: 'Automated cloud backup and disaster recovery solution',
+      price: 99.99,
+      pricingType: 'monthly',
+      category: 'Services',
+      sku: 'CLOUD-BACKUP-001',
+      stock: 100,
     },
   })
 
@@ -328,6 +461,19 @@ async function main() {
     },
   })
 
+  const task3 = await prisma.task.create({
+    data: {
+      title: 'Marketing Campaign Setup',
+      description: 'Setup new digital marketing campaign',
+      startDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000), // 3 days from now
+      status: 'pending',
+      priority: 'high',
+      businessId: marketingBusiness.id,
+      assigneeId: managerUser.id,
+      createdById: adminUser.id,
+    },
+  })
+
   // Create sample quotes
   const quote1 = await prisma.quote.create({
     data: {
@@ -340,6 +486,28 @@ async function main() {
     },
   })
 
+  const quote2 = await prisma.quote.create({
+    data: {
+      title: 'Marketing Pro Package',
+      description: 'Comprehensive marketing solution for Marketing Pro',
+      businessId: marketingBusiness.id,
+      userId: managerUser.id,
+      status: 'accepted',
+      totalAmount: 4499.98,
+    },
+  })
+
+  const quote3 = await prisma.quote.create({
+    data: {
+      title: 'Retail Store Solution',
+      description: 'Complete retail management system for Retail Store Co.',
+      businessId: retailBusiness.id,
+      userId: adminUser.id,
+      status: 'draft',
+      totalAmount: 5399.97,
+    },
+  })
+
   // Create sample quote items
   await prisma.quoteItem.create({
     data: {
@@ -347,6 +515,51 @@ async function main() {
       productId: eposPro.id,
       quantity: 1,
       price: 2999.99,
+    },
+  })
+
+  await prisma.quoteItem.create({
+    data: {
+      quoteId: quote2.id,
+      productId: inventorySoftware.id,
+      quantity: 1,
+      price: 1499.99,
+    },
+  })
+
+  await prisma.quoteItem.create({
+    data: {
+      quoteId: quote2.id,
+      productId: supportPackage.id,
+      quantity: 10,
+      price: 299.99,
+    },
+  })
+
+  await prisma.quoteItem.create({
+    data: {
+      quoteId: quote3.id,
+      productId: eposPro.id,
+      quantity: 1,
+      price: 2999.99,
+    },
+  })
+
+  await prisma.quoteItem.create({
+    data: {
+      quoteId: quote3.id,
+      productId: hardwareBundle.id,
+      quantity: 2,
+      price: 899.99,
+    },
+  })
+
+  await prisma.quoteItem.create({
+    data: {
+      quoteId: quote3.id,
+      productId: cloudBackup.id,
+      quantity: 12,
+      price: 99.99,
     },
   })
 
@@ -372,10 +585,102 @@ async function main() {
       uploadedBy: 'Admin User',
     },
   })
-  */
+
+  await prisma.document.create({
+    data: {
+      name: 'Technical Specifications',
+      type: 'PDF',
+      size: '3.1 MB',
+      path: '/documents/tech-specs.pdf',
+      category: 'Technical',
+      uploadedBy: 'Manager User',
+    },
+  })
+
+  await prisma.document.create({
+    data: {
+      name: 'Quarterly Report Q1 2024',
+      type: 'XLSX',
+      size: '856 KB',
+      path: '/documents/q1-report-2024.xlsx',
+      category: 'Reports',
+      uploadedBy: 'Admin User',
+    },
+  })
+
+  // Create sample contacts for businesses
+  await prisma.contact.create({
+    data: {
+      name: 'John Smith',
+      email: 'john.smith@techsolutions.com',
+      phone: '+1 (555) 123-4567',
+      position: 'CTO',
+      businessId: techBusiness.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Sarah Johnson',
+      email: 'sarah.johnson@techsolutions.com',
+      phone: '+1 (555) 123-4568',
+      position: 'CEO',
+      businessId: techBusiness.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Mike Wilson',
+      email: 'mike.wilson@marketingpro.com',
+      phone: '+1 (555) 234-5678',
+      position: 'Marketing Director',
+      businessId: marketingBusiness.id,
+    },
+  })
+
+  await prisma.contact.create({
+    data: {
+      name: 'Lisa Chen',
+      email: 'lisa.chen@retailstore.com',
+      phone: '+1 (555) 345-6789',
+      position: 'Store Manager',
+      businessId: retailBusiness.id,
+    },
+  })
+
+  // Create sample notes for businesses
+  await prisma.note.create({
+    data: {
+      title: 'Initial Meeting Notes',
+      content: 'Discussed requirements for EPOS system implementation. Client needs inventory management integration.',
+      businessId: techBusiness.id,
+    },
+  })
+
+  await prisma.note.create({
+    data: {
+      title: 'Follow-up Required',
+      content: 'Client requested additional features for the marketing automation system. Need to provide quote for custom development.',
+      businessId: marketingBusiness.id,
+    },
+  })
+
+  await prisma.note.create({
+    data: {
+      title: 'Site Visit Scheduled',
+      content: 'Site visit scheduled for next week to assess current infrastructure and provide recommendations.',
+      businessId: retailBusiness.id,
+    },
+  })
 
   console.log('Database seeded successfully!')
   console.log('Default users:')
+  console.log('SuperUser:', {
+    email: 'superuser@businesshub.com',
+    password: 'super123',
+    role: 'SuperUser'
+  })
   console.log('Admin:', {
     email: 'admin@businesshub.com',
     password: 'admin123',
@@ -391,6 +696,14 @@ async function main() {
     password: 'user123',
     role: 'User'
   })
+  console.log('\nDemo data created:')
+  console.log('- 3 Businesses with contacts and notes')
+  console.log('- 5 Products with inventory')
+  console.log('- 3 Tasks with different statuses')
+  console.log('- 3 Quotes with multiple items')
+  console.log('- 4 Documents')
+  console.log('- 4 Business contacts')
+  console.log('- 3 Business notes')
 }
 
 main()
