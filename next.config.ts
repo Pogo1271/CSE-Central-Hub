@@ -44,6 +44,8 @@ const nextConfig: NextConfig = {
   },
   // Handle transpilation properly
   transpilePackages: ['lucide-react'],
+  // Skip static generation for problematic pages
+  output: 'standalone',
 };
 
 export default nextConfig;
