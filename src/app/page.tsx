@@ -1,7 +1,7 @@
 'use client'
 // Force rebuild
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { toast } from 'sonner'
 import { 
   Building2, 
@@ -49,7 +49,8 @@ import {
   Cloud,
   Save,
   PlusCircle,
-  MinusCircle
+  MinusCircle,
+  FileDown
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -105,6 +106,18 @@ import { useAuth } from '@/hooks/use-auth'
 // Import client API
 import * as api from '@/lib/client-api'
 
+// Import PDF generation
+import { 
+  Page, 
+  Text, 
+  View, 
+  Document, 
+  StyleSheet, 
+  PDFDownloadLink,
+  Font,
+  Image
+} from '@react-pdf/renderer'
+
 const navigation = [
   { name: 'Dashboard', href: '#', icon: Building2, tab: 'dashboard', requiredPermission: 'canViewDashboardPage' },
   { name: 'Business Directory', href: '#', icon: Building2, tab: 'businesses', requiredPermission: 'canViewBusinessesPage' },
@@ -144,6 +157,580 @@ const locations = [
   'Austin, TX',
   'Seattle, WA'
 ]
+
+// PDF Styles
+const styles = StyleSheet.create({
+  // Common styles
+  page: {
+    padding: 40,
+    fontFamily: 'Helvetica',
+    fontSize: 10,
+    lineHeight: 1.4,
+    backgroundColor: '#ffffff',
+  },
+  redText: {
+    color: '#ed1f42',
+  },
+  redBg: {
+    backgroundColor: '#ed1f42',
+  },
+  grayText: {
+    color: '#4b5563',
+  },
+  lightGrayBg: {
+    backgroundColor: '#f9fafb',
+  },
+  border: {
+    borderColor: '#e5e7eb',
+  },
+  
+  // Page 1 - Cover Page styles
+  coverPage: {
+    padding: 60,
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    minHeight: '100vh',
+  },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    width: 200,
+    height: 80,
+    marginBottom: 60,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 80,
+  },
+  title: {
+    fontSize: 36,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 20,
+  },
+  preparedFor: {
+    fontSize: 18,
+    color: '#4b5563',
+    marginBottom: 10,
+  },
+  companyName: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  coverFooter: {
+    borderTopWidth: 2,
+    borderTopColor: '#ed1f42',
+    paddingTop: 20,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  footerLabel: {
+    fontWeight: 'bold',
+    color: '#4b5563',
+    width: 120,
+  },
+  footerValue: {
+    color: '#1f2937',
+    flex: 1,
+  },
+
+  // Page 2 & 3 - Product pages styles
+  sectionPage: {
+    padding: 40,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 30,
+    paddingBottom: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: '#ed1f42',
+  },
+  sectionTitle: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#1f2937',
+  },
+  sectionNumber: {
+    fontSize: 16,
+    color: '#ed1f42',
+    marginLeft: 10,
+  },
+  
+  // Table styles
+  table: {
+    width: '100%',
+    borderStyle: 'solid',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    marginBottom: 20,
+  },
+  tableHeader: {
+    backgroundColor: '#ed1f42',
+    color: '#ffffff',
+    fontWeight: 'bold',
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: '#e5e7eb',
+  },
+  tableCell: {
+    padding: 8,
+    borderRightWidth: 1,
+    borderRightColor: '#e5e7eb',
+  },
+  tableCellLast: {
+    padding: 8,
+  },
+  
+  // Totals section
+  totalsSection: {
+    marginTop: 30,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    paddingTop: 15,
+  },
+  totalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  totalLabel: {
+    fontWeight: 'bold',
+    color: '#4b5563',
+    fontSize: 12,
+  },
+  totalValue: {
+    fontWeight: 'bold',
+    color: '#1f2937',
+    fontSize: 12,
+  },
+  grandTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 2,
+    borderTopColor: '#ed1f42',
+  },
+  grandTotalLabel: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ed1f42',
+  },
+  grandTotalValue: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#ed1f42',
+  },
+
+  // Page 4 - Terms styles
+  termsPage: {
+    padding: 40,
+    fontSize: 9,
+  },
+  termsHeader: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#1f2937',
+    marginBottom: 20,
+    textAlign: 'center',
+    borderBottomWidth: 2,
+    borderBottomColor: '#ed1f42',
+    paddingBottom: 10,
+  },
+  termsSection: {
+    marginBottom: 15,
+  },
+  termsSectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#ed1f42',
+    marginBottom: 8,
+  },
+  termsContent: {
+    color: '#1f2937',
+    lineHeight: 1.3,
+  },
+  termsBullet: {
+    marginLeft: 10,
+    marginBottom: 4,
+  },
+  contactInfo: {
+    marginTop: 30,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: '#e5e7eb',
+    fontSize: 10,
+    color: '#4b5563',
+  },
+  contactRow: {
+    marginBottom: 4,
+  },
+  pageNumber: {
+    position: 'absolute',
+    bottom: 20,
+    right: 40,
+    fontSize: 10,
+    color: '#6b7280',
+  },
+})
+
+// PDF Document Component - Optimized Version
+const QuotePDFDocument = React.memo(({ quote }: { quote: any }) => {
+  // Memoize expensive calculations
+  const pdfData = useMemo(() => {
+    const formatDate = (date: string) => {
+      try {
+        const d = new Date(date)
+        return d.toLocaleDateString('en-GB', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        })
+      } catch (error) {
+        return 'Invalid date'
+      }
+    }
+
+    const formatCurrency = (amount: number) => {
+      return new Intl.NumberFormat('en-GB', {
+        style: 'currency',
+        currency: 'GBP'
+      }).format(amount)
+    }
+
+    // Calculate totals
+    const hardwareItems = quote.items.filter((item: any) => item.product.pricingType === 'one-off')
+    const softwareItems = quote.items.filter((item: any) => item.product.pricingType === 'monthly')
+    
+    const hardwareTotal = hardwareItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+    const softwareTotal = softwareItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+    const subtotal = hardwareTotal + softwareTotal
+    const vat = subtotal * 0.20 // 20% VAT
+    const total = subtotal + vat
+
+    // Memoize file name generation
+    const fileName = `quote-${quote.id.slice(-6).toUpperCase()}-${new Date().toISOString().split('T')[0]}.pdf`
+
+    return {
+      formatDate,
+      formatCurrency,
+      hardwareItems,
+      softwareItems,
+      hardwareTotal,
+      softwareTotal,
+      subtotal,
+      vat,
+      total,
+      fileName
+    }
+  }, [quote.id, quote.items, quote.business.name, quote.business.location, quote.createdAt])
+
+  const { formatDate, formatCurrency, hardwareItems, softwareItems, hardwareTotal, softwareTotal, subtotal, vat, total } = pdfData
+
+  return (
+    <Document>
+      {/* Page 1: Cover Page */}
+      <Page size="A4" style={styles.coverPage}>
+        <View style={styles.logoContainer}>
+          <Image src="/assets/company-logo.png" style={styles.logo} />
+          {/* Fallback text if logo fails to load */}
+          <Text style={[styles.logo, { textAlign: 'center', fontSize: 16, color: '#ed1f42', display: 'none' }]}>
+            Cornwall Scale & Equipment Ltd
+          </Text>
+        </View>
+        
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Quotation</Text>
+          <Text style={styles.preparedFor}>Prepared for...</Text>
+          <Text style={styles.companyName}>{quote.business.name}</Text>
+        </View>
+        
+        <View style={styles.coverFooter}>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Prepared for:</Text>
+            <Text style={styles.footerValue}>
+              {quote.business.location || 'Address not provided'}
+            </Text>
+          </View>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Details:</Text>
+            <Text style={styles.footerValue}>
+              Quote #{quote.id.slice(-6).toUpperCase()} | {formatDate(quote.createdAt)}
+            </Text>
+          </View>
+        </View>
+        
+        <Text style={styles.pageNumber}>Page 1 of 4</Text>
+      </Page>
+
+      {/* Page 2: Hardware and Initial Setup */}
+      <Page size="A4" style={styles.sectionPage}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Hardware and Initial Setup</Text>
+          <Text style={styles.sectionNumber}>Page 2</Text>
+        </View>
+
+        {hardwareItems.length > 0 ? (
+          <>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.tableCell, { width: '50%' }]}>Item</Text>
+                <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+                <Text style={[styles.tableCell, { width: '20%' }]}>Unit Price</Text>
+                <Text style={[styles.tableCellLast, { width: '15%' }]}>Total</Text>
+              </View>
+              
+              {hardwareItems.map((item: any) => (
+                <View key={item.id} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+                  <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+                  <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+                  <Text style={[styles.tableCellLast, { width: '15%' }]}>
+                    {formatCurrency(item.price * item.quantity)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.totalsSection}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Hardware Subtotal:</Text>
+                <Text style={styles.totalValue}>{formatCurrency(hardwareTotal)}</Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>VAT (20%):</Text>
+                <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 0.20)}</Text>
+              </View>
+              <View style={styles.grandTotalRow}>
+                <Text style={styles.grandTotalLabel}>Hardware Total:</Text>
+                <Text style={styles.grandTotalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.grayText}>No hardware items in this quotation.</Text>
+        )}
+        
+        <Text style={styles.pageNumber}>Page 2 of 4</Text>
+      </Page>
+
+      {/* Page 3: Software & Support */}
+      <Page size="A4" style={styles.sectionPage}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Software & Support</Text>
+          <Text style={styles.sectionNumber}>Page 3</Text>
+        </View>
+
+        {softwareItems.length > 0 ? (
+          <>
+            <View style={styles.table}>
+              <View style={[styles.tableRow, styles.tableHeader]}>
+                <Text style={[styles.tableCell, { width: '50%' }]}>Service</Text>
+                <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+                <Text style={[styles.tableCell, { width: '20%' }]}>Monthly Price</Text>
+                <Text style={[styles.tableCellLast, { width: '15%' }]}>Monthly Total</Text>
+              </View>
+              
+              {softwareItems.map((item: any) => (
+                <View key={item.id} style={styles.tableRow}>
+                  <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+                  <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+                  <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+                  <Text style={[styles.tableCellLast, { width: '15%' }]}>
+                    {formatCurrency(item.price * item.quantity)}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            <View style={styles.totalsSection}>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Software Monthly Subtotal:</Text>
+                <Text style={styles.totalValue}>{formatCurrency(softwareTotal)}</Text>
+              </View>
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>VAT (20%):</Text>
+                <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 0.20)}</Text>
+              </View>
+              <View style={styles.grandTotalRow}>
+                <Text style={styles.grandTotalLabel}>Software Monthly Total:</Text>
+                <Text style={styles.grandTotalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+              </View>
+            </View>
+          </>
+        ) : (
+          <Text style={styles.grayText}>No software or support services in this quotation.</Text>
+        )}
+        
+        <Text style={styles.pageNumber}>Page 3 of 4</Text>
+      </Page>
+
+      {/* Page 4: Terms and Conditions */}
+      <Page size="A4" style={styles.termsPage}>
+        <Text style={styles.termsHeader}>Terms and Conditions</Text>
+        
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>1. Payment</Text>
+          <Text style={styles.termsContent}>
+            • Deposit: A 50% deposit is required with order confirmation. Accepted methods include Bacs, cash, debit, or credit card. Note: Payments by credit card may incur additional fees.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Bank Details: Barclays Bank PLC | Name: Cornwall Scale & Equipment Ltd | Acc: 50839132 | Sort: 20-87-94
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Payment Terms: Invoice payments are due within 30 days unless otherwise agreed.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Ownership: All equipment remains the property of Cornwall Scale & Equipment Ltd until full payment has been made.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>2. Warranty and Return Policy</Text>
+          <Text style={styles.termsContent}>
+            • All New products come with a standard 12-month onsite or RTB (Return to Base) guarantee. Second hand and Reconditioned products are covered by a 6-month onsite or RTB guarantee. In cases where onsite repair is not feasible, a replacement will be provided. We operate a next working day replacement service.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Damage Exclusions: This warranty does not cover damages caused by intentional or accidental misuse, including liquid ingress.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Shipping and Insurance: Any costs associated with shipping and insuring the return of products are the customer's responsibility. We recommend retaining all original packaging for any potential returns.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Data Responsibility: Cornwall Scale & Equipment Ltd cannot be held liable for any loss or corruption of data. Ensuring product compatibility is the buyer's responsibility.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Fault Resolution: Upon receiving returned goods, we will address any reported faults promptly. This excludes additional programming needs not specified in the initial order instructions.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Limitation of Liability: Cornwall Scale & Equipment Ltd is not liable for any loss of earnings, revenue, or business opportunities resulting from the failure or downtime of any online services provided.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>3. Returns Policy</Text>
+          <Text style={styles.termsContent}>
+            • If not entirely happy, you may return the product with all manuals, attachments, and packaging within 7 days. Products with no faults or due to change of mind will be refunded, subject to a 30% + VAT restocking charge.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • We will not accept any returns not in original packaging. Please keep all boxes.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Any damage or missing parts must be reported within 24 hours of delivery. Cornwall Scale & Equipment Limited accepts no liability after this period. Please call 0333 5770108.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Postage costs are billed to the customer and cannot be refunded. You may use your own courier for collection of goods paid in full.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • The above terms do not affect customer's statutory rights.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>4. Late Payment and Equipment Removal</Text>
+          <Text style={styles.termsContent}>
+            • Late Payment Policy: A 10% weekly surcharge will be applied to any outstanding balance if payment is not received within a 5-day grace period from the due date.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Equipment Removal: We reserve the right to reclaim any equipment in the event of non-payment. A £400 + VAT fee applies for reinstallation if needed.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>5. Equipment Hire</Text>
+          <Text style={styles.termsContent}>
+            • The first month's rental and setup costs are due upon delivery. A standing order must be completed for timely monthly payments.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • A minimum of one month's notice is required to cancel the hire agreement.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • All hired equipment remains the property of Cornwall Scale & Equipment Ltd. Peripherals (e.g., till rolls) are billed separately.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Equipment must be returned in the same condition as delivered. Damages will be billed to the hirer.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>6. Purchase Plan (If Applicable)</Text>
+          <Text style={styles.termsContent}>
+            • First payment and setup charges are due upon delivery. A standing order is required for subsequent payments.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Ownership: All equipment remains our property until full payment is made. We reserve the right to remove equipment if payments are not made.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Peripherals are not included and will be charged separately.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Warranty is 12 months for new products and 6 months for reconditioned products (RTB).
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>7. SaaS Contract Terms</Text>
+          <Text style={styles.termsContent}>
+            • Contract has an initial 3-year term, then renews annually. Cancellation requires 30 days' written notice before renewal.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • All SaaS products (POS Licences, Back Office, Online Services, etc.) will be suspended in the event of late payment per Section 4.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>8. Telephone and Remote Support Service</Text>
+          <Text style={styles.termsContent}>
+            • Service provides remote and telephone support during standard hours (Mon-Fri, 9am-5pm) and out-of-hours (9am-11pm, evenings/weekends/holidays) for urgent issues.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • The contract covers remote troubleshooting only. On-site visits or physical repairs are separate services.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • Specific programming requests are charged separately.
+          </Text>
+          <Text style={styles.termsBullet}>
+            • The contract renews monthly and can be terminated with 30 days' written notice.
+          </Text>
+        </View>
+
+        {/* Grand Total Summary */}
+        <View style={styles.totalsSection}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Hardware Total (inc VAT):</Text>
+            <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Software Monthly Total (inc VAT):</Text>
+            <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+          </View>
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalLabel}>Overall Quote Total:</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
+          </View>
+        </View>
+
+        {/* Contact Information */}
+        <View style={styles.contactInfo}>
+          <Text style={styles.termsSectionTitle}>Cornwall Scale & Equipment Ltd (CSE LTD)</Text>
+          <Text style={styles.contactRow}>Unit 2 Tregrehan Workshops, Tregrehan Mills, St Austell, Cornwall, PL25 3TQ</Text>
+          <Text style={styles.contactRow}>Telephone: 0333 577 0108 | Email: info@cornwallscalesltd.co.uk | Accounts: accounts@cornwallscalesltd.co.uk</Text>
+        </View>
+        
+        <Text style={styles.pageNumber}>Page 4 of 4</Text>
+      </Page>
+    </Document>
+  )
+})
 
 export default function BusinessHub() {
   const { isAuthenticated, user: currentUser, isLoading, logout } = useAuth()
@@ -791,6 +1378,14 @@ export default function BusinessHub() {
         const updatedBusinesses = businessList.filter(b => b.id !== businessId)
         setBusinessList(updatedBusinesses)
         setFilteredBusinessList(updatedBusinesses)
+        
+        // Clean up contact counts cache for the deleted business
+        setBusinessContactCounts(prev => {
+          const newCounts = { ...prev }
+          delete newCounts[businessId]
+          return newCounts
+        })
+        
         setIsViewBusinessOpen(false)
         setSelectedBusiness(null)
         updateDashboardStats()
@@ -835,6 +1430,12 @@ export default function BusinessHub() {
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
+        // Refresh contact counts for the business
+        setBusinessContactCounts(prev => ({
+          ...prev,
+          [selectedBusiness.id]: (prev[selectedBusiness.id] || 0) + 1
+        }))
+        
         // Reset form and close modal
         setNewContact({
           name: '',
@@ -872,6 +1473,9 @@ export default function BusinessHub() {
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
+        // Contact count doesn't change on update, but we keep the cache consistent
+        // No need to update contact count cache
+        
         // Reset form and close modal
         setSelectedContact(null)
         setNewContact({
@@ -906,6 +1510,12 @@ export default function BusinessHub() {
         // Refresh the business related data
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
+        
+        // Refresh contact counts for the business
+        setBusinessContactCounts(prev => ({
+          ...prev,
+          [selectedBusiness.id]: Math.max(0, (prev[selectedBusiness.id] || 0) - 1)
+        }))
         
         setDeleteContactDialog({ open: false, contactId: null })
         toast.success('Contact deleted successfully!')
@@ -1006,29 +1616,35 @@ export default function BusinessHub() {
     setSoftwareSearchTerm('')
   }
 
-  const addProductToQuote = (product, category) => {
-    const existingItemIndex = quoteFormData.items.findIndex(item => 
-      item.productId === product.id && item.category === category
-    )
-    
-    if (existingItemIndex >= 0) {
-      // Update quantity if product already exists
-      const updatedItems = [...quoteFormData.items]
-      updatedItems[existingItemIndex].quantity += 1
-      setQuoteFormData(prev => ({ ...prev, items: updatedItems }))
-    } else {
-      // Add new product
-      const newItem = {
-        productId: product.id,
-        quantity: 1,
-        price: product.price,
-        category
+  const addProductToQuote = useCallback((product, category) => {
+    // Optimized state update - batch all updates together
+    setQuoteFormData(prev => {
+      const existingItemIndex = prev.items.findIndex(item => 
+        item.productId === product.id && item.category === category
+      )
+      
+      let updatedItems
+      
+      if (existingItemIndex >= 0) {
+        // Update quantity if product already exists
+        updatedItems = [...prev.items]
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + 1
+        }
+      } else {
+        // Add new product
+        const newItem = {
+          productId: product.id,
+          quantity: 1,
+          price: product.price,
+          category
+        }
+        updatedItems = [...prev.items, newItem]
       }
-      setQuoteFormData(prev => ({ 
-        ...prev, 
-        items: [...prev.items, newItem] 
-      }))
-    }
+      
+      return { ...prev, items: updatedItems }
+    })
     
     // Clear search and hide dropdown
     if (category === 'hardware') {
@@ -1038,7 +1654,7 @@ export default function BusinessHub() {
       setSoftwareSearchTerm('')
       setShowSoftwareDropdown(false)
     }
-  }
+  }, [])
 
   const removeQuoteItem = (index) => {
     const updatedItems = quoteFormData.items.filter((_, i) => i !== index)
@@ -1272,6 +1888,40 @@ export default function BusinessHub() {
     }
   }
 
+  // Cache for business contact counts to avoid excessive API calls
+  const [businessContactCounts, setBusinessContactCounts] = useState<Record<string, number>>({})
+
+  // Load contact counts for all businesses
+  const loadBusinessContactCounts = async () => {
+    try {
+      const counts: Record<string, number> = {}
+      
+      // Load contact counts for each business in parallel
+      await Promise.all(businessList.map(async (business) => {
+        try {
+          const response = await api.getBusinessContacts(business.id)
+          if (response.success) {
+            counts[business.id] = response.data.length
+          }
+        } catch (error) {
+          console.error(`Error loading contact count for business ${business.id}:`, error)
+          counts[business.id] = 0
+        }
+      }))
+      
+      setBusinessContactCounts(counts)
+    } catch (error) {
+      console.error('Error loading business contact counts:', error)
+    }
+  }
+
+  // Load contact counts when businesses change
+  useEffect(() => {
+    if (businessList.length > 0) {
+      loadBusinessContactCounts()
+    }
+  }, [businessList])
+
   // Get business stats for display in cards
   const getBusinessStats = (business) => {
     // Get tasks for this business
@@ -1280,12 +1930,11 @@ export default function BusinessHub() {
     // Get products for this business
     const businessProducts = products.filter(product => product.businessId === business.id)
     
-    // For contacts, we'll show 0 since they're loaded on-demand per business
-    // The actual contact count will be visible in the business detail view
-    const businessContacts = []
+    // Get contact count from cache
+    const contactCount = businessContactCounts[business.id] || 0
     
     return {
-      contacts: businessContacts,
+      contacts: Array(contactCount).fill({}), // Create array with length for display
       tasks: businessTasks,
       products: businessProducts
     }
@@ -2543,7 +3192,7 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -3666,7 +4315,7 @@ export default function BusinessHub() {
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Quote Details</DialogTitle>
             <DialogDescription>View quote information and items</DialogDescription>
@@ -3852,6 +4501,16 @@ export default function BusinessHub() {
                 <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
                   Close
                 </Button>
+                {selectedQuote && (
+                  <PDFDownloadLink
+                    document={<QuotePDFDocument quote={selectedQuote} />}
+                    fileName={`quote-${selectedQuote.id.slice(-6).toUpperCase()}-${new Date().toISOString().split('T')[0]}.pdf`}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </PDFDownloadLink>
+                )}
               </div>
             </div>
           )}
@@ -3860,7 +4519,7 @@ export default function BusinessHub() {
 
       {/* Edit Quote Modal */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Edit Quote</DialogTitle>
             <DialogDescription>Update quote details and items</DialogDescription>
@@ -3947,7 +4606,7 @@ export default function BusinessHub() {
                         {hardwareProducts.map((product) => (
                           <div
                             key={product.id}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
                             onClick={() => addProductToQuote(product, 'hardware')}
                           >
                             <div className="flex justify-between items-start">
@@ -4049,7 +4708,7 @@ export default function BusinessHub() {
                         {softwareProducts.map((product) => (
                           <div
                             key={product.id}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
                             onClick={() => addProductToQuote(product, 'software')}
                           >
                             <div className="flex justify-between items-start">
