@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { toast } from 'sonner'
 import { 
   FileSignature, 
@@ -29,10 +29,10 @@ import {
   Keyboard,
   Mouse,
   Printer,
+  Scanner,
   PlusCircle,
   MinusCircle,
-  MoreHorizontal,
-  FileDown
+  MoreHorizontal
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -57,7 +57,6 @@ import { useAuth } from '@/hooks/use-auth'
 // Import client API
 import * as api from '@/lib/client-api'
 
-// Interface definitions
 interface Quote {
   id: string
   title: string
@@ -136,575 +135,6 @@ interface QuoteItemFormData {
   category: 'hardware' | 'software'
 }
 
-// Lazy load PDF generation components to improve initial load performance
-const LazyPDFComponents = lazy(() => import('@react-pdf/renderer'))
-
-// PDF Loading Component
-const PDFLoadingFallback = () => (
-  <div className="flex items-center justify-center p-8">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading PDF generator...</p>
-    </div>
-  </div>
-)
-
-// Complete PDF Document Component - handles lazy loading internally
-const QuotePDFDocument = React.memo(({ quote }: { quote: Quote }) => {
-  return (
-    <Suspense fallback={<PDFLoadingFallback />}>
-      <LazyPDFRenderer quote={quote} />
-    </Suspense>
-  )
-})
-
-QuotePDFDocument.displayName = 'QuotePDFDocument'
-
-// Internal PDF Renderer that has access to the PDF components
-const LazyPDFRenderer = React.memo(({ quote }: { quote: Quote }) => {
-  return (
-    <Suspense fallback={<PDFLoadingFallback />}>
-      <PDFRendererContent quote={quote} />
-    </Suspense>
-  )
-})
-
-// PDF Renderer Content Component that uses the lazy loaded components
-const PDFRendererContent = React.memo(({ quote }: { quote: Quote }) => {
-  const { Page, Text, View, Document, StyleSheet, Image } = LazyPDFComponents
-  
-  // Create styles using StyleSheet - now available in this scope
-  const styles = StyleSheet.create({
-    // Common styles
-    page: {
-      padding: 40,
-      fontFamily: 'Helvetica',
-      fontSize: 10,
-      lineHeight: 1.4,
-      backgroundColor: '#ffffff',
-    },
-    redText: {
-      color: '#ed1f42',
-    },
-    redBg: {
-      backgroundColor: '#ed1f42',
-    },
-    grayText: {
-      color: '#4b5563',
-    },
-    lightGrayBg: {
-      backgroundColor: '#f9fafb',
-    },
-    border: {
-      borderColor: '#e5e7eb',
-    },
-    
-    // Page 1 - Cover Page styles
-    coverPage: {
-      padding: 60,
-      flexDirection: 'column',
-      justifyContent: 'space-between',
-      minHeight: '100vh',
-    },
-    logoContainer: {
-      alignItems: 'center',
-      marginBottom: 40,
-    },
-    logo: {
-      width: 200,
-      height: 80,
-      marginBottom: 60,
-    },
-    titleContainer: {
-      alignItems: 'center',
-      marginBottom: 80,
-    },
-    title: {
-      fontSize: 36,
-      fontWeight: 'bold',
-      color: '#1f2937',
-      marginBottom: 20,
-    },
-    preparedFor: {
-      fontSize: 18,
-      color: '#4b5563',
-      marginBottom: 10,
-    },
-    companyName: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#1f2937',
-    },
-    coverFooter: {
-      borderTopWidth: 2,
-      borderTopColor: '#ed1f42',
-      paddingTop: 20,
-    },
-    footerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    footerLabel: {
-      fontWeight: 'bold',
-      color: '#4b5563',
-      width: 120,
-    },
-    footerValue: {
-      color: '#1f2937',
-      flex: 1,
-    },
-
-    // Page 2 & 3 - Product pages styles
-    sectionPage: {
-      padding: 40,
-    },
-    sectionHeader: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: 30,
-      paddingBottom: 10,
-      borderBottomWidth: 2,
-      borderBottomColor: '#ed1f42',
-    },
-    sectionTitle: {
-      fontSize: 24,
-      fontWeight: 'bold',
-      color: '#1f2937',
-    },
-    sectionNumber: {
-      fontSize: 16,
-      color: '#ed1f42',
-      marginLeft: 10,
-    },
-    
-    // Table styles
-    table: {
-      width: '100%',
-      borderStyle: 'solid',
-      borderWidth: 1,
-      borderColor: '#e5e7eb',
-      marginBottom: 20,
-    },
-    tableHeader: {
-      backgroundColor: '#ed1f42',
-      color: '#ffffff',
-      fontWeight: 'bold',
-    },
-    tableRow: {
-      flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderBottomColor: '#e5e7eb',
-    },
-    tableCell: {
-      padding: 8,
-      borderRightWidth: 1,
-      borderRightColor: '#e5e7eb',
-    },
-    tableCellLast: {
-      padding: 8,
-    },
-    
-    // Totals section
-    totalsSection: {
-      marginTop: 30,
-      borderTopWidth: 1,
-      borderTopColor: '#e5e7eb',
-      paddingTop: 15,
-    },
-    totalRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 8,
-    },
-    totalLabel: {
-      fontWeight: 'bold',
-      color: '#4b5563',
-      fontSize: 12,
-    },
-    totalValue: {
-      fontWeight: 'bold',
-      color: '#1f2937',
-      fontSize: 12,
-    },
-    grandTotalRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginTop: 10,
-      paddingTop: 10,
-      borderTopWidth: 2,
-      borderTopColor: '#ed1f42',
-    },
-    grandTotalLabel: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#ed1f42',
-    },
-    grandTotalValue: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: '#ed1f42',
-    },
-
-    // Page 4 - Terms styles
-    termsPage: {
-      padding: 40,
-      fontSize: 9,
-    },
-    termsHeader: {
-      fontSize: 20,
-      fontWeight: 'bold',
-      color: '#1f2937',
-      marginBottom: 20,
-      textAlign: 'center',
-      borderBottomWidth: 2,
-      borderBottomColor: '#ed1f42',
-      paddingBottom: 10,
-    },
-    termsSection: {
-      marginBottom: 15,
-    },
-    termsSectionTitle: {
-      fontSize: 12,
-      fontWeight: 'bold',
-      color: '#ed1f42',
-      marginBottom: 8,
-    },
-    termsContent: {
-      color: '#1f2937',
-      lineHeight: 1.3,
-    },
-    termsBullet: {
-      marginLeft: 10,
-      marginBottom: 4,
-    },
-    contactInfo: {
-      marginTop: 30,
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: '#e5e7eb',
-      fontSize: 10,
-      color: '#4b5563',
-    },
-    contactRow: {
-      marginBottom: 4,
-    },
-    contactLabel: {
-      fontSize: 12,
-      fontWeight: 'bold',
-      color: '#1f2937',
-    },
-    contactText: {
-      fontSize: 10,
-      color: '#4b5563',
-    },
-    pageNumber: {
-      position: 'absolute',
-      bottom: 20,
-      right: 40,
-      fontSize: 10,
-      color: '#6b7280',
-    },
-  })
-
-  // Utility functions
-  const formatDate = (date: string) => {
-    try {
-      const d = new Date(date)
-      return d.toLocaleDateString('en-GB', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      })
-    } catch (error) {
-      return 'Invalid date'
-    }
-  }
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('en-GB', {
-      style: 'currency',
-      currency: 'GBP'
-    }).format(amount)
-  }
-
-  // Calculate totals
-  const hardwareItems = quote.items.filter(item => item.product.pricingType === 'one-off')
-  const softwareItems = quote.items.filter(item => item.product.pricingType === 'monthly')
-  
-  const hardwareTotal = hardwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const softwareTotal = softwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
-  const subtotal = hardwareTotal + softwareTotal
-  const vat = subtotal * 0.20 // 20% VAT
-  const total = subtotal + vat
-
-  // Conditional page rendering
-  const hasHardwareItems = hardwareItems.length > 0
-  const hasSoftwareItems = softwareItems.length > 0
-  const shouldShowTermsPage = hasHardwareItems || hasSoftwareItems
-
-  // Table row components
-  const HardwareTableRow = React.memo(({ item }: { item: any }) => (
-    <View style={styles.tableRow}>
-      <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
-      <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
-      <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
-      <Text style={[styles.tableCellLast, { width: '15%' }]}>
-        {formatCurrency(item.price * item.quantity)}
-      </Text>
-    </View>
-  ))
-
-  const SoftwareTableRow = React.memo(({ item }: { item: any }) => (
-    <View style={styles.tableRow}>
-      <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
-      <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
-      <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
-      <Text style={[styles.tableCellLast, { width: '15%' }]}>
-        {formatCurrency(item.price * item.quantity)}
-      </Text>
-    </View>
-  ))
-
-  return (
-    <Document>
-      {/* Page 1: Cover Page */}
-      <Page size="A4" style={styles.coverPage}>
-        <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Text style={[styles.logo, { textAlign: 'center', fontSize: 16, color: '#ed1f42' }]}>
-              Cornwall Scale & Equipment Ltd
-            </Text>
-          </View>
-        </View>
-        
-        <View style={styles.titleContainer}>
-          <Text style={styles.title}>Quotation</Text>
-          <Text style={styles.preparedFor}>Prepared for...</Text>
-          <Text style={styles.companyName}>{quote.business.name}</Text>
-        </View>
-        
-        <View style={styles.coverFooter}>
-          <View style={styles.footerRow}>
-            <Text style={styles.footerLabel}>Prepared for:</Text>
-            <Text style={styles.footerValue}>
-              {quote.business.location || 'Address not provided'}
-            </Text>
-          </View>
-          <View style={styles.footerRow}>
-            <Text style={styles.footerLabel}>Details:</Text>
-            <Text style={styles.footerValue}>
-              Quote #{quote.id.slice(-6).toUpperCase()} | {formatDate(quote.createdAt)}
-            </Text>
-          </View>
-        </View>
-        
-        <Text style={styles.pageNumber}>Page 1 of {shouldShowTermsPage ? 4 : 2}</Text>
-      </Page>
-
-      {/* Page 2: Hardware and Initial Setup */}
-      {hasHardwareItems && (
-        <Page size="A4" style={styles.sectionPage}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Hardware and Initial Setup</Text>
-            <Text style={styles.sectionNumber}>Page 2</Text>
-          </View>
-
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.tableCell, { width: '50%' }]}>Item</Text>
-              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
-              <Text style={[styles.tableCell, { width: '20%' }]}>Unit Price</Text>
-              <Text style={[styles.tableCellLast, { width: '15%' }]}>Total</Text>
-            </View>
-            
-            {hardwareItems.map((item) => (
-              <HardwareTableRow key={item.id} item={item} />
-            ))}
-          </View>
-
-          <View style={styles.totalsSection}>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Hardware Subtotal:</Text>
-              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal)}</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>VAT (20%):</Text>
-              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 0.20)}</Text>
-            </View>
-            <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Hardware Total:</Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.pageNumber}>Page 2 of {shouldShowTermsPage ? 4 : 2}</Text>
-        </Page>
-      )}
-
-      {/* Page 3: Software & Support */}
-      {hasSoftwareItems && (
-        <Page size="A4" style={styles.sectionPage}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Software & Support</Text>
-            <Text style={styles.sectionNumber}>Page 3</Text>
-          </View>
-
-          <View style={styles.table}>
-            <View style={[styles.tableRow, styles.tableHeader]}>
-              <Text style={[styles.tableCell, { width: '50%' }]}>Service</Text>
-              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
-              <Text style={[styles.tableCell, { width: '20%' }]}>Monthly Price</Text>
-              <Text style={[styles.tableCellLast, { width: '15%' }]}>Monthly Total</Text>
-            </View>
-            
-            {softwareItems.map((item) => (
-              <SoftwareTableRow key={item.id} item={item} />
-            ))}
-          </View>
-
-          <View style={styles.totalsSection}>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Software Monthly Subtotal:</Text>
-              <Text style={styles.totalValue}>{formatCurrency(softwareTotal)}</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>VAT (20%):</Text>
-              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 0.20)}</Text>
-            </View>
-            <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Software Monthly Total:</Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.pageNumber}>Page 3 of {shouldShowTermsPage ? 4 : 2}</Text>
-        </Page>
-      )}
-
-      {/* Page 4: Terms and Conditions - Only if there are items */}
-      {shouldShowTermsPage && (
-        <Page size="A4" style={styles.termsPage}>
-          <Text style={styles.termsHeader}>Terms and Conditions</Text>
-          
-          <View style={styles.termsSection}>
-            <Text style={styles.termsSectionTitle}>1. Payment</Text>
-            <Text style={styles.termsContent}>
-              Deposit: 50% required with order. Bank details: Barclays Bank PLC | Acc: 50839132 | Sort: 20-87-94
-            </Text>
-          </View>
-
-          <View style={styles.termsSection}>
-            <Text style={styles.termsSectionTitle}>2. Warranty</Text>
-            <Text style={styles.termsContent}>
-              12-month warranty for new products, 6-month for reconditioned. Next working day replacement service.
-            </Text>
-          </View>
-
-          <View style={styles.termsSection}>
-            <Text style={styles.termsSectionTitle}>3. Returns</Text>
-            <Text style={styles.termsContent}>
-              7-day return policy. 30% + VAT restocking charge. Original packaging required.
-            </Text>
-          </View>
-
-          {/* Grand Total Summary */}
-          <View style={styles.totalsSection}>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Hardware Total (inc VAT):</Text>
-              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
-            </View>
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Software Monthly Total (inc VAT):</Text>
-              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 1.20)}/month</Text>
-            </View>
-            <View style={styles.grandTotalRow}>
-              <Text style={styles.grandTotalLabel}>Total Amount:</Text>
-              <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
-            </View>
-          </View>
-
-          <View style={styles.contactInfo}>
-            <View style={styles.contactRow}>
-              <Text style={styles.contactLabel}>Contact Information:</Text>
-            </View>
-            <View style={styles.contactRow}>
-              <Text style={styles.contactText}>Cornwall Scale & Equipment Ltd</Text>
-            </View>
-            <View style={styles.contactRow}>
-              <Text style={styles.contactText}>Email: info@cornwallscale.co.uk</Text>
-            </View>
-            <View style={styles.contactRow}>
-              <Text style={styles.contactText}>Phone: 01209 123456</Text>
-            </View>
-          </View>
-          
-          <Text style={styles.pageNumber}>Page 4 of 4</Text>
-        </Page>
-      )}
-    </Document>
-  )
-})
-
-PDFRendererContent.displayName = 'PDFRendererContent'
-
-LazyPDFRenderer.displayName = 'LazyPDFRenderer'
-
-// Lazy PDF Download Link Component
-const LazyPDFDownloadLink = React.memo(({ 
-  quote, 
-  fileName,
-  children,
-  className,
-  onClick 
-}: { 
-  quote: Quote
-  fileName: string
-  children: React.ReactNode
-  className?: string
-  onClick?: () => void 
-}) => {
-  return (
-    <Suspense fallback={<PDFLoadingFallback />}>
-      <PDFDownloadLinkContent quote={quote} fileName={fileName} className={className} onClick={onClick}>
-        {children}
-      </PDFDownloadLinkContent>
-    </Suspense>
-  )
-})
-
-// PDF Download Link Content Component that uses the lazy loaded components
-const PDFDownloadLinkContent = React.memo(({ 
-  quote, 
-  fileName,
-  children,
-  className,
-  onClick 
-}: { 
-  quote: Quote
-  fileName: string
-  children: React.ReactNode
-  className?: string
-  onClick?: () => void 
-}) => {
-  const { PDFDownloadLink } = LazyPDFComponents
-  
-  return (
-    <PDFDownloadLink
-      document={<QuotePDFDocument quote={quote} />}
-      fileName={fileName}
-      className={className}
-      onClick={onClick}
-    >
-      {children}
-    </PDFDownloadLink>
-  )
-})
-
-PDFDownloadLinkContent.displayName = 'PDFDownloadLinkContent'
-
-LazyPDFDownloadLink.displayName = 'LazyPDFDownloadLink'
-
 export default function QuoteManagement({ editQuoteId, onEditComplete, searchTerm }: { editQuoteId?: string; onEditComplete?: () => void; searchTerm?: string }) {
   const { user: currentUser } = useAuth()
   const [quotes, setQuotes] = useState<Quote[]>([])
@@ -737,33 +167,6 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
   // Refs for click-outside detection
   const hardwareDropdownRef = useRef<HTMLDivElement>(null)
   const softwareDropdownRef = useRef<HTMLDivElement>(null)
-
-  // PDF generation states
-  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
-  const [pdfError, setPdfError] = useState<string | null>(null)
-  
-  // Quote view loading state
-  const [isQuoteViewLoading, setIsQuoteViewLoading] = useState(false)
-
-  // Simple PDF download handler with debouncing
-  const handlePDFDownload = useCallback(async () => {
-    if (!selectedQuote) return
-    
-    setIsGeneratingPDF(true)
-    setPdfError(null)
-    
-    try {
-      // Let PDFDownloadLink handle the actual generation
-      // Just show loading state for better UX
-      await new Promise(resolve => setTimeout(resolve, 500))
-      toast.success('PDF download started')
-    } catch (error) {
-      console.error('PDF generation error:', error)
-      setPdfError('Failed to generate PDF. Please try again.')
-    } finally {
-      setIsGeneratingPDF(false)
-    }
-  }, [selectedQuote])
 
   // Handle click outside for dropdowns
   useEffect(() => {
@@ -970,47 +373,35 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
   }
 
   const handleViewQuote = (quote: Quote) => {
-    setIsQuoteViewLoading(true)
     setSelectedQuote(quote)
     setIsViewQuoteOpen(true)
-    
-    // Simulate loading delay to prevent blocking
-    setTimeout(() => {
-      setIsQuoteViewLoading(false)
-    }, 300)
   }
 
-  const addProductToQuote = useCallback((product: Product, category: 'hardware' | 'software') => {
-    // Optimized state update - batch all updates together
-    setFormData(prev => {
-      const existingItemIndex = prev.items.findIndex(item => 
-        item.productId === product.id && item.category === category
-      )
-      
-      let updatedItems: QuoteItemFormData[]
-      
-      if (existingItemIndex >= 0) {
-        // Update quantity if product already exists
-        updatedItems = [...prev.items]
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + 1
-        }
-      } else {
-        // Add new product
-        const newItem: QuoteItemFormData = {
-          productId: product.id,
-          quantity: 1,
-          price: product.price,
-          category
-        }
-        updatedItems = [...prev.items, newItem]
-      }
-      
-      return { ...prev, items: updatedItems }
-    })
+  const addProductToQuote = (product: Product, category: 'hardware' | 'software') => {
+    const existingItemIndex = formData.items.findIndex(item => 
+      item.productId === product.id && item.category === category
+    )
     
-    // Clear search and hide dropdown in the same state update cycle
+    if (existingItemIndex >= 0) {
+      // Update quantity if product already exists
+      const updatedItems = [...formData.items]
+      updatedItems[existingItemIndex].quantity += 1
+      setFormData(prev => ({ ...prev, items: updatedItems }))
+    } else {
+      // Add new product
+      const newItem: QuoteItemFormData = {
+        productId: product.id,
+        quantity: 1,
+        price: product.price,
+        category
+      }
+      setFormData(prev => ({ 
+        ...prev, 
+        items: [...prev.items, newItem] 
+      }))
+    }
+    
+    // Clear search and hide dropdown
     if (category === 'hardware') {
       setHardwareSearchTerm('')
       setShowHardwareDropdown(false)
@@ -1018,7 +409,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
       setSoftwareSearchTerm('')
       setShowSoftwareDropdown(false)
     }
-  }, [])
+  }
 
   const removeQuoteItem = (index: number) => {
     const updatedItems = formData.items.filter((_, i) => i !== index)
@@ -1203,7 +594,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
           }
         }}
       >
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>
               {isEditQuoteOpen ? 'Edit Quote' : 'Create New Quote'}
@@ -1290,7 +681,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                       {hardwareProducts.map((product) => (
                         <div
                           key={product.id}
-                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                           onClick={() => addProductToQuote(product, 'hardware')}
                         >
                           <div className="flex justify-between items-start">
@@ -1391,7 +782,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                       {softwareProducts.map((product) => (
                         <div
                           key={product.id}
-                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                           onClick={() => addProductToQuote(product, 'software')}
                         >
                           <div className="flex justify-between items-start">
@@ -1537,22 +928,14 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="!w-[80vw] !max-w-4xl max-h-[90vh] overflow-y-auto p-6">
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Quote Details</DialogTitle>
             <DialogDescription>View quote information and items</DialogDescription>
           </DialogHeader>
           
-          {selectedQuote ? (
-            isQuoteViewLoading ? (
-              <div className="flex items-center justify-center h-64">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                  <p className="text-gray-600">Loading quote details...</p>
-                </div>
-              </div>
-            ) : (
-              <div className="space-y-6">
+          {selectedQuote && (
+            <div className="space-y-6">
               {/* Header Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -1731,31 +1114,6 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                 <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
                   Close
                 </Button>
-                {selectedQuote && (
-                  <LazyPDFDownloadLink
-                    quote={selectedQuote}
-                    fileName={`quote-${selectedQuote.id.slice(-6).toUpperCase()}-${new Date().toISOString().split('T')[0]}.pdf`}
-                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
-                    onClick={handlePDFDownload}
-                  >
-                    {isGeneratingPDF ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 mr-2 border-b-2 border-current"></div>
-                        Generating...
-                      </>
-                    ) : (
-                      <>
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Download PDF
-                      </>
-                    )}
-                  </LazyPDFDownloadLink>
-                )}
-                {pdfError && (
-                  <div className="text-red-600 text-sm mt-2">
-                    {pdfError}
-                  </div>
-                )}
                 <Button 
                   variant="outline"
                   onClick={() => {
@@ -1766,13 +1124,6 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                   <Edit className="h-4 w-4 mr-2" />
                   Edit Quote
                 </Button>
-              </div>
-            </div>
-            )
-          ) : (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-center">
-                <p className="text-gray-600">No quote selected</p>
               </div>
             </div>
           )}

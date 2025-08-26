@@ -1,7 +1,7 @@
 'use client'
 // Force rebuild
 
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { toast } from 'sonner'
 import { 
   Building2, 
@@ -49,8 +49,7 @@ import {
   Cloud,
   Save,
   PlusCircle,
-  MinusCircle,
-  FileDown
+  MinusCircle
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -99,12 +98,9 @@ import InventoryPage from '@/components/inventory-page'
 import EnhancedUsersManagement from '@/components/enhanced-users-management'
 import ActivityLogsPage from '@/components/activity-logs-page'
 import EmergencyControlPage from '@/components/emergency-control-page'
-import { lazy, Suspense } from 'react'
+import QuoteManagement from '@/components/quote-management'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useAuth } from '@/hooks/use-auth'
-
-// Import simplified quote management component
-import SimpleQuoteManagement from '@/components/simple-quote-management'
 
 // Import client API
 import * as api from '@/lib/client-api'
@@ -149,8 +145,6 @@ const locations = [
   'Seattle, WA'
 ]
 
-// PDF Styles
-
 export default function BusinessHub() {
   const { isAuthenticated, user: currentUser, isLoading, logout } = useAuth()
   const [sidebarOpen, setSidebarOpen] = useState(true)
@@ -164,22 +158,21 @@ export default function BusinessHub() {
   
   // Handle authentication state
   const [isClient, setIsClient] = useState(false)
-  const [displayName, setDisplayName] = useState('User')
-  
-  // Load display name from localStorage on client side
-  useEffect(() => {
+  const [displayName, setDisplayName] = useState(() => {
+    // Try to get user name from localStorage during initial state setup
     if (typeof window !== 'undefined') {
       try {
         const userString = localStorage.getItem('currentUser')
         if (userString) {
           const user = JSON.parse(userString)
-          setDisplayName(user.name || 'User')
+          return user.name || 'User'
         }
       } catch (error) {
         console.error('Error reading user from localStorage:', error)
       }
     }
-  }, [])
+    return 'User'
+  })
   
   // Role-based permissions - will be populated dynamically from backend
   const [rolePermissions, setRolePermissions] = useState<any>({})
@@ -798,14 +791,6 @@ export default function BusinessHub() {
         const updatedBusinesses = businessList.filter(b => b.id !== businessId)
         setBusinessList(updatedBusinesses)
         setFilteredBusinessList(updatedBusinesses)
-        
-        // Clean up contact counts cache for the deleted business
-        setBusinessContactCounts(prev => {
-          const newCounts = { ...prev }
-          delete newCounts[businessId]
-          return newCounts
-        })
-        
         setIsViewBusinessOpen(false)
         setSelectedBusiness(null)
         updateDashboardStats()
@@ -850,12 +835,6 @@ export default function BusinessHub() {
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
-        // Refresh contact counts for the business
-        setBusinessContactCounts(prev => ({
-          ...prev,
-          [selectedBusiness.id]: (prev[selectedBusiness.id] || 0) + 1
-        }))
-        
         // Reset form and close modal
         setNewContact({
           name: '',
@@ -893,9 +872,6 @@ export default function BusinessHub() {
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
-        // Contact count doesn't change on update, but we keep the cache consistent
-        // No need to update contact count cache
-        
         // Reset form and close modal
         setSelectedContact(null)
         setNewContact({
@@ -930,12 +906,6 @@ export default function BusinessHub() {
         // Refresh the business related data
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
-        
-        // Refresh contact counts for the business
-        setBusinessContactCounts(prev => ({
-          ...prev,
-          [selectedBusiness.id]: Math.max(0, (prev[selectedBusiness.id] || 0) - 1)
-        }))
         
         setDeleteContactDialog({ open: false, contactId: null })
         toast.success('Contact deleted successfully!')
@@ -1036,35 +1006,29 @@ export default function BusinessHub() {
     setSoftwareSearchTerm('')
   }
 
-  const addProductToQuote = useCallback((product, category) => {
-    // Optimized state update - batch all updates together
-    setQuoteFormData(prev => {
-      const existingItemIndex = prev.items.findIndex(item => 
-        item.productId === product.id && item.category === category
-      )
-      
-      let updatedItems
-      
-      if (existingItemIndex >= 0) {
-        // Update quantity if product already exists
-        updatedItems = [...prev.items]
-        updatedItems[existingItemIndex] = {
-          ...updatedItems[existingItemIndex],
-          quantity: updatedItems[existingItemIndex].quantity + 1
-        }
-      } else {
-        // Add new product
-        const newItem = {
-          productId: product.id,
-          quantity: 1,
-          price: product.price,
-          category
-        }
-        updatedItems = [...prev.items, newItem]
+  const addProductToQuote = (product, category) => {
+    const existingItemIndex = quoteFormData.items.findIndex(item => 
+      item.productId === product.id && item.category === category
+    )
+    
+    if (existingItemIndex >= 0) {
+      // Update quantity if product already exists
+      const updatedItems = [...quoteFormData.items]
+      updatedItems[existingItemIndex].quantity += 1
+      setQuoteFormData(prev => ({ ...prev, items: updatedItems }))
+    } else {
+      // Add new product
+      const newItem = {
+        productId: product.id,
+        quantity: 1,
+        price: product.price,
+        category
       }
-      
-      return { ...prev, items: updatedItems }
-    })
+      setQuoteFormData(prev => ({ 
+        ...prev, 
+        items: [...prev.items, newItem] 
+      }))
+    }
     
     // Clear search and hide dropdown
     if (category === 'hardware') {
@@ -1074,7 +1038,7 @@ export default function BusinessHub() {
       setSoftwareSearchTerm('')
       setShowSoftwareDropdown(false)
     }
-  }, [])
+  }
 
   const removeQuoteItem = (index) => {
     const updatedItems = quoteFormData.items.filter((_, i) => i !== index)
@@ -1308,40 +1272,6 @@ export default function BusinessHub() {
     }
   }
 
-  // Cache for business contact counts to avoid excessive API calls
-  const [businessContactCounts, setBusinessContactCounts] = useState<Record<string, number>>({})
-
-  // Load contact counts for all businesses
-  const loadBusinessContactCounts = async () => {
-    try {
-      const counts: Record<string, number> = {}
-      
-      // Load contact counts for each business in parallel
-      await Promise.all(businessList.map(async (business) => {
-        try {
-          const response = await api.getBusinessContacts(business.id)
-          if (response.success) {
-            counts[business.id] = response.data.length
-          }
-        } catch (error) {
-          console.error(`Error loading contact count for business ${business.id}:`, error)
-          counts[business.id] = 0
-        }
-      }))
-      
-      setBusinessContactCounts(counts)
-    } catch (error) {
-      console.error('Error loading business contact counts:', error)
-    }
-  }
-
-  // Load contact counts when businesses change
-  useEffect(() => {
-    if (businessList.length > 0) {
-      loadBusinessContactCounts()
-    }
-  }, [businessList])
-
   // Get business stats for display in cards
   const getBusinessStats = (business) => {
     // Get tasks for this business
@@ -1350,11 +1280,12 @@ export default function BusinessHub() {
     // Get products for this business
     const businessProducts = products.filter(product => product.businessId === business.id)
     
-    // Get contact count from cache
-    const contactCount = businessContactCounts[business.id] || 0
+    // For contacts, we'll show 0 since they're loaded on-demand per business
+    // The actual contact count will be visible in the business detail view
+    const businessContacts = []
     
     return {
-      contacts: Array(contactCount).fill({}), // Create array with length for display
+      contacts: businessContacts,
       tasks: businessTasks,
       products: businessProducts
     }
@@ -1520,15 +1451,26 @@ export default function BusinessHub() {
     }
   ]
 
-  // Main component render - handle loading and auth states inline
-  if (isLoading || !isAuthenticated) {
+  // Show loading state while checking authentication
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">
-            {isLoading ? 'Loading...' : 'Redirecting to login...'}
-          </p>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // If not authenticated and not loading, the redirect effect will handle it
+  // This prevents flash of content before redirect
+  if (!isAuthenticated) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Redirecting to login...</p>
         </div>
       </div>
     )
@@ -2096,7 +2038,19 @@ export default function BusinessHub() {
             )}
 
             {activeTab === 'quotes' && (
-              <SimpleQuoteManagement />
+              <QuoteManagement 
+                editQuoteId={editQuoteId} 
+                onEditComplete={() => {
+                  setEditQuoteId(null)
+                  // Refresh business data if a business is currently selected
+                  if (selectedBusiness) {
+                    getBusinessRelatedData(selectedBusiness.id).then(data => {
+                      setBusinessRelatedData(data)
+                    })
+                  }
+                }} 
+                searchTerm={searchTerm}
+              />
             )}
 
             {activeTab === 'documents' && (
@@ -2589,7 +2543,7 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
           <DialogHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -3712,7 +3666,7 @@ export default function BusinessHub() {
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Quote Details</DialogTitle>
             <DialogDescription>View quote information and items</DialogDescription>
@@ -3898,12 +3852,6 @@ export default function BusinessHub() {
                 <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
                   Close
                 </Button>
-                {selectedQuote && (
-                  <Button disabled>
-                    <FileDown className="h-4 w-4 mr-2" />
-                    PDF Download (View in Quotes Tab)
-                  </Button>
-                )}
               </div>
             </div>
           )}
@@ -3912,7 +3860,7 @@ export default function BusinessHub() {
 
       {/* Edit Quote Modal */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Edit Quote</DialogTitle>
             <DialogDescription>Update quote details and items</DialogDescription>
@@ -3999,7 +3947,7 @@ export default function BusinessHub() {
                         {hardwareProducts.map((product) => (
                           <div
                             key={product.id}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                             onClick={() => addProductToQuote(product, 'hardware')}
                           >
                             <div className="flex justify-between items-start">
@@ -4101,7 +4049,7 @@ export default function BusinessHub() {
                         {softwareProducts.map((product) => (
                           <div
                             key={product.id}
-                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
+                            className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0"
                             onClick={() => addProductToQuote(product, 'software')}
                           >
                             <div className="flex justify-between items-start">
