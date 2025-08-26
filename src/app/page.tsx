@@ -1,7 +1,7 @@
 'use client'
 // Force rebuild
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { toast } from 'sonner'
 import { 
   Building2, 
@@ -226,8 +226,11 @@ export default function BusinessHub() {
     items: []
   })
   const [businesses, setBusinesses] = useState([])
+  // Product search states - add immediate search states for debouncing
   const [hardwareSearchTerm, setHardwareSearchTerm] = useState('')
   const [softwareSearchTerm, setSoftwareSearchTerm] = useState('')
+  const [immediateHardwareSearch, setImmediateHardwareSearch] = useState('')
+  const [immediateSoftwareSearch, setImmediateSoftwareSearch] = useState('')
   const [showHardwareDropdown, setShowHardwareDropdown] = useState(false)
   const [showSoftwareDropdown, setShowSoftwareDropdown] = useState(false)
   
@@ -379,7 +382,8 @@ export default function BusinessHub() {
           canViewAnalyticsPage: currentUser.role === 'Admin',
           canViewActivityLogsPage: currentUser.role === 'Admin',
           canViewEmergencyControlPage: currentUser.role === 'Admin',
-          canViewSettingsPage: currentUser.role === 'Admin'
+          canViewSettingsPage: currentUser.role === 'Admin',
+          canDeleteBusiness: currentUser.role === 'Manager' || currentUser.role === 'Admin'
         }
       }
       return defaultPermissions
@@ -490,7 +494,8 @@ export default function BusinessHub() {
                 canViewAnalyticsPage: permissions.canViewAnalyticsPage === true,
                 canViewActivityLogsPage: permissions.canViewActivityLogsPage === true,
                 canViewEmergencyControlPage: permissions.canViewEmergencyControlPage === true,
-                canViewSettingsPage: permissions.canViewSettingsPage === true
+                canViewSettingsPage: permissions.canViewSettingsPage === true,
+                canDeleteBusiness: permissions.canDeleteBusiness === true
               }
             }
           })
@@ -625,6 +630,21 @@ export default function BusinessHub() {
       document.removeEventListener('mousedown', handleClickOutside)
     }
   }, [])
+
+  // Debounced search effects
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHardwareSearchTerm(immediateHardwareSearch)
+    }, 300) // 300ms delay
+    return () => clearTimeout(timer)
+  }, [immediateHardwareSearch])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSoftwareSearchTerm(immediateSoftwareSearch)
+    }, 300) // 300ms delay
+    return () => clearTimeout(timer)
+  }, [immediateSoftwareSearch])
 
   // Update dashboard statistics
   const updateDashboardStats = () => {
@@ -1004,9 +1024,12 @@ export default function BusinessHub() {
     })
     setHardwareSearchTerm('')
     setSoftwareSearchTerm('')
+    setImmediateHardwareSearch('')
+    setImmediateSoftwareSearch('')
   }
 
-  const addProductToQuote = (product, category) => {
+  // Optimized addProductToQuote function - memoized for performance
+  const addProductToQuote = useCallback((product, category) => {
     const existingItemIndex = quoteFormData.items.findIndex(item => 
       item.productId === product.id && item.category === category
     )
@@ -1033,12 +1056,14 @@ export default function BusinessHub() {
     // Clear search and hide dropdown
     if (category === 'hardware') {
       setHardwareSearchTerm('')
+      setImmediateHardwareSearch('')
       setShowHardwareDropdown(false)
     } else {
       setSoftwareSearchTerm('')
+      setImmediateSoftwareSearch('')
       setShowSoftwareDropdown(false)
     }
-  }
+  }, [quoteFormData.items])
 
   const removeQuoteItem = (index) => {
     const updatedItems = quoteFormData.items.filter((_, i) => i !== index)
@@ -1053,16 +1078,18 @@ export default function BusinessHub() {
     setQuoteFormData(prev => ({ ...prev, items: updatedItems }))
   }
 
-  // Filter products for dropdowns
-  const hardwareProducts = products.filter(product => 
-    product.pricingType === 'one-off' && 
-    product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
-  )
+  // Filter products for dropdowns - memoized for performance
+  const hardwareProducts = useMemo(() => 
+    products.filter(product => 
+      product.pricingType === 'one-off' && 
+      product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
+    ), [products, hardwareSearchTerm])
   
-  const softwareProducts = products.filter(product => 
-    product.pricingType === 'monthly' && 
-    product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
-  )
+  const softwareProducts = useMemo(() => 
+    products.filter(product => 
+      product.pricingType === 'monthly' && 
+      product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
+    ), [products, softwareSearchTerm])
 
   const calculateQuoteTotals = () => {
     const hardwareItems = quoteFormData.items.filter(item => item.category === 'hardware')
@@ -2543,7 +2570,7 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -3666,7 +3693,7 @@ export default function BusinessHub() {
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Quote Details</DialogTitle>
             <DialogDescription>View quote information and items</DialogDescription>
@@ -3860,7 +3887,7 @@ export default function BusinessHub() {
 
       {/* Edit Quote Modal */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Edit Quote</DialogTitle>
             <DialogDescription>Update quote details and items</DialogDescription>
@@ -3928,8 +3955,8 @@ export default function BusinessHub() {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <Input
                           placeholder="Search hardware products..."
-                          value={hardwareSearchTerm}
-                          onChange={(e) => setHardwareSearchTerm(e.target.value)}
+                          value={immediateHardwareSearch}
+                          onChange={(e) => setImmediateHardwareSearch(e.target.value)}
                           onFocus={() => setShowHardwareDropdown(true)}
                           className="pl-10"
                         />
@@ -4030,8 +4057,8 @@ export default function BusinessHub() {
                         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                         <Input
                           placeholder="Search software products..."
-                          value={softwareSearchTerm}
-                          onChange={(e) => setSoftwareSearchTerm(e.target.value)}
+                          value={immediateSoftwareSearch}
+                          onChange={(e) => setImmediateSoftwareSearch(e.target.value)}
                           onFocus={() => setShowSoftwareDropdown(true)}
                           className="pl-10"
                         />

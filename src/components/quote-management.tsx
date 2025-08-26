@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import { 
   FileSignature, 
@@ -158,15 +158,32 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
     items: []
   })
   
-  // Product search states
+  // Product search states - add immediate search states for debouncing
   const [hardwareSearchTerm, setHardwareSearchTerm] = useState('')
   const [softwareSearchTerm, setSoftwareSearchTerm] = useState('')
+  const [immediateHardwareSearch, setImmediateHardwareSearch] = useState('')
+  const [immediateSoftwareSearch, setImmediateSoftwareSearch] = useState('')
   const [showHardwareDropdown, setShowHardwareDropdown] = useState(false)
   const [showSoftwareDropdown, setShowSoftwareDropdown] = useState(false)
   
   // Refs for click-outside detection
   const hardwareDropdownRef = useRef<HTMLDivElement>(null)
   const softwareDropdownRef = useRef<HTMLDivElement>(null)
+
+  // Debounced search effects
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setHardwareSearchTerm(immediateHardwareSearch)
+    }, 300) // 300ms delay
+    return () => clearTimeout(timer)
+  }, [immediateHardwareSearch])
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setSoftwareSearchTerm(immediateSoftwareSearch)
+    }, 300) // 300ms delay
+    return () => clearTimeout(timer)
+  }, [immediateSoftwareSearch])
 
   // Handle click outside for dropdowns
   useEffect(() => {
@@ -196,16 +213,18 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
     return matchesSearch && matchesStatus
   })
 
-  // Filter products for dropdowns
-  const hardwareProducts = products.filter(product => 
-    product.pricingType === 'one-off' && 
-    product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
-  )
+  // Filter products for dropdowns - memoized for performance
+  const hardwareProducts = useMemo(() => 
+    products.filter(product => 
+      product.pricingType === 'one-off' && 
+      product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
+    ), [products, hardwareSearchTerm])
   
-  const softwareProducts = products.filter(product => 
-    product.pricingType === 'monthly' && 
-    product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
-  )
+  const softwareProducts = useMemo(() => 
+    products.filter(product => 
+      product.pricingType === 'monthly' && 
+      product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
+    ), [products, softwareSearchTerm])
 
   // Load data
   useEffect(() => {
@@ -300,6 +319,8 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
     })
     setHardwareSearchTerm('')
     setSoftwareSearchTerm('')
+    setImmediateHardwareSearch('')
+    setImmediateSoftwareSearch('')
   }
 
   const handleCreateQuote = async () => {
@@ -377,7 +398,8 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
     setIsViewQuoteOpen(true)
   }
 
-  const addProductToQuote = (product: Product, category: 'hardware' | 'software') => {
+  // Optimized addProductToQuote function - memoized for performance
+  const addProductToQuote = useCallback((product: Product, category: 'hardware' | 'software') => {
     const existingItemIndex = formData.items.findIndex(item => 
       item.productId === product.id && item.category === category
     )
@@ -404,12 +426,14 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
     // Clear search and hide dropdown
     if (category === 'hardware') {
       setHardwareSearchTerm('')
+      setImmediateHardwareSearch('')
       setShowHardwareDropdown(false)
     } else {
       setSoftwareSearchTerm('')
+      setImmediateSoftwareSearch('')
       setShowSoftwareDropdown(false)
     }
-  }
+  }, [formData.items])
 
   const removeQuoteItem = (index: number) => {
     const updatedItems = formData.items.filter((_, i) => i !== index)
@@ -594,7 +618,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
           }
         }}
       >
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>
               {isEditQuoteOpen ? 'Edit Quote' : 'Create New Quote'}
@@ -662,8 +686,8 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
                         placeholder="Search hardware products..."
-                        value={hardwareSearchTerm}
-                        onChange={(e) => setHardwareSearchTerm(e.target.value)}
+                        value={immediateHardwareSearch}
+                        onChange={(e) => setImmediateHardwareSearch(e.target.value)}
                         onFocus={() => setShowHardwareDropdown(true)}
                         className="pl-10"
                       />
@@ -763,8 +787,8 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                       <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
                       <Input
                         placeholder="Search software products..."
-                        value={softwareSearchTerm}
-                        onChange={(e) => setSoftwareSearchTerm(e.target.value)}
+                        value={immediateSoftwareSearch}
+                        onChange={(e) => setImmediateSoftwareSearch(e.target.value)}
                         onFocus={() => setShowSoftwareDropdown(true)}
                         className="pl-10"
                       />
@@ -928,7 +952,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-hidden p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
           <DialogHeader>
             <DialogTitle>Quote Details</DialogTitle>
             <DialogDescription>View quote information and items</DialogDescription>
