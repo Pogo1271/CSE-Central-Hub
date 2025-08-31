@@ -189,6 +189,10 @@ export default function BusinessHub() {
   const [quotes, setQuotes] = useState<any[]>([])
   const [notes, setNotes] = useState<any[]>([])
   
+  // Company logo state
+  const [companyLogo, setCompanyLogo] = useState<string>('')
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false)
+  
   // Debug logging - moved after state declarations
   console.log('BusinessHub render:', {
     isAuthenticated,
@@ -740,6 +744,101 @@ export default function BusinessHub() {
       console.error('Error uploading file:', error)
     }
   }
+
+  // Logo upload handler
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (!file) return
+
+    // Validate file type
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/svg+xml']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Please upload a PNG, JPG, or SVG file')
+      return
+    }
+
+    // Validate file size (5MB limit)
+    const maxSize = 5 * 1024 * 1024 // 5MB
+    if (file.size > maxSize) {
+      toast.error('File size must be less than 5MB')
+      return
+    }
+
+    setIsUploadingLogo(true)
+
+    try {
+      const formData = new FormData()
+      formData.append('logo', file)
+
+      const response = await fetch('/api/system/upload-logo', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setCompanyLogo(result.url)
+        toast.success('Logo uploaded successfully')
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to upload logo')
+      }
+    } catch (error) {
+      console.error('Error uploading logo:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to upload logo')
+    } finally {
+      setIsUploadingLogo(false)
+      // Reset the file input
+      if (event.target) {
+        event.target.value = ''
+      }
+    }
+  }
+
+  // Logo removal handler
+  const handleRemoveLogo = async () => {
+    setIsUploadingLogo(true)
+
+    try {
+      const response = await fetch('/api/system/remove-logo', {
+        method: 'DELETE',
+      })
+
+      if (response.ok) {
+        setCompanyLogo('')
+        toast.success('Logo removed successfully')
+      } else {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to remove logo')
+      }
+    } catch (error) {
+      console.error('Error removing logo:', error)
+      toast.error(error instanceof Error ? error.message : 'Failed to remove logo')
+    } finally {
+      setIsUploadingLogo(false)
+    }
+  }
+
+  // Load company logo on component mount
+  useEffect(() => {
+    const loadCompanyLogo = async () => {
+      try {
+        const response = await fetch('/api/system/get-logo')
+        if (response.ok) {
+          const result = await response.json()
+          if (result.url) {
+            setCompanyLogo(result.url)
+          }
+        }
+      } catch (error) {
+        console.error('Error loading company logo:', error)
+      }
+    }
+
+    if (isClient && isAuthenticated) {
+      loadCompanyLogo()
+    }
+  }, [isClient, isAuthenticated])
 
   const handleSendMessage = async () => {
     try {
@@ -2258,6 +2357,74 @@ export default function BusinessHub() {
                       </Button>
                     </CardContent>
                   </Card>
+
+                  <Card className="bg-white shadow-sm">
+                    <CardHeader>
+                      <CardTitle className="text-lg font-semibold text-gray-900">Company Settings</CardTitle>
+                      <CardDescription>Manage your company branding</CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="space-y-4">
+                        <div>
+                          <Label htmlFor="company-logo">Company Logo</Label>
+                          <p className="text-sm text-gray-500">Upload your company logo for quotes and documents</p>
+                        </div>
+                        <div className="flex items-center space-x-4">
+                          <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center">
+                            {companyLogo ? (
+                              <img src={companyLogo} alt="Company Logo" className="w-full h-full object-contain rounded" />
+                            ) : (
+                              <Upload className="h-6 w-6 text-gray-400" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <Input
+                              id="company-logo"
+                              type="file"
+                              accept="image/png,image/jpeg,image/svg+xml"
+                              onChange={handleLogoUpload}
+                              className="hidden"
+                            />
+                            <Button 
+                              variant="outline" 
+                              onClick={() => document.getElementById('company-logo')?.click()}
+                              disabled={isUploadingLogo}
+                              className="w-full"
+                            >
+                              {isUploadingLogo ? (
+                                <>
+                                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600 mr-2"></div>
+                                  Uploading...
+                                </>
+                              ) : (
+                                <>
+                                  <Upload className="h-4 w-4 mr-2" />
+                                  Upload Logo
+                                </>
+                              )}
+                            </Button>
+                            <p className="text-xs text-gray-500 mt-1">PNG, JPG, or SVG (Max 5MB)</p>
+                          </div>
+                        </div>
+                        {companyLogo && (
+                          <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-2">
+                              <CheckCircle className="h-4 w-4 text-green-600" />
+                              <span className="text-sm text-gray-700">Logo uploaded successfully</span>
+                            </div>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={handleRemoveLogo}
+                              disabled={isUploadingLogo}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             )}
@@ -2570,21 +2737,26 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
-          <DialogHeader className="pb-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <DialogTitle className="text-xl font-bold text-gray-900">{selectedBusiness?.name}</DialogTitle>
-                <DialogDescription className="text-gray-600 mt-1">{selectedBusiness?.description}</DialogDescription>
-              </div>
-              <div className="flex items-center space-x-3">
-                <Badge className={selectedBusiness?.supportContract ? "bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 text-sm" : "bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2 text-sm"}>
-                  {selectedBusiness?.supportContract ? "Support Contract" : "No Support"}
-                </Badge>
-              </div>
+        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
+          <div className="min-h-screen bg-white">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+              <DialogHeader className="pb-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <DialogTitle className="text-2xl font-bold text-gray-900">{selectedBusiness?.name}</DialogTitle>
+                    <DialogDescription className="text-gray-600 mt-1">{selectedBusiness?.description}</DialogDescription>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <Badge className={selectedBusiness?.supportContract ? "bg-green-100 text-green-800 hover:bg-green-200 px-4 py-2 text-sm" : "bg-red-100 text-red-800 hover:bg-red-200 px-4 py-2 text-sm"}>
+                      {selectedBusiness?.supportContract ? "Support Contract" : "No Support"}
+                    </Badge>
+                  </div>
+                </div>
+              </DialogHeader>
             </div>
-          </DialogHeader>
+          </div>
           
+          <div className="px-6 py-4">
           <Tabs value={businessOverviewActiveTab} onValueChange={setBusinessOverviewActiveTab} className="mt-4">
             <TabsList className="grid w-full grid-cols-6 h-10">
               <TabsTrigger value="overview" className="text-sm font-medium py-2">Overview</TabsTrigger>
@@ -3130,6 +3302,7 @@ export default function BusinessHub() {
                 </TabsContent>
             </div>
           </Tabs>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -3693,14 +3866,18 @@ export default function BusinessHub() {
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
-          <DialogHeader>
-            <DialogTitle>Quote Details</DialogTitle>
-            <DialogDescription>View quote information and items</DialogDescription>
-          </DialogHeader>
-          
-          {selectedQuote && (
-            <div className="space-y-6">
+        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
+          <div className="min-h-screen bg-white">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+              <DialogHeader className="pb-0">
+                <DialogTitle className="text-2xl font-bold text-gray-900">Quote Details</DialogTitle>
+                <DialogDescription className="text-gray-600 mt-1">View quote information and items</DialogDescription>
+              </DialogHeader>
+            </div>
+            
+            <div className="px-6 py-4">
+            {selectedQuote && (
+              <div className="space-y-6 max-w-6xl mx-auto">
               {/* Header Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
@@ -3882,19 +4059,25 @@ export default function BusinessHub() {
               </div>
             </div>
           )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
       {/* Edit Quote Modal */}
       <Dialog open={isEditQuoteOpen} onOpenChange={setIsEditQuoteOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
-          <DialogHeader>
-            <DialogTitle>Edit Quote</DialogTitle>
-            <DialogDescription>Update quote details and items</DialogDescription>
-          </DialogHeader>
-          
-          {selectedQuote && (
-            <div className="space-y-6">
+        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
+          <div className="min-h-screen bg-white">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+              <DialogHeader className="pb-0">
+                <DialogTitle className="text-2xl font-bold text-gray-900">Edit Quote</DialogTitle>
+                <DialogDescription className="text-gray-600 mt-1">Update quote details and items</DialogDescription>
+              </DialogHeader>
+            </div>
+            
+            <div className="px-6 py-4">
+            {selectedQuote && (
+              <div className="space-y-6 max-w-6xl mx-auto">
               {/* Basic Information */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -4221,6 +4404,8 @@ export default function BusinessHub() {
               </div>
             </div>
           )}
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

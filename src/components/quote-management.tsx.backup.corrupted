@@ -1,0 +1,2807 @@
+'use client'
+
+import React, { useState, useEffect, useRef, useCallback, useMemo, lazy, Suspense } from 'react'
+import { toast } from 'sonner'
+import { 
+  FileSignature, 
+  Plus, 
+  Search, 
+  Edit, 
+  Trash2, 
+  Eye,
+  Building2,
+  Package,
+  PoundSterling,
+  Calendar,
+  User,
+  Save,
+  X,
+  Filter,
+  Download,
+  Copy,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+  Settings,
+  HardDrive,
+  Cloud,
+  Monitor,
+  Keyboard,
+  Mouse,
+  Printer,
+  PlusCircle,
+  MinusCircle,
+  MoreHorizontal,
+  FileDown
+} from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Separator } from '@/components/ui/separator'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
+import { useAuth } from '@/hooks/use-auth'
+
+// Import client API
+import * as api from '@/lib/client-api'
+
+// Interface definitions
+interface Quote {
+  id: string
+  title: string
+  description?: string
+  businessId: string
+  business: {
+    id: string
+    name: string
+    email?: string
+    phone?: string
+    location?: string
+  }
+  userId?: string
+  user?: {
+    id: string
+    name: string
+    email: string
+  }
+  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  totalAmount: number
+  createdAt: string
+  updatedAt: string
+  items: QuoteItem[]
+}
+
+interface QuoteItem {
+  id: string
+  productId: string
+  product: {
+    id: string
+    name: string
+    description?: string
+    price: number
+    pricingType: 'one-off' | 'monthly'
+    category?: string
+    sku?: string
+  }
+  quantity: number
+  price: number
+  createdAt: string
+}
+
+interface Business {
+  id: string
+  name: string
+  email?: string
+  phone?: string
+  location?: string
+  category?: string
+  status: string
+}
+
+interface Product {
+  id: string
+  name: string
+  description?: string
+  price: number
+  pricingType: 'one-off' | 'monthly'
+  category?: string
+  sku?: string
+  stock: number
+}
+
+interface QuoteFormData {
+  title: string
+  description?: string
+  businessId: string
+  status: 'draft' | 'sent' | 'accepted' | 'rejected'
+  items: QuoteItemFormData[]
+}
+
+interface QuoteItemFormData {
+  productId: string
+  quantity: number
+  price: number
+  category: 'hardware' | 'software'
+}
+
+// Lazy load PDF generation components to improve initial load performance
+const LazyPDFComponents = lazy(() => import('@react-pdf/renderer').then(module => ({
+  default: () => {
+    const { Page, Text, View, Document, StyleSheet, PDFDownloadLink, Font, Image } = module
+    return { Page, Text, View, Document, StyleSheet, PDFDownloadLink, Font, Image }
+  }
+})))
+
+// PDF Loading Component
+const PDFLoadingFallback = () => (
+  <div className="flex items-center justify-center p-8">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-gray-600">Loading PDF generator...</p>
+    </div>
+  </div>
+)
+
+// Complete PDF Document Component - handles lazy loading internally
+const QuotePDFDocument = React.memo(({ quote }: { quote: Quote }) => {
+  return (
+    <Suspense fallback={<PDFLoadingFallback />}>
+      <LazyPDFRenderer quote={quote} />
+    </Suspense>
+  )
+})
+
+QuotePDFDocument.displayName = 'QuotePDFDocument'
+
+// Internal PDF Renderer that has access to the PDF components
+const LazyPDFRenderer = React.memo(({ quote }: { quote: Quote }) => {
+  const { Page, Text, View, Document, StyleSheet, Image } = LazyPDFComponents.default()
+  
+  // Create styles using StyleSheet - now available in this scope
+  const styles = StyleSheet.create({
+    // Common styles
+    page: {
+      padding: 40,
+      fontFamily: 'Helvetica',
+      fontSize: 10,
+      lineHeight: 1.4,
+      backgroundColor: '#ffffff',
+    },
+    redText: {
+      color: '#ed1f42',
+    },
+    redBg: {
+      backgroundColor: '#ed1f42',
+    },
+    grayText: {
+      color: '#4b5563',
+    },
+    lightGrayBg: {
+      backgroundColor: '#f9fafb',
+    },
+    border: {
+      borderColor: '#e5e7eb',
+    },
+    
+    // Page 1 - Cover Page styles
+    coverPage: {
+      padding: 60,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      minHeight: '100vh',
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    logo: {
+      width: 200,
+      height: 80,
+      marginBottom: 60,
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: 80,
+    },
+    title: {
+      fontSize: 36,
+      fontWeight: 'bold',
+      color: '#1f2937',
+      marginBottom: 20,
+    },
+    preparedFor: {
+      fontSize: 18,
+      color: '#4b5563',
+      marginBottom: 10,
+    },
+    companyName: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    coverFooter: {
+      borderTopWidth: 2,
+      borderTopColor: '#ed1f42',
+      paddingTop: 20,
+    },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    footerLabel: {
+      fontWeight: 'bold',
+      color: '#4b5563',
+      width: 120,
+    },
+    footerValue: {
+      color: '#1f2937',
+      flex: 1,
+    },
+
+    // Page 2 & 3 - Product pages styles
+    sectionPage: {
+      padding: 40,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 30,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: '#ed1f42',
+    },
+    sectionTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    sectionNumber: {
+      fontSize: 16,
+      color: '#ed1f42',
+      marginLeft: 10,
+    },
+    
+    // Table styles
+    table: {
+      width: '100%',
+      borderStyle: 'solid',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      marginBottom: 20,
+    },
+    tableHeader: {
+      backgroundColor: '#ed1f42',
+      color: '#ffffff',
+      fontWeight: 'bold',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e5e7eb',
+    },
+    tableCell: {
+      padding: 8,
+      borderRightWidth: 1,
+      borderRightColor: '#e5e7eb',
+    },
+    tableCellLast: {
+      padding: 8,
+    },
+    
+    // Totals section
+    totalsSection: {
+      marginTop: 30,
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb',
+      paddingTop: 15,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    totalLabel: {
+      fontWeight: 'bold',
+      color: '#4b5563',
+      fontSize: 12,
+    },
+    totalValue: {
+      fontWeight: 'bold',
+      color: '#1f2937',
+      fontSize: 12,
+    },
+    grandTotalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: 2,
+      borderTopColor: '#ed1f42',
+    },
+    grandTotalLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+    },
+    grandTotalValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+    },
+
+    // Page 4 - Terms styles
+    termsPage: {
+      padding: 40,
+      fontSize: 9,
+    },
+    termsHeader: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#1f2937',
+      marginBottom: 20,
+      textAlign: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: '#ed1f42',
+      paddingBottom: 10,
+    },
+    termsSection: {
+      marginBottom: 15,
+    },
+    termsSectionTitle: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+      marginBottom: 8,
+    },
+    termsContent: {
+      color: '#1f2937',
+      lineHeight: 1.3,
+    },
+    termsBullet: {
+      marginLeft: 10,
+      marginBottom: 4,
+    },
+    contactInfo: {
+      marginTop: 30,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb',
+      fontSize: 10,
+      color: '#4b5563',
+    },
+    contactRow: {
+      marginBottom: 4,
+    },
+    contactLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    contactText: {
+      fontSize: 10,
+      color: '#4b5563',
+    },
+    pageNumber: {
+      position: 'absolute',
+      bottom: 20,
+      right: 40,
+      fontSize: 10,
+      color: '#6b7280',
+    },
+  })
+
+  // Utility functions
+  const formatDate = (date: string) => {
+    try {
+      const d = new Date(date)
+      return d.toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid date'
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(amount)
+  }
+
+  // Calculate totals
+  const hardwareItems = quote.items.filter(item => item.product.pricingType === 'one-off')
+  const softwareItems = quote.items.filter(item => item.product.pricingType === 'monthly')
+  
+  const hardwareTotal = hardwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const softwareTotal = softwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const subtotal = hardwareTotal + softwareTotal
+  const vat = subtotal * 0.20 // 20% VAT
+  const total = subtotal + vat
+
+  // Conditional page rendering
+  const hasHardwareItems = hardwareItems.length > 0
+  const hasSoftwareItems = softwareItems.length > 0
+  const shouldShowTermsPage = hasHardwareItems || hasSoftwareItems
+
+  // Table row components
+  const HardwareTableRow = React.memo(({ item }: { item: any }) => (
+    <View style={styles.tableRow}>
+      <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+      <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+      <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+      <Text style={[styles.tableCellLast, { width: '15%' }]}>
+        {formatCurrency(item.price * item.quantity)}
+      </Text>
+    </View>
+  ))
+
+  const SoftwareTableRow = React.memo(({ item }: { item: any }) => (
+    <View style={styles.tableRow}>
+      <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+      <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+      <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+      <Text style={[styles.tableCellLast, { width: '15%' }]}>
+        {formatCurrency(item.price * item.quantity)}
+      </Text>
+    </View>
+  ))
+
+  return (
+    <Document>
+      {/* Page 1: Cover Page */}
+      <Page size="A4" style={styles.coverPage}>
+        <View style={styles.logoContainer}>
+          <View style={styles.logo}>
+            <Text style={[styles.logo, { textAlign: 'center', fontSize: 16, color: '#ed1f42' }]}>
+              Cornwall Scale & Equipment Ltd
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Quotation</Text>
+          <Text style={styles.preparedFor}>Prepared for...</Text>
+          <Text style={styles.companyName}>{quote.business.name}</Text>
+        </View>
+        
+        <View style={styles.coverFooter}>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Prepared for:</Text>
+            <Text style={styles.footerValue}>
+              {quote.business.location || 'Address not provided'}
+            </Text>
+          </View>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Details:</Text>
+            <Text style={styles.footerValue}>
+              Quote #{quote.id.slice(-6).toUpperCase()} | {formatDate(quote.createdAt)}
+            </Text>
+          </View>
+        </View>
+        
+        <Text style={styles.pageNumber}>Page 1 of {shouldShowTermsPage ? 4 : 2}</Text>
+      </Page>
+
+      {/* Page 2: Hardware and Initial Setup */}
+      {hasHardwareItems && (
+        <Page size="A4" style={styles.sectionPage}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hardware and Initial Setup</Text>
+            <Text style={styles.sectionNumber}>Page 2</Text>
+          </View>
+
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { width: '50%' }]}>Item</Text>
+              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+              <Text style={[styles.tableCell, { width: '20%' }]}>Unit Price</Text>
+              <Text style={[styles.tableCellLast, { width: '15%' }]}>Total</Text>
+            </View>
+            
+            {hardwareItems.map((item) => (
+              <HardwareTableRow key={item.id} item={item} />
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Hardware Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>VAT (20%):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 0.20)}</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Hardware Total:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page 2 of {shouldShowTermsPage ? 4 : 2}</Text>
+        </Page>
+      )}
+
+      {/* Page 3: Software & Support */}
+      {hasSoftwareItems && (
+        <Page size="A4" style={styles.sectionPage}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Software & Support</Text>
+            <Text style={styles.sectionNumber}>Page 3</Text>
+          </View>
+
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { width: '50%' }]}>Service</Text>
+              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+              <Text style={[styles.tableCell, { width: '20%' }]}>Monthly Price</Text>
+              <Text style={[styles.tableCellLast, { width: '15%' }]}>Monthly Total</Text>
+            </View>
+            
+            {softwareItems.map((item) => (
+              <SoftwareTableRow key={item.id} item={item} />
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Software Monthly Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>VAT (20%):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 0.20)}</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Software Monthly Total:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page 3 of {shouldShowTermsPage ? 4 : 2}</Text>
+        </Page>
+      )}
+
+      {/* Page 4: Terms and Conditions - Only if there are items */}
+      {shouldShowTermsPage && (
+        <Page size="A4" style={styles.termsPage}>
+          <Text style={styles.termsHeader}>Terms and Conditions</Text>
+          
+          <View style={styles.termsSection}>
+            <Text style={styles.termsSectionTitle}>1. Payment</Text>
+            <Text style={styles.termsContent}>
+              Deposit: 50% required with order. Bank details: Barclays Bank PLC | Acc: 50839132 | Sort: 20-87-94
+            </Text>
+          </View>
+
+          <View style={styles.termsSection}>
+            <Text style={styles.termsSectionTitle}>2. Warranty</Text>
+            <Text style={styles.termsContent}>
+              12-month warranty for new products, 6-month for reconditioned. Next working day replacement service.
+            </Text>
+          </View>
+
+          <View style={styles.termsSection}>
+            <Text style={styles.termsSectionTitle}>3. Returns</Text>
+            <Text style={styles.termsContent}>
+              7-day return policy. 30% + VAT restocking charge. Original packaging required.
+            </Text>
+          </View>
+
+          {/* Grand Total Summary */}
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Hardware Total (inc VAT):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Software Monthly Total (inc VAT):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 1.20)}/month</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Total Amount:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
+            </View>
+          </View>
+
+          <View style={styles.contactInfo}>
+            <View style={styles.contactRow}>
+              <Text style={styles.contactLabel}>Contact Information:</Text>
+            </View>
+            <View style={styles.contactRow}>
+              <Text style={styles.contactText}>Cornwall Scale & Equipment Ltd</Text>
+            </View>
+            <View style={styles.contactRow}>
+              <Text style={styles.contactText}>Email: info@cornwallscale.co.uk</Text>
+            </View>
+            <View style={styles.contactRow}>
+              <Text style={styles.contactText}>Phone: 01209 123456</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page 4 of 4</Text>
+        </Page>
+      )}
+    </Document>
+  )
+})
+
+LazyPDFRenderer.displayName = 'LazyPDFRenderer'
+
+// Streamlined PDF Document Component
+const QuotePDFDocument = React.memo(({ quote }: { quote: Quote }) => {
+  return (
+    <Suspense fallback={<PDFLoadingFallback />}>
+      <LazyPDFContent quote={quote} />
+    </Suspense>
+  )
+})
+
+QuotePDFDocument.displayName = 'QuotePDFDocument'
+
+// PDF Content Component - This is where the actual PDF components are used
+const LazyPDFContent = React.memo(({ quote }: { quote: Quote }) => {
+  // Get PDF components from lazy loader
+  const { Page, Text, View, Document, StyleSheet, Image } = LazyPDFComponents.default()
+  
+  // Calculate totals
+  const hardwareItems = quote.items.filter(item => item.product.pricingType === 'one-off')
+  const softwareItems = quote.items.filter(item => item.product.pricingType === 'monthly')
+  
+  const hardwareTotal = hardwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const softwareTotal = softwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+  const subtotal = hardwareTotal + softwareTotal
+  const vat = subtotal * 0.20 // 20% VAT
+  const total = subtotal + vat
+
+  // Utility functions
+  const formatDate = (date: string) => {
+    try {
+      const d = new Date(date)
+      return d.toLocaleDateString('en-GB', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid date'
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(amount)
+  }
+
+  // PDF Styles
+  const styles = StyleSheet.create({
+    page: {
+      padding: 40,
+      fontFamily: 'Helvetica',
+      fontSize: 10,
+      lineHeight: 1.4,
+      backgroundColor: '#ffffff',
+    },
+    coverPage: {
+      padding: 60,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      minHeight: '100vh',
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    logo: {
+      width: 200,
+      height: 80,
+      marginBottom: 60,
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: 80,
+    },
+    title: {
+      fontSize: 36,
+      fontWeight: 'bold',
+      color: '#1f2937',
+      marginBottom: 20,
+    },
+    preparedFor: {
+      fontSize: 18,
+      color: '#4b5563',
+      marginBottom: 10,
+    },
+    companyName: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    coverFooter: {
+      borderTopWidth: 2,
+      borderTopColor: '#ed1f42',
+      paddingTop: 20,
+    },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    footerLabel: {
+      fontWeight: 'bold',
+      color: '#4b5563',
+      width: 120,
+    },
+    footerValue: {
+      color: '#1f2937',
+      flex: 1,
+    },
+    sectionPage: {
+      padding: 40,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 30,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: '#ed1f42',
+    },
+    sectionTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    sectionNumber: {
+      fontSize: 16,
+      color: '#ed1f42',
+      marginLeft: 10,
+    },
+    table: {
+      width: '100%',
+      borderStyle: 'solid',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      marginBottom: 20,
+    },
+    tableHeader: {
+      backgroundColor: '#ed1f42',
+      color: '#ffffff',
+      fontWeight: 'bold',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e5e7eb',
+    },
+    tableCell: {
+      padding: 8,
+      borderRightWidth: 1,
+      borderRightColor: '#e5e7eb',
+    },
+    tableCellLast: {
+      padding: 8,
+    },
+    totalsSection: {
+      marginTop: 30,
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb',
+      paddingTop: 15,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    totalLabel: {
+      fontWeight: 'bold',
+      color: '#4b5563',
+      fontSize: 12,
+    },
+    totalValue: {
+      fontWeight: 'bold',
+      color: '#1f2937',
+      fontSize: 12,
+    },
+    grandTotalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: 2,
+      borderTopColor: '#ed1f42',
+    },
+    grandTotalLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+    },
+    grandTotalValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+    },
+    pageNumber: {
+      position: 'absolute',
+      bottom: 20,
+      right: 40,
+      fontSize: 10,
+      color: '#6b7280',
+    },
+  })
+
+  return (
+    <Document>
+      {/* Page 1: Cover Page */}
+      <Page size="A4" style={styles.coverPage}>
+        <View style={styles.logoContainer}>
+          <View style={styles.logo}>
+            <Text style={[styles.logo, { textAlign: 'center', fontSize: 16, color: '#ed1f42' }]}>
+              Cornwall Scale & Equipment Ltd
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Quotation</Text>
+          <Text style={styles.preparedFor}>Prepared for...</Text>
+          <Text style={styles.companyName}>{quote.business.name}</Text>
+        </View>
+        
+        <View style={styles.coverFooter}>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Prepared for:</Text>
+            <Text style={styles.footerValue}>
+              {quote.business.location || 'Address not provided'}
+            </Text>
+          </View>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Details:</Text>
+            <Text style={styles.footerValue}>
+              Quote #{quote.id.slice(-6).toUpperCase()} | {formatDate(quote.createdAt)}
+            </Text>
+          </View>
+        </View>
+        
+        <Text style={styles.pageNumber}>Page 1 of 4</Text>
+      </Page>
+
+      {/* Page 2: Hardware and Initial Setup */}
+      {hardwareItems.length > 0 && (
+        <Page size="A4" style={styles.sectionPage}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hardware and Initial Setup</Text>
+            <Text style={styles.sectionNumber}>Page 2</Text>
+          </View>
+
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { width: '50%' }]}>Item</Text>
+              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+              <Text style={[styles.tableCell, { width: '20%' }]}>Unit Price</Text>
+              <Text style={[styles.tableCellLast, { width: '15%' }]}>Total</Text>
+            </View>
+            
+            {hardwareItems.map((item) => (
+              <View key={item.id} style={styles.tableRow}>
+                <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+                <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+                <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+                <Text style={[styles.tableCellLast, { width: '15%' }]}>
+                  {formatCurrency(item.price * item.quantity)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Hardware Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>VAT (20%):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 0.20)}</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Hardware Total:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page 2 of 4</Text>
+        </Page>
+      )}
+
+      {/* Page 3: Software & Support */}
+      {softwareItems.length > 0 && (
+        <Page size="A4" style={styles.sectionPage}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Software & Support</Text>
+            <Text style={styles.sectionNumber}>Page 3</Text>
+          </View>
+
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { width: '50%' }]}>Service</Text>
+              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+              <Text style={[styles.tableCell, { width: '20%' }]}>Monthly Price</Text>
+              <Text style={[styles.tableCellLast, { width: '15%' }]}>Monthly Total</Text>
+            </View>
+            
+            {softwareItems.map((item) => (
+              <View key={item.id} style={styles.tableRow}>
+                <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+                <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+                <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+                <Text style={[styles.tableCellLast, { width: '15%' }]}>
+                  {formatCurrency(item.price * item.quantity)}
+                </Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Software Monthly Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>VAT (20%):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 0.20)}</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Software Monthly Total:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page 3 of 4</Text>
+        </Page>
+      )}
+
+      {/* Page 4: Terms and Summary */}
+      <Page size="A4" style={styles.sectionPage}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Terms and Conditions</Text>
+          <Text style={styles.sectionNumber}>Page 4</Text>
+        </View>
+
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#ed1f42', marginBottom: 8 }}>
+            1. Payment
+          </Text>
+          <Text style={{ color: '#1f2937', lineHeight: 1.3 }}>
+            Deposit: 50% required with order. Bank details: Barclays Bank PLC | Acc: 50839132 | Sort: 20-87-94
+          </Text>
+        </View>
+
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#ed1f42', marginBottom: 8 }}>
+            2. Warranty
+          </Text>
+          <Text style={{ color: '#1f2937', lineHeight: 1.3 }}>
+            12-month warranty for new products, 6-month for reconditioned. Next working day replacement service.
+          </Text>
+        </View>
+
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#ed1f42', marginBottom: 8 }}>
+            3. Returns
+          </Text>
+          <Text style={{ color: '#1f2937', lineHeight: 1.3 }}>
+            7-day return policy. 30% + VAT restocking charge. Original packaging required.
+          </Text>
+        </View>
+
+        {/* Summary */}
+        <View style={styles.totalsSection}>
+          {hardwareItems.length > 0 && (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Hardware Total (inc VAT):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+            </View>
+          )}
+          {softwareItems.length > 0 && (
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Software Monthly Total (inc VAT):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+            </View>
+          )}
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalLabel}>Grand Total:</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
+          </View>
+        </View>
+
+        <Text style={styles.pageNumber}>Page 4 of 4</Text>
+      </Page>
+    </Document>
+  )
+})
+
+LazyPDFContent.displayName = 'LazyPDFContent'
+
+// Streamlined PDF Download Link Component
+const LazyPDFDownloadLink = React.memo(({ 
+  quote, 
+  fileName, 
+  className, 
+  onClick, 
+  children 
+}: { 
+  quote: Quote
+  fileName: string
+  className: string
+  onClick?: () => void
+  children: React.ReactNode 
+}) => {
+  return (
+    <Suspense fallback={<PDFLoadingFallback />}>
+      <LazyPDFDownloadLinkContent 
+        quote={quote} 
+        fileName={fileName} 
+        className={className} 
+        onClick={onClick} 
+      >
+        {children}
+      </LazyPDFDownloadLinkContent>
+    </Suspense>
+  )
+})
+
+LazyPDFDownloadLink.displayName = 'LazyPDFDownloadLink'
+
+const LazyPDFDownloadLinkContent = React.memo(({ 
+  quote, 
+  fileName, 
+  className, 
+  onClick, 
+  children 
+}: { 
+  quote: Quote
+  fileName: string
+  className: string
+  onClick?: () => void
+  children: React.ReactNode 
+}) => {
+  const { PDFDownloadLink } = LazyPDFComponents.default()
+  
+  return (
+    <PDFDownloadLink
+      document={<QuotePDFDocument quote={quote} />}
+      fileName={fileName}
+      className={className}
+      onClick={onClick}
+    >
+      {children}
+    </PDFDownloadLink>
+  )
+})
+
+LazyPDFDownloadLinkContent.displayName = 'LazyPDFDownloadLinkContent'
+
+// Utility functions for PDF generation - optimized to prevent recreation
+const formatDate = (date: string): string => {
+  try {
+    const d = new Date(date)
+    return d.toLocaleDateString('en-GB', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  } catch (error) {
+    return 'Invalid date'
+  }
+}
+
+const formatCurrency = (amount: number): string => {
+  return new Intl.NumberFormat('en-GB', {
+    style: 'currency',
+    currency: 'GBP'
+  }).format(amount)
+}
+
+// PDF Generation Cache - Optimized for performance
+interface CachedPDF {
+  data: any
+  timestamp: number
+  quoteHash: string
+}
+
+class PDFCache {
+  private cache = new Map<string, CachedPDF>()
+  private maxSize = 50 // Maximum number of cached PDFs
+  private ttl = 5 * 60 * 1000 // 5 minutes TTL
+
+  private generateHash(quote: Quote): string {
+    // Simple hash generation based on quote content
+    const content = JSON.stringify({
+      id: quote.id,
+      title: quote.title,
+      businessId: quote.businessId,
+      status: quote.status,
+      totalAmount: quote.totalAmount,
+      items: quote.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price
+      }))
+    })
+    return btoa(content).slice(0, 32) // Limit hash length
+  }
+
+  get(quote: Quote): any | null {
+    const hash = this.generateHash(quote)
+    const cached = this.cache.get(hash)
+    
+    if (!cached) return null
+    
+    // Check if cache is expired
+    if (Date.now() - cached.timestamp > this.ttl) {
+      this.cache.delete(hash)
+      return null
+    }
+    
+    return cached.data
+  }
+
+  set(quote: Quote, data: any): void {
+    const hash = this.generateHash(quote)
+    
+    // Remove oldest entries if cache is full
+    if (this.cache.size >= this.maxSize) {
+      const oldestKey = this.cache.keys().next().value
+      this.cache.delete(oldestKey)
+    }
+    
+    this.cache.set(hash, {
+      data,
+      timestamp: Date.now(),
+      quoteHash: hash
+    })
+  }
+
+  clear(): void {
+    this.cache.clear()
+  }
+}
+
+// Global cache instance
+const pdfCache = new PDFCache()
+
+// Lazy PDF Component - Extracted to prevent hook violations
+const LazyQuotePDFDocument = React.memo(({ quote }: { quote: Quote }) => {
+  // Check cache first
+  const cachedPDF = pdfCache.get(quote)
+  
+  // Use React.lazy style loading simulation with longer delay
+  const [shouldRender, setShouldRender] = useState(false)
+  const [pdfData, setPdfData] = useState(cachedPDF)
+  
+  useEffect(() => {
+    if (cachedPDF) {
+      setPdfData(cachedPDF)
+      return
+    }
+    
+    // Delay rendering to prevent blocking - increased delay
+    const timer = setTimeout(() => {
+      setShouldRender(true)
+    }, 500) // Increased from 100ms to 500ms
+    return () => clearTimeout(timer)
+  }, [cachedPDF])
+  
+  // Cache the PDF data when rendered
+  const handlePDFRendered = useCallback((data: any) => {
+    if (!cachedPDF) {
+      pdfCache.set(quote, data)
+    }
+    return data
+  }, [quote, cachedPDF])
+  
+  // Don't render immediately to prevent blocking
+  if (!shouldRender && !cachedPDF) {
+    return null
+  }
+  
+  if (cachedPDF) {
+    return <QuotePDFDocument quote={quote} />
+  }
+  
+  return (
+    <QuotePDFDocument quote={quote} onRender={handlePDFRendered} />
+  )
+})
+
+LazyQuotePDFDocument.displayName = 'LazyQuotePDFDocument'
+
+// PDF Document Component - Optimized Version with Caching Support
+const QuotePDFDocument = React.memo(({ 
+  quote, 
+  onRender 
+}: { 
+  quote: Quote
+  onRender?: (data: any) => void 
+}) => {
+  // Memoize expensive calculations with minimal dependencies
+  const pdfData = useMemo(() => {
+    // Calculate totals
+    const hardwareItems = quote.items.filter(item => item.product.pricingType === 'one-off')
+    const softwareItems = quote.items.filter(item => item.product.pricingType === 'monthly')
+    
+    const hardwareTotal = hardwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const softwareTotal = softwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const subtotal = hardwareTotal + softwareTotal
+    const vat = subtotal * 0.20 // 20% VAT
+    const total = subtotal + vat
+
+    return {
+      hardwareItems,
+      softwareItems,
+      hardwareTotal,
+      softwareTotal,
+      subtotal,
+      vat,
+      total
+    }
+  }, [quote.items]) // Only depend on items, not the entire quote object
+
+  // Create styles using StyleSheet - must be inside the component where StyleSheet is available
+  const styles = useMemo(() => ({
+    // Common styles
+    page: {
+      padding: 40,
+      fontFamily: 'Helvetica',
+      fontSize: 10,
+      lineHeight: 1.4,
+      backgroundColor: '#ffffff',
+    },
+    redText: {
+      color: '#ed1f42',
+    },
+    redBg: {
+      backgroundColor: '#ed1f42',
+    },
+    grayText: {
+      color: '#4b5563',
+    },
+    lightGrayBg: {
+      backgroundColor: '#f9fafb',
+    },
+    border: {
+      borderColor: '#e5e7eb',
+    },
+    
+    // Page 1 - Cover Page styles
+    coverPage: {
+      padding: 60,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+      minHeight: '100vh',
+    },
+    logoContainer: {
+      alignItems: 'center',
+      marginBottom: 40,
+    },
+    logo: {
+      width: 200,
+      height: 80,
+      marginBottom: 60,
+    },
+    titleContainer: {
+      alignItems: 'center',
+      marginBottom: 80,
+    },
+    title: {
+      fontSize: 36,
+      fontWeight: 'bold',
+      color: '#1f2937',
+      marginBottom: 20,
+    },
+    preparedFor: {
+      fontSize: 18,
+      color: '#4b5563',
+      marginBottom: 10,
+    },
+    companyName: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    coverFooter: {
+      borderTopWidth: 2,
+      borderTopColor: '#ed1f42',
+      paddingTop: 20,
+    },
+    footerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    footerLabel: {
+      fontWeight: 'bold',
+      color: '#4b5563',
+      width: 120,
+    },
+    footerValue: {
+      color: '#1f2937',
+      flex: 1,
+    },
+
+    // Page 2 & 3 - Product pages styles
+    sectionPage: {
+      padding: 40,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 30,
+      paddingBottom: 10,
+      borderBottomWidth: 2,
+      borderBottomColor: '#ed1f42',
+    },
+    sectionTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    sectionNumber: {
+      fontSize: 16,
+      color: '#ed1f42',
+      marginLeft: 10,
+    },
+    
+    // Table styles
+    table: {
+      width: '100%',
+      borderStyle: 'solid',
+      borderWidth: 1,
+      borderColor: '#e5e7eb',
+      marginBottom: 20,
+    },
+    tableHeader: {
+      backgroundColor: '#ed1f42',
+      color: '#ffffff',
+      fontWeight: 'bold',
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottomWidth: 1,
+      borderBottomColor: '#e5e7eb',
+    },
+    tableCell: {
+      padding: 8,
+      borderRightWidth: 1,
+      borderRightColor: '#e5e7eb',
+    },
+    tableCellLast: {
+      padding: 8,
+    },
+    
+    // Totals section
+    totalsSection: {
+      marginTop: 30,
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb',
+      paddingTop: 15,
+    },
+    totalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    totalLabel: {
+      fontWeight: 'bold',
+      color: '#4b5563',
+      fontSize: 12,
+    },
+    totalValue: {
+      fontWeight: 'bold',
+      color: '#1f2937',
+      fontSize: 12,
+    },
+    grandTotalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 10,
+      paddingTop: 10,
+      borderTopWidth: 2,
+      borderTopColor: '#ed1f42',
+    },
+    grandTotalLabel: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+    },
+    grandTotalValue: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+    },
+
+    // Page 4 - Terms styles
+    termsPage: {
+      padding: 40,
+      fontSize: 9,
+    },
+    termsHeader: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#1f2937',
+      marginBottom: 20,
+      textAlign: 'center',
+      borderBottomWidth: 2,
+      borderBottomColor: '#ed1f42',
+      paddingBottom: 10,
+    },
+    termsSection: {
+      marginBottom: 15,
+    },
+    termsSectionTitle: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#ed1f42',
+      marginBottom: 8,
+    },
+    termsContent: {
+      color: '#1f2937',
+      lineHeight: 1.3,
+    },
+    termsBullet: {
+      marginLeft: 10,
+      marginBottom: 4,
+    },
+    contactInfo: {
+      marginTop: 30,
+      paddingTop: 20,
+      borderTopWidth: 1,
+      borderTopColor: '#e5e7eb',
+      fontSize: 10,
+      color: '#4b5563',
+    },
+    contactRow: {
+      marginBottom: 4,
+    },
+    contactLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#1f2937',
+    },
+    contactText: {
+      fontSize: 10,
+      color: '#4b5563',
+    },
+    pageNumber: {
+      position: 'absolute',
+      bottom: 20,
+      right: 40,
+      fontSize: 10,
+      color: '#6b7280',
+    },
+  }), []) // Empty dependency array since styles are static
+
+  const { hardwareItems, softwareItems, hardwareTotal, softwareTotal, subtotal, vat, total } = pdfData
+
+  // Conditional page rendering for better performance
+  const hasHardwareItems = hardwareItems.length > 0
+  const hasSoftwareItems = softwareItems.length > 0
+  const shouldShowTermsPage = hasHardwareItems || hasSoftwareItems
+
+  // Trigger render callback when component is mounted
+  useEffect(() => {
+    if (onRender) {
+      onRender({ quote, pdfData, timestamp: Date.now() })
+    }
+  }, [quote, pdfData, onRender])
+
+  // Limit items per page for better performance with large quotes
+  const maxItemsPerPage = 50
+  const hardwarePages = Math.ceil(hardwareItems.length / maxItemsPerPage)
+  const softwarePages = Math.ceil(softwareItems.length / maxItemsPerPage)
+
+  // Table row components defined inside where they can access styles
+  const HardwareTableRow = React.memo(({ item }: { item: any }) => (
+    <View style={styles.tableRow}>
+      <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+      <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+      <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+      <Text style={[styles.tableCellLast, { width: '15%' }]}>
+        {formatCurrency(item.price * item.quantity)}
+      </Text>
+    </View>
+  ))
+
+  const SoftwareTableRow = React.memo(({ item }: { item: any }) => (
+    <View style={styles.tableRow}>
+      <Text style={[styles.tableCell, { width: '50%' }]}>{item.product.name}</Text>
+      <Text style={[styles.tableCell, { width: '15%' }]}>{item.quantity}</Text>
+      <Text style={[styles.tableCell, { width: '20%' }]}>{formatCurrency(item.price)}</Text>
+      <Text style={[styles.tableCellLast, { width: '15%' }]}>
+        {formatCurrency(item.price * item.quantity)}
+      </Text>
+    </View>
+  ))
+
+  return (
+    <Document>
+      {/* Page 1: Cover Page */}
+      <Page size="A4" style={styles.coverPage}>
+        <View style={styles.logoContainer}>
+          {/* Optimized image handling - make it optional to prevent blocking */}
+          <View style={styles.logo}>
+            <Text style={[styles.logo, { textAlign: 'center', fontSize: 16, color: '#ed1f42' }]}>
+              Cornwall Scale & Equipment Ltd
+            </Text>
+          </View>
+        </View>
+        
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Quotation</Text>
+          <Text style={styles.preparedFor}>Prepared for...</Text>
+          <Text style={styles.companyName}>{quote.business.name}</Text>
+        </View>
+        
+        <View style={styles.coverFooter}>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Prepared for:</Text>
+            <Text style={styles.footerValue}>
+              {quote.business.location || 'Address not provided'}
+            </Text>
+          </View>
+          <View style={styles.footerRow}>
+            <Text style={styles.footerLabel}>Details:</Text>
+            <Text style={styles.footerValue}>
+              Quote #{quote.id.slice(-6).toUpperCase()} | {formatDate(quote.createdAt)}
+            </Text>
+          </View>
+        </View>
+        
+        <Text style={styles.pageNumber}>Page 1 of {shouldShowTermsPage ? 4 : 2}</Text>
+      </Page>
+
+      {/* Page 2: Hardware and Initial Setup - Only render if has hardware items */}
+      {hasHardwareItems && (
+        <Page size="A4" style={styles.sectionPage}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Hardware and Initial Setup</Text>
+            <Text style={styles.sectionNumber}>Page 2</Text>
+          </View>
+
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { width: '50%' }]}>Item</Text>
+              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+              <Text style={[styles.tableCell, { width: '20%' }]}>Unit Price</Text>
+              <Text style={[styles.tableCellLast, { width: '15%' }]}>Total</Text>
+            </View>
+            
+            {hardwareItems.map((item) => (
+              <HardwareTableRow key={item.id} item={item} />
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Hardware Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>VAT (20%):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 0.20)}</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Hardware Total:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page 2 of {shouldShowTermsPage ? 4 : 3}</Text>
+        </Page>
+      )}
+
+      {/* Page 3: Software & Support - Only render if has software items */}
+      {hasSoftwareItems && (
+        <Page size="A4" style={styles.sectionPage}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Software & Support</Text>
+            <Text style={styles.sectionNumber}>Page {hasHardwareItems ? 3 : 2}</Text>
+          </View>
+
+          <View style={styles.table}>
+            <View style={[styles.tableRow, styles.tableHeader]}>
+              <Text style={[styles.tableCell, { width: '50%' }]}>Service</Text>
+              <Text style={[styles.tableCell, { width: '15%' }]}>Quantity</Text>
+              <Text style={[styles.tableCell, { width: '20%' }]}>Monthly Price</Text>
+              <Text style={[styles.tableCellLast, { width: '15%' }]}>Monthly Total</Text>
+            </View>
+            
+            {softwareItems.map((item) => (
+              <SoftwareTableRow key={item.id} item={item} />
+            ))}
+          </View>
+
+          <View style={styles.totalsSection}>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>Software Monthly Subtotal:</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal)}</Text>
+            </View>
+            <View style={styles.totalRow}>
+              <Text style={styles.totalLabel}>VAT (20%):</Text>
+              <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 0.20)}</Text>
+            </View>
+            <View style={styles.grandTotalRow}>
+              <Text style={styles.grandTotalLabel}>Software Monthly Total:</Text>
+              <Text style={styles.grandTotalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+            </View>
+          </View>
+          
+          <Text style={styles.pageNumber}>Page {hasHardwareItems ? 3 : 2} of {shouldShowTermsPage ? 4 : 3}</Text>
+        </Page>
+      )}
+
+      {/* Page 4: Terms and Conditions - Only render if has items */}
+      {shouldShowTermsPage && (
+        <Page size="A4" style={styles.termsPage}>
+        <Text style={styles.termsHeader}>Terms and Conditions</Text>
+        
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>1. Payment</Text>
+          <Text style={styles.termsContent}>
+            Deposit: 50% required with order. Bank details: Barclays Bank PLC | Acc: 50839132 | Sort: 20-87-94
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>2. Warranty</Text>
+          <Text style={styles.termsContent}>
+            12-month warranty for new products, 6-month for reconditioned. Next working day replacement service.
+          </Text>
+        </View>
+
+        <View style={styles.termsSection}>
+          <Text style={styles.termsSectionTitle}>3. Returns</Text>
+          <Text style={styles.termsContent}>
+            7-day return policy. 30% + VAT restocking charge. Original packaging required.
+          </Text>
+        </View>
+
+        {/* Grand Total Summary */}
+        <View style={styles.totalsSection}>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Hardware Total (inc VAT):</Text>
+            <Text style={styles.totalValue}>{formatCurrency(hardwareTotal * 1.20)}</Text>
+          </View>
+          <View style={styles.totalRow}>
+            <Text style={styles.totalLabel}>Software Monthly Total (inc VAT):</Text>
+            <Text style={styles.totalValue}>{formatCurrency(softwareTotal * 1.20)}</Text>
+          </View>
+          <View style={styles.grandTotalRow}>
+            <Text style={styles.grandTotalLabel}>Overall Quote Total:</Text>
+            <Text style={styles.grandTotalValue}>{formatCurrency(total)}</Text>
+          </View>
+        </View>
+
+        {/* Contact Information */}
+        <View style={styles.contactInfo}>
+          <Text style={styles.termsSectionTitle}>Cornwall Scale & Equipment Ltd (CSE LTD)</Text>
+          <Text style={styles.contactRow}>Unit 2 Tregrehan Workshops, Tregrehan Mills, St Austell, Cornwall, PL25 3TQ</Text>
+          <Text style={styles.contactRow}>Telephone: 0333 577 0108 | Email: info@cornwallscalesltd.co.uk | Accounts: accounts@cornwallscalesltd.co.uk</Text>
+        </View>
+        
+        <Text style={styles.pageNumber}>Page {hasHardwareItems && hasSoftwareItems ? 4 : hasHardwareItems || hasSoftwareItems ? 3 : 2} of {shouldShowTermsPage ? 4 : 2}</Text>
+      </Page>
+      )}
+    </Document>
+  )
+})
+
+QuotePDFDocument.displayName = 'QuotePDFDocument'
+
+export default function QuoteManagement({ editQuoteId, onEditComplete, searchTerm }: { editQuoteId?: string; onEditComplete?: () => void; searchTerm?: string }) {
+  const { user: currentUser } = useAuth()
+  const [quotes, setQuotes] = useState<Quote[]>([])
+  const [businesses, setBusinesses] = useState<Business[]>([])
+  const [products, setProducts] = useState<Product[]>([])
+  const [loading, setLoading] = useState(true)
+  const [statusFilter, setStatusFilter] = useState('All Statuses')
+  
+  // Modal states
+  const [isCreateQuoteOpen, setIsCreateQuoteOpen] = useState(false)
+  const [isEditQuoteOpen, setIsEditQuoteOpen] = useState(false)
+  const [isViewQuoteOpen, setIsViewQuoteOpen] = useState(false)
+  
+  // Form states
+  const [selectedQuote, setSelectedQuote] = useState<Quote | null>(null)
+  const [formData, setFormData] = useState<QuoteFormData>({
+    title: '',
+    description: '',
+    businessId: '',
+    status: 'draft',
+    items: []
+  })
+  
+  // Product search states
+  const [hardwareSearchTerm, setHardwareSearchTerm] = useState('')
+  const [softwareSearchTerm, setSoftwareSearchTerm] = useState('')
+  const [showHardwareDropdown, setShowHardwareDropdown] = useState(false)
+  const [showSoftwareDropdown, setShowSoftwareDropdown] = useState(false)
+  
+  // Refs for click-outside detection
+  const hardwareDropdownRef = useRef<HTMLDivElement>(null)
+  const softwareDropdownRef = useRef<HTMLDivElement>(null)
+
+  // PDF generation states
+  const [isGeneratingPDF, setIsGeneratingPDF] = useState(false)
+  const [pdfError, setPdfError] = useState<string | null>(null)
+  
+  // Quote view loading state
+  const [isQuoteViewLoading, setIsQuoteViewLoading] = useState(false)
+
+  // Simple PDF download handler with debouncing
+  const handlePDFDownload = useCallback(async () => {
+    if (!selectedQuote) return
+    
+    setIsGeneratingPDF(true)
+    setPdfError(null)
+    
+    try {
+      // Let PDFDownloadLink handle the actual generation
+      // Just show loading state for better UX
+      await new Promise(resolve => setTimeout(resolve, 500))
+      toast.success('PDF download started')
+    } catch (error) {
+      console.error('PDF generation error:', error)
+      setPdfError('Failed to generate PDF. Please try again.')
+    } finally {
+      setIsGeneratingPDF(false)
+    }
+  }, [selectedQuote])
+
+  // Handle click outside for dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (hardwareDropdownRef.current && !hardwareDropdownRef.current.contains(event.target as Node)) {
+        setShowHardwareDropdown(false)
+      }
+      if (softwareDropdownRef.current && !softwareDropdownRef.current.contains(event.target as Node)) {
+        setShowSoftwareDropdown(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [])
+
+  // Filter quotes based on search and status
+  const filteredQuotes = quotes.filter(quote => {
+    const matchesSearch = quote.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         quote.business.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         (quote.description && quote.description.toLowerCase().includes(searchTerm.toLowerCase()))
+    
+    const matchesStatus = statusFilter === 'All Statuses' || quote.status === statusFilter
+    
+    return matchesSearch && matchesStatus
+  })
+
+  // Filter products for dropdowns
+  const hardwareProducts = products.filter(product => 
+    product.pricingType === 'one-off' && 
+    product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
+  )
+  
+  const softwareProducts = products.filter(product => 
+    product.pricingType === 'monthly' && 
+    product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
+  )
+
+  // Load data
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  // Handle editQuoteId prop
+  useEffect(() => {
+    if (editQuoteId && quotes.length > 0) {
+      const quoteToEdit = quotes.find(q => q.id === editQuoteId)
+      if (quoteToEdit) {
+        handleEditQuote(quoteToEdit)
+      }
+    }
+  }, [editQuoteId, quotes])
+
+  const loadData = async () => {
+    try {
+      setLoading(true)
+      
+      // Load quotes
+      const quotesResponse = await api.getQuotes()
+      if (quotesResponse.success) {
+        setQuotes(quotesResponse.data)
+      }
+      
+      // Load businesses
+      const businessesResponse = await api.getBusinesses()
+      if (businessesResponse.success) {
+        setBusinesses(businessesResponse.data)
+      }
+      
+      // Load products
+      const productsResponse = await api.getProducts()
+      if (productsResponse.success) {
+        setProducts(productsResponse.data)
+      }
+    } catch (error) {
+      console.error('Error loading data:', error)
+      toast.error('Failed to load data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatDate = (date: string) => {
+    try {
+      const d = new Date(date)
+      return d.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      })
+    } catch (error) {
+      return 'Invalid date'
+    }
+  }
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat('en-GB', {
+      style: 'currency',
+      currency: 'GBP'
+    }).format(amount)
+  }
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      draft: { color: 'bg-gray-100 text-gray-800', icon: Clock, label: 'Draft' },
+      sent: { color: 'bg-blue-100 text-blue-800', icon: AlertCircle, label: 'Sent' },
+      accepted: { color: 'bg-green-100 text-green-800', icon: CheckCircle, label: 'Accepted' },
+      rejected: { color: 'bg-red-100 text-red-800', icon: X, label: 'Rejected' }
+    }
+    
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft
+    const Icon = config.icon
+    
+    return (
+      <Badge className={config.color}>
+        <Icon className="h-3 w-3 mr-1" />
+        {config.label}
+      </Badge>
+    )
+  }
+
+  const resetForm = () => {
+    setFormData({
+      title: '',
+      description: '',
+      businessId: '',
+      status: 'draft',
+      items: []
+    })
+    setHardwareSearchTerm('')
+    setSoftwareSearchTerm('')
+  }
+
+  const handleCreateQuote = async () => {
+    try {
+      const response = await api.createQuote(formData)
+      if (response.success) {
+        setQuotes([response.data, ...quotes])
+        setIsCreateQuoteOpen(false)
+        resetForm()
+        toast.success('Quote created successfully')
+      }
+    } catch (error) {
+      console.error('Error creating quote:', error)
+      toast.error('Failed to create quote')
+    }
+  }
+
+  const handleUpdateQuote = async () => {
+    if (!selectedQuote) return
+    
+    try {
+      const response = await api.updateQuote(selectedQuote.id, formData)
+      if (response.success) {
+        setQuotes(quotes.map(q => q.id === selectedQuote.id ? response.data : q))
+        setIsEditQuoteOpen(false)
+        setSelectedQuote(null)
+        resetForm()
+        toast.success('Quote updated successfully')
+        
+        // Call the callback to clear editQuoteId in parent
+        if (onEditComplete) {
+          onEditComplete()
+        }
+      }
+    } catch (error) {
+      console.error('Error updating quote:', error)
+      toast.error('Failed to update quote')
+    }
+  }
+
+  const handleDeleteQuote = async (quoteId: string) => {
+    if (!confirm('Are you sure you want to delete this quote?')) return
+    
+    try {
+      const response = await api.deleteQuote(quoteId)
+      if (response.success) {
+        setQuotes(quotes.filter(q => q.id !== quoteId))
+        toast.success('Quote deleted successfully')
+      }
+    } catch (error) {
+      console.error('Error deleting quote:', error)
+      toast.error('Failed to delete quote')
+    }
+  }
+
+  const handleEditQuote = (quote: Quote) => {
+    setSelectedQuote(quote)
+    setFormData({
+      title: quote.title,
+      description: quote.description || '',
+      businessId: quote.businessId,
+      status: quote.status,
+      items: quote.items.map(item => ({
+        productId: item.productId,
+        quantity: item.quantity,
+        price: item.price,
+        category: item.product.pricingType === 'one-off' ? 'hardware' : 'software'
+      }))
+    })
+    setIsEditQuoteOpen(true)
+  }
+
+  const handleViewQuote = (quote: Quote) => {
+    setIsQuoteViewLoading(true)
+    setSelectedQuote(quote)
+    setIsViewQuoteOpen(true)
+    
+    // Simulate loading delay to prevent blocking
+    setTimeout(() => {
+      setIsQuoteViewLoading(false)
+    }, 300)
+  }
+
+  const addProductToQuote = useCallback((product: Product, category: 'hardware' | 'software') => {
+    // Optimized state update - batch all updates together
+    setFormData(prev => {
+      const existingItemIndex = prev.items.findIndex(item => 
+        item.productId === product.id && item.category === category
+      )
+      
+      let updatedItems: QuoteItemFormData[]
+      
+      if (existingItemIndex >= 0) {
+        // Update quantity if product already exists
+        updatedItems = [...prev.items]
+        updatedItems[existingItemIndex] = {
+          ...updatedItems[existingItemIndex],
+          quantity: updatedItems[existingItemIndex].quantity + 1
+        }
+      } else {
+        // Add new product
+        const newItem: QuoteItemFormData = {
+          productId: product.id,
+          quantity: 1,
+          price: product.price,
+          category
+        }
+        updatedItems = [...prev.items, newItem]
+      }
+      
+      return { ...prev, items: updatedItems }
+    })
+    
+    // Clear search and hide dropdown in the same state update cycle
+    if (category === 'hardware') {
+      setHardwareSearchTerm('')
+      setShowHardwareDropdown(false)
+    } else {
+      setSoftwareSearchTerm('')
+      setShowSoftwareDropdown(false)
+    }
+  }, [])
+
+  const removeQuoteItem = (index: number) => {
+    const updatedItems = formData.items.filter((_, i) => i !== index)
+    setFormData(prev => ({ ...prev, items: updatedItems }))
+  }
+
+  const updateQuoteItemQuantity = (index: number, quantity: number) => {
+    if (quantity < 1) return
+    
+    const updatedItems = [...formData.items]
+    updatedItems[index].quantity = quantity
+    setFormData(prev => ({ ...prev, items: updatedItems }))
+  }
+
+  const calculateQuoteTotals = () => {
+    const hardwareItems = formData.items.filter(item => item.category === 'hardware')
+    const softwareItems = formData.items.filter(item => item.category === 'software')
+    
+    const hardwareTotal = hardwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const softwareTotal = softwareItems.reduce((sum, item) => sum + (item.price * item.quantity), 0)
+    const subtotal = hardwareTotal + softwareTotal
+    const vat = subtotal * 0.20 // 20% VAT
+    const total = subtotal + vat
+    
+    return {
+      hardwareTotal,
+      softwareTotal,
+      subtotal,
+      vat,
+      total
+    }
+  }
+
+  const totals = calculateQuoteTotals()
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading quotes...</p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="bg-white rounded-lg shadow-sm p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900">Quotes & Proposals</h2>
+            <p className="text-gray-600 mt-1">Manage client quotes and business proposals</p>
+          </div>
+          <Button 
+            onClick={() => {
+              resetForm()
+              setIsCreateQuoteOpen(true)
+            }}
+            className="bg-blue-600 hover:bg-blue-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            New Quote
+          </Button>
+        </div>
+      </div>
+
+      {/* Quotes List */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {filteredQuotes.map((quote) => (
+          <Card key={quote.id} className="bg-white shadow-sm hover:shadow-md transition-shadow">
+            <CardHeader className="pb-3">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle className="text-lg font-semibold text-gray-900 truncate">
+                    {quote.title}
+                  </CardTitle>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Building2 className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600 truncate">{quote.business.name}</span>
+                  </div>
+                </div>
+                <div className="flex flex-col items-end gap-2">
+                  {getStatusBadge(quote.status)}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="ghost" size="sm">
+                        <MoreHorizontal className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => handleViewQuote(quote)}>
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleEditQuote(quote)}>
+                        <Edit className="h-4 w-4 mr-2" />
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onClick={() => handleDeleteQuote(quote.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="pt-0">
+              <div className="space-y-3">
+                {quote.description && (
+                  <p className="text-sm text-gray-600 line-clamp-2">{quote.description}</p>
+                )}
+                
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">{formatDate(quote.createdAt)}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-gray-900">
+                      {formatCurrency(quote.totalAmount)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {quote.items.length} items
+                    </p>
+                  </div>
+                </div>
+
+                {quote.user && (
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <User className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">{quote.user.name}</span>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {filteredQuotes.length === 0 && (
+        <Card className="bg-white shadow-sm">
+          <CardContent className="p-12 text-center">
+            <FileSignature className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No quotes found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || statusFilter !== 'All Statuses' 
+                ? 'Try adjusting your filters or search terms.'
+                : 'Create your first quote to get started.'
+              }
+            </p>
+            {(!searchTerm && statusFilter === 'All Statuses') && (
+              <Button 
+                onClick={() => {
+                  resetForm()
+                  setIsCreateQuoteOpen(true)
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Quote
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Create/Edit Quote Modal */}
+      <Dialog 
+        open={isCreateQuoteOpen || isEditQuoteOpen} 
+        onOpenChange={(open) => {
+          if (!open) {
+            setIsCreateQuoteOpen(false)
+            setIsEditQuoteOpen(false)
+            setSelectedQuote(null)
+            resetForm()
+          }
+        }}
+      >
+        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
+          <div className="min-h-screen bg-white">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+              <DialogHeader className="pb-0">
+                <DialogTitle className="text-2xl font-bold text-gray-900">
+                  {isEditQuoteOpen ? 'Edit Quote' : 'Create New Quote'}
+                </DialogTitle>
+                <DialogDescription className="text-gray-600 mt-1">
+                  {isEditQuoteOpen ? 'Update quote details and items' : 'Create a new quote for a client'}
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+            
+            <div className="px-6 py-4">
+            <div className="space-y-6 max-w-6xl mx-auto">
+            {/* Basic Information */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="title">Quote Title</Label>
+                <Input
+                  id="title"
+                  value={formData.title}
+                  onChange={(e) => setFormData(prev => ({ ...prev, title: e.target.value }))}
+                  placeholder="Enter quote title"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="business">Business</Label>
+                <Select value={formData.businessId} onValueChange={(value) => setFormData(prev => ({ ...prev, businessId: value }))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select business" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {businesses.map((business) => (
+                      <SelectItem key={business.id} value={business.id}>
+                        {business.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="description">Description</Label>
+              <Textarea
+                id="description"
+                value={formData.description}
+                onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
+                placeholder="Enter quote description"
+                rows={3}
+              />
+            </div>
+
+            {/* Items Section */}
+            <div className="space-y-6">
+              <h3 className="text-lg font-semibold">Quote Items</h3>
+              
+              {/* Hardware Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <HardDrive className="h-5 w-5 text-blue-600" />
+                  <h4 className="font-medium">Hardware (One-off)</h4>
+                </div>
+                
+                <div className="relative mb-3">
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search hardware products..."
+                        value={hardwareSearchTerm}
+                        onChange={(e) => setHardwareSearchTerm(e.target.value)}
+                        onFocus={() => setShowHardwareDropdown(true)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowHardwareDropdown(!showHardwareDropdown)}
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {showHardwareDropdown && hardwareProducts.length > 0 && (
+                    <div ref={hardwareDropdownRef} className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {hardwareProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
+                          onClick={() => addProductToQuote(product, 'hardware')}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              {product.description && (
+                                <p className="text-sm text-gray-600">{product.description}</p>
+                              )}
+                              {product.sku && (
+                                <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(product.price)}</p>
+                              <p className="text-xs text-gray-500">Stock: {product.stock}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Hardware Items List */}
+                <div className="space-y-2">
+                  {formData.items.filter(item => item.category === 'hardware').map((item, index) => {
+                    const product = products.find(p => p.id === item.productId)
+                    const originalIndex = formData.items.findIndex(i => 
+                      i.productId === item.productId && i.category === 'hardware'
+                    )
+                    
+                    return (
+                      <div key={`${item.productId}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium">{product?.name}</p>
+                          <p className="text-sm text-gray-600">{formatCurrency(item.price)} each</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity - 1)}
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                          <span className="w-12 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity + 1)}
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeQuoteItem(originalIndex)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+
+              {/* Software Section */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <Cloud className="h-5 w-5 text-green-600" />
+                  <h4 className="font-medium">Software (Monthly)</h4>
+                </div>
+                
+                <div className="relative mb-3">
+                  <div className="flex gap-2">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                      <Input
+                        placeholder="Search software products..."
+                        value={softwareSearchTerm}
+                        onChange={(e) => setSoftwareSearchTerm(e.target.value)}
+                        onFocus={() => setShowSoftwareDropdown(true)}
+                        className="pl-10"
+                      />
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      onClick={() => setShowSoftwareDropdown(!showSoftwareDropdown)}
+                    >
+                      <Filter className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  
+                  {showSoftwareDropdown && softwareProducts.length > 0 && (
+                    <div ref={softwareDropdownRef} className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
+                      {softwareProducts.map((product) => (
+                        <div
+                          key={product.id}
+                          className="p-3 hover:bg-gray-50 cursor-pointer border-b last:border-b-0 active:bg-blue-50 transition-colors duration-150"
+                          onClick={() => addProductToQuote(product, 'software')}
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <p className="font-medium">{product.name}</p>
+                              {product.description && (
+                                <p className="text-sm text-gray-600">{product.description}</p>
+                              )}
+                              {product.sku && (
+                                <p className="text-xs text-gray-500">SKU: {product.sku}</p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">{formatCurrency(product.price)}/month</p>
+                              <p className="text-xs text-gray-500">Stock: {product.stock}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Software Items List */}
+                <div className="space-y-2">
+                  {formData.items.filter(item => item.category === 'software').map((item, index) => {
+                    const product = products.find(p => p.id === item.productId)
+                    const originalIndex = formData.items.findIndex(i => 
+                      i.productId === item.productId && i.category === 'software'
+                    )
+                    
+                    return (
+                      <div key={`${item.productId}-${index}`} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div className="flex-1">
+                          <p className="font-medium">{product?.name}</p>
+                          <p className="text-sm text-gray-600">{formatCurrency(item.price)}/month</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity - 1)}
+                          >
+                            <MinusCircle className="h-4 w-4" />
+                          </Button>
+                          <span className="w-12 text-center">{item.quantity}</span>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => updateQuoteItemQuantity(originalIndex, item.quantity + 1)}
+                          >
+                            <PlusCircle className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeQuoteItem(originalIndex)}
+                            className="text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Quote Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Quote Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Hardware Total:</span>
+                    <span>{formatCurrency(totals.hardwareTotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Software Total:</span>
+                    <span>{formatCurrency(totals.softwareTotal)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span>{formatCurrency(totals.subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>VAT (20%):</span>
+                    <span>{formatCurrency(totals.vat)}</span>
+                  </div>
+                  <Separator />
+                  <div className="flex justify-between font-semibold text-lg">
+                    <span>Total:</span>
+                    <span>{formatCurrency(totals.total)}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Status Selection */}
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData(prev => ({ ...prev, status: value as any }))}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="draft">Draft</SelectItem>
+                  <SelectItem value="sent">Sent</SelectItem>
+                  <SelectItem value="accepted">Accepted</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setIsCreateQuoteOpen(false)
+                  setIsEditQuoteOpen(false)
+                  setSelectedQuote(null)
+                  resetForm()
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={isEditQuoteOpen ? handleUpdateQuote : handleCreateQuote}
+                disabled={!formData.title || !formData.businessId || formData.items.length === 0}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Save className="h-4 w-4 mr-2" />
+                {isEditQuoteOpen ? 'Update Quote' : 'Create Quote'}
+              </Button>
+            </div>
+          </div>
+          </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Quote Modal */}
+      <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
+        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
+          <div className="min-h-screen bg-white">
+            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
+              <DialogHeader className="pb-0">
+                <DialogTitle className="text-2xl font-bold text-gray-900">Quote Details</DialogTitle>
+                <DialogDescription className="text-gray-600 mt-1">View quote information and items</DialogDescription>
+              </DialogHeader>
+            </div>
+            
+            <div className="px-6 py-4">
+            {selectedQuote ? (
+              isQuoteViewLoading ? (
+                <div className="flex items-center justify-center h-64">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                    <p className="text-gray-600">Loading quote details...</p>
+                  </div>
+                </div>
+            ) : (
+              <div className="space-y-6">
+              {/* Header Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Quote Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600">Title:</span>
+                      <p className="font-medium">{selectedQuote.title}</p>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <div className="mt-1">{getStatusBadge(selectedQuote.status)}</div>
+                    </div>
+                    <div>
+                      <span className="text-sm text-gray-600">Created:</span>
+                      <p className="font-medium">{formatDate(selectedQuote.createdAt)}</p>
+                    </div>
+                    {selectedQuote.description && (
+                      <div>
+                        <span className="text-sm text-gray-600">Description:</span>
+                        <p className="font-medium">{selectedQuote.description}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Business Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600">Business:</span>
+                      <p className="font-medium">{selectedQuote.business.name}</p>
+                    </div>
+                    {selectedQuote.business.email && (
+                      <div>
+                        <span className="text-sm text-gray-600">Email:</span>
+                        <p className="font-medium">{selectedQuote.business.email}</p>
+                      </div>
+                    )}
+                    {selectedQuote.business.phone && (
+                      <div>
+                        <span className="text-sm text-gray-600">Phone:</span>
+                        <p className="font-medium">{selectedQuote.business.phone}</p>
+                      </div>
+                    )}
+                    {selectedQuote.business.location && (
+                      <div>
+                        <span className="text-sm text-gray-600">Location:</span>
+                        <p className="font-medium">{selectedQuote.business.location}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quote Items */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-4">Quote Items</h3>
+                
+                {/* Hardware Items */}
+                {selectedQuote.items.filter(item => item.product.pricingType === 'one-off').length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <HardDrive className="h-5 w-5 text-blue-600" />
+                      <h4 className="font-medium">Hardware (One-off)</h4>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedQuote.items
+                          .filter(item => item.product.pricingType === 'one-off')
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.product.name}</TableCell>
+                              <TableCell>{item.product.description || '-'}</TableCell>
+                              <TableCell>{formatCurrency(item.price)}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Software Items */}
+                {selectedQuote.items.filter(item => item.product.pricingType === 'monthly').length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Cloud className="h-5 w-5 text-green-600" />
+                      <h4 className="font-medium">Software (Monthly)</h4>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Price/Month</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total/Month</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedQuote.items
+                          .filter(item => item.product.pricingType === 'monthly')
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.product.name}</TableCell>
+                              <TableCell>{item.product.description || '-'}</TableCell>
+                              <TableCell>{formatCurrency(item.price)}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Quote Summary */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quote Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {selectedQuote.items.filter(item => item.product.pricingType === 'one-off').length > 0 && (
+                        <div className="flex justify-between">
+                          <span>Hardware Total:</span>
+                          <span>{formatCurrency(
+                            selectedQuote.items
+                              .filter(item => item.product.pricingType === 'one-off')
+                              .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                          )}</span>
+                        </div>
+                      )}
+                      {selectedQuote.items.filter(item => item.product.pricingType === 'monthly').length > 0 && (
+                        <div className="flex justify-between">
+                          <span>Software Total:</span>
+                          <span>{formatCurrency(
+                            selectedQuote.items
+                              .filter(item => item.product.pricingType === 'monthly')
+                              .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                          )}/month</span>
+                        </div>
+                      )}
+                      <Separator />
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount / 1.2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>VAT (20%):</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount - (selectedQuote.totalAmount / 1.2))}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span>Total:</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount)}</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
+                  Close
+                </Button>
+                {selectedQuote && (
+                  <LazyPDFDownloadLink
+                    quote={selectedQuote}
+                    fileName={`quote-${selectedQuote.id.slice(-6).toUpperCase()}-${new Date().toISOString().split('T')[0]}.pdf`}
+                    className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 border border-input bg-background hover:bg-accent hover:text-accent-foreground h-10 px-4 py-2"
+                    onClick={handlePDFDownload}
+                  >
+                    {isGeneratingPDF ? (
+                      <>
+                        <div className="animate-spin rounded-full h-4 w-4 mr-2 border-b-2 border-current"></div>
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <FileDown className="h-4 w-4 mr-2" />
+                        Download PDF
+                      </>
+                    )}
+                  </LazyPDFDownloadLink>
+                )}
+                {pdfError && (
+                  <div className="text-red-600 text-sm mt-2">
+                    {pdfError}
+                  </div>
+                )}
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setIsViewQuoteOpen(false)
+                    handleEditQuote(selectedQuote)
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Quote
+                </Button>
+              </div>
+            </div>
+            )
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <p className="text-gray-600">No quote selected</p>
+              </div>
+            </div>
+          )}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </div>
+  )
+}
