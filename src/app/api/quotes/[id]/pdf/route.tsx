@@ -50,7 +50,7 @@ async function getCompanyLogoUrl() {
       // Create a simple SVG fallback
       const svgFallback = `
         <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
-          <rect width="120" height="120" fill="#3B82F6" rx="8"/>
+          <rect width="120" height="120" fill="#1F2937" rx="8"/>
           <text x="60" y="60" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="14" font-weight="bold">CSE</text>
           <text x="60" y="80" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="10">Central Hub</text>
         </svg>
@@ -65,7 +65,7 @@ async function getCompanyLogoUrl() {
     // Ultimate fallback
     const svgFallback = `
       <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="120" height="120" fill="#3B82F6" rx="8"/>
+        <rect width="120" height="120" fill="#1F2937" rx="8"/>
         <text x="60" y="60" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="14" font-weight="bold">CSE</text>
         <text x="60" y="80" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="10">Central Hub</text>
       </svg>
@@ -166,7 +166,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// PDF Document Component with Template Support
+// PDF Document Component with Professional Design
 const QuoteDocument = ({ quote, logoUrl, template }: { quote: any; logoUrl: string; template: any }) => {
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-GB', {
@@ -193,633 +193,555 @@ const QuoteDocument = ({ quote, logoUrl, template }: { quote: any; logoUrl: stri
     }
   }
 
-  // Check if quote has many items (potential multi-page)
-  const isMultiPage = quote.items.length > 6
+  // Separate items by pricing type
+  const oneOffItems = quote.items.filter((item: any) => item.product.pricingType === 'one-off')
+  const monthlyItems = quote.items.filter((item: any) => item.product.pricingType === 'monthly')
+  
+  // Calculate totals
+  const oneOffTotal = oneOffItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+  const monthlyTotal = monthlyItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+  const grandTotal = quote.totalAmount
 
   return (
     <Document>
-      <Page size={template.layout.pageSize} style={createStyles(template)}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>Quote</Text>
-              <Text style={styles.subtitle}>Quote #{quote.id.slice(-6)}</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <Image src={logoUrl} style={styles.companyLogo} alt="Company Logo" />
-              <Text style={styles.companyName}>CSE Central Hub</Text>
-              <Text style={styles.subtitle}>Date: {formatDate(quote.createdAt)}</Text>
+      {/* Page 1: Cover Page */}
+      <Page size="A4" style={createStyles(template).page}>
+        <View style={createStyles(template).coverContainer}>
+          {/* Elegant Header */}
+          <View style={createStyles(template).coverHeader}>
+            <Image src={logoUrl} style={createStyles(template).coverLogo} />
+            <View style={createStyles(template).coverInfo}>
+              <Text style={createStyles(template).documentType}>Quote</Text>
+              <Text style={createStyles(template).quoteNumber}>#{quote.id.slice(-6)}</Text>
             </View>
           </View>
-          <View style={styles.statusContainer}>
-            <Text style={[styles.status, { backgroundColor: getStatusColor(quote.status) }]}>
-              {quote.status.toUpperCase()}
-            </Text>
-          </View>
-        </View>
 
-        {/* Business Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Business Information</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Name:</Text>
-            <Text style={styles.value}>{quote.business.name}</Text>
+          {/* Business Information */}
+          <View style={createStyles(template).businessInfoSection}>
+            <Text style={createStyles(template).sectionTitle}>Prepared For</Text>
+            <Text style={createStyles(template).businessName}>{quote.business.name}</Text>
+            {quote.business.description && (
+              <Text style={createStyles(template).businessDescription}>{quote.business.description}</Text>
+            )}
+            <View style={createStyles(template).businessDetails}>
+              {quote.business.location && (
+                <Text style={createStyles(template).businessDetail}>{quote.business.location}</Text>
+              )}
+              {quote.business.email && (
+                <Text style={createStyles(template).businessDetail}>{quote.business.email}</Text>
+              )}
+              {quote.business.phone && (
+                <Text style={createStyles(template).businessDetail}>{quote.business.phone}</Text>
+              )}
+            </View>
           </View>
-          {quote.business.description && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Description:</Text>
-              <Text style={styles.value}>{quote.business.description}</Text>
-            </View>
-          )}
-          {quote.business.location && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Location:</Text>
-              <Text style={styles.value}>{quote.business.location}</Text>
-            </View>
-          )}
-          {quote.business.email && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Email:</Text>
-              <Text style={styles.value}>{quote.business.email}</Text>
-            </View>
-          )}
-          {quote.business.phone && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Phone:</Text>
-              <Text style={styles.value}>{quote.business.phone}</Text>
-            </View>
-          )}
-        </View>
 
-        {/* Quote Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quote Details</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Title:</Text>
-            <Text style={styles.value}>{quote.title}</Text>
-          </View>
-          {quote.description && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Description:</Text>
-              <Text style={styles.value}>{quote.description}</Text>
+          {/* Company Information */}
+          <View style={createStyles(template).companyInfoSection}>
+            <Text style={createStyles(template).sectionTitle}>From</Text>
+            <Text style={createStyles(template).companyName}>CSE Central Hub</Text>
+            <View style={createStyles(template).companyDetails}>
+              <Text style={createStyles(template).companyAddress}>Unit 2 Tregrehan Workshops</Text>
+              <Text style={createStyles(template).companyAddress}>Tregrehan Mills</Text>
+              <Text style={createStyles(template).companyAddress}>St Austell, Cornwall, PL25 3TQ</Text>
+              <Text style={createStyles(template).companyContact}>Telephone: 0333 577 0108</Text>
+              <Text style={createStyles(template).companyContact}>Email: info@cornwallscalesltd.co.uk</Text>
             </View>
-          )}
-          <View style={styles.row}>
-            <Text style={styles.label}>Created By:</Text>
-            <Text style={styles.value}>{quote.user?.name || 'Unknown'}</Text>
           </View>
-        </View>
 
-        {/* Quote Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quote Items</Text>
-          <View style={styles.table}>
-            {/* Table Header */}
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 3 }]}>Item</Text>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 1 }]}>Qty</Text>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 2 }]}>Unit Price</Text>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 2 }]}>Total</Text>
+          {/* Quote Details */}
+          <View style={createStyles(template).quoteDetailsSection}>
+            <View style={createStyles(template).detailRow}>
+              <Text style={createStyles(template).detailLabel}>Quote Date:</Text>
+              <Text style={createStyles(template).detailValue}>{formatDate(quote.createdAt)}</Text>
             </View>
-            
-            {/* Table Rows */}
-            {quote.items.map((item: any, index: number) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 3 }]}>{item.product.name}</Text>
-                <Text style={[styles.tableCell, { flex: 1 }]}>{item.quantity}</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{formatCurrency(item.price)}</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{formatCurrency(item.price * item.quantity)}</Text>
+            <View style={createStyles(template).detailRow}>
+              <Text style={createStyles(template).detailLabel}>Status:</Text>
+              <View style={[createStyles(template).statusBadge, { backgroundColor: getStatusColor(quote.status) }]}>
+                <Text style={createStyles(template).statusText}>{quote.status.toUpperCase()}</Text>
               </View>
-            ))}
+            </View>
+            <View style={createStyles(template).detailRow}>
+              <Text style={createStyles(template).detailLabel}>Prepared By:</Text>
+              <Text style={createStyles(template).detailValue}>{quote.user?.name || 'Unknown'}</Text>
+            </View>
           </View>
-          
-          {/* Total */}
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Subtotal:</Text>
-            <Text style={styles.totalValue}>{formatCurrency(quote.totalAmount / 1.2)}</Text>
-          </View>
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>VAT (20%):</Text>
-            <Text style={styles.totalValue}>{formatCurrency(quote.totalAmount * 0.2 / 1.2)}</Text>
-          </View>
-          <View style={styles.totalContainer}>
-            <Text style={[styles.totalLabel, styles.totalFinal]}>Total Amount:</Text>
-            <Text style={[styles.totalValue, styles.totalFinal]}>{formatCurrency(quote.totalAmount)}</Text>
-          </View>
-        </View>
 
-        {/* Terms and Conditions */}
-        <View style={styles.termsSection}>
-          <Text style={styles.termsTitle}>Terms and Conditions</Text>
-          <Text style={styles.termsText}>
-            • Payment terms: 30 days from invoice date
-          </Text>
-          <Text style={styles.termsText}>
-            • Prices valid for 30 days from quote date
-          </Text>
-          <Text style={styles.termsText}>
-            • Subject to our standard terms and conditions
-          </Text>
-          <Text style={styles.termsText}>
-            • Delivery time: 2-4 weeks from order confirmation
-          </Text>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            CSE Central Hub - Business Management System
-          </Text>
-          <Text style={styles.footerText}>
-            For questions or concerns, please contact your account manager.
-          </Text>
-          <Text style={styles.footerText}>
-            Email: info@csecentralhub.com | Phone: +44 (0) 1234 567890
-          </Text>
-          <Text style={styles.pageNumber}>
-            Page 1{isMultiPage ? ' of 2' : ' of 1'}
-          </Text>
+          {/* Subtle Red Accent Line */}
+          <View style={createStyles(template).accentLine} />
         </View>
       </Page>
-      
-      {/* Second page for very large quotes */}
-      {isMultiPage && (
-        <Page size={template.layout.pageSize} style={createStyles(template)}>
+
+      {/* Page 2: Products and Pricing */}
+      <Page size="A4" style={createStyles(template).page}>
+        <View style={createStyles(template).contentContainer}>
           {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerRow}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.title}>Quote</Text>
-                <Text style={styles.subtitle}>Quote #{quote.id.slice(-6)} (Continued)</Text>
+          <View style={createStyles(template).pageHeader}>
+            <Text style={createStyles(template).pageTitle}>Quote Details</Text>
+            <Text style={createStyles(template).pageSubtitle}>#{quote.id.slice(-6)}</Text>
+          </View>
+
+          {/* One-off / Hardware Section */}
+          {oneOffItems.length > 0 && (
+            <View style={createStyles(template).section}>
+              <Text style={createStyles(template).sectionTitle}>One-off / Hardware</Text>
+              <View style={createStyles(template).table}>
+                {/* Table Header */}
+                <View style={createStyles(template).tableHeader}>
+                  <Text style={[createStyles(template).tableCell, { flex: 4 }]}>Item</Text>
+                  <Text style={[createStyles(template).tableCell, { flex: 1 }]}>Qty</Text>
+                  <Text style={[createStyles(template).tableCell, { flex: 2 }]}>Unit Price</Text>
+                  <Text style={[createStyles(template).tableCell, { flex: 2 }]}>Total</Text>
+                </View>
+                
+                {/* Table Rows */}
+                {oneOffItems.map((item: any, index: number) => (
+                  <View key={index} style={createStyles(template).tableRow}>
+                    <Text style={[createStyles(template).tableCell, { flex: 4 }]}>{item.product.name}</Text>
+                    <Text style={[createStyles(template).tableCell, { flex: 1 }]}>{item.quantity}</Text>
+                    <Text style={[createStyles(template).tableCell, { flex: 2 }]}>{formatCurrency(item.price)}</Text>
+                    <Text style={[createStyles(template).tableCell, { flex: 2 }]}>{formatCurrency(item.price * item.quantity)}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.headerRight}>
-                <Text style={styles.companyName}>CSE Central Hub</Text>
-                <Text style={styles.subtitle}>Date: {formatDate(quote.createdAt)}</Text>
+              
+              {/* Section Total */}
+              <View style={createStyles(template).sectionTotalContainer}>
+                <Text style={createStyles(template).sectionTotalLabel}>One-off Subtotal:</Text>
+                <Text style={createStyles(template).sectionTotalValue}>{formatCurrency(oneOffTotal)}</Text>
               </View>
             </View>
-          </View>
+          )}
 
-          {/* Additional Notes Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additional Information</Text>
-            <Text style={styles.notesText}>
-              This quote includes comprehensive hardware and software solutions tailored to your business needs. 
-              All products come with manufacturer warranty and our standard support package.
-            </Text>
-            <Text style={styles.notesText}>
-              Installation and training services are available upon request. Please contact us for a detailed 
-              implementation plan and timeline.
-            </Text>
-          </View>
-
-          {/* Signature Section */}
-          <View style={styles.signatureSection}>
-            <Text style={styles.signatureTitle}>Acceptance</Text>
-            <Text style={styles.signatureText}>
-              Please sign below to accept this quote and authorize the work to begin.
-            </Text>
-            <View style={styles.signatureRow}>
-              <View style={styles.signatureBox}>
-                <Text style={styles.signatureLabel}>Customer Signature:</Text>
-                <View style={styles.signatureLine}></View>
-                <Text style={styles.signatureDate}>Date: _______________</Text>
+          {/* Monthly / Software Section */}
+          {monthlyItems.length > 0 && (
+            <View style={createStyles(template).section}>
+              <Text style={createStyles(template).sectionTitle}>Monthly / Software</Text>
+              <View style={createStyles(template).table}>
+                {/* Table Header */}
+                <View style={createStyles(template).tableHeader}>
+                  <Text style={[createStyles(template).tableCell, { flex: 4 }]}>Item</Text>
+                  <Text style={[createStyles(template).tableCell, { flex: 1 }]}>Qty</Text>
+                  <Text style={[createStyles(template).tableCell, { flex: 2 }]}>Unit Price</Text>
+                  <Text style={[createStyles(template).tableCell, { flex: 2 }]}>Total</Text>
+                </View>
+                
+                {/* Table Rows */}
+                {monthlyItems.map((item: any, index: number) => (
+                  <View key={index} style={createStyles(template).tableRow}>
+                    <Text style={[createStyles(template).tableCell, { flex: 4 }]}>{item.product.name}</Text>
+                    <Text style={[createStyles(template).tableCell, { flex: 1 }]}>{item.quantity}</Text>
+                    <Text style={[createStyles(template).tableCell, { flex: 2 }]}>{formatCurrency(item.price)}</Text>
+                    <Text style={[createStyles(template).tableCell, { flex: 2 }]}>{formatCurrency(item.price * item.quantity)}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.signatureBox}>
-                <Text style={styles.signatureLabel}>Company Representative:</Text>
-                <View style={styles.signatureLine}></View>
-                <Text style={styles.signatureDate}>Date: _______________</Text>
+              
+              {/* Section Total */}
+              <View style={createStyles(template).sectionTotalContainer}>
+                <Text style={createStyles(template).sectionTotalLabel}>Monthly Subtotal:</Text>
+                <Text style={createStyles(template).sectionTotalValue}>{formatCurrency(monthlyTotal)}</Text>
+              </View>
+            </View>
+          )}
+
+          {/* Grand Total */}
+          <View style={createStyles(template).grandTotalSection}>
+            <View style={createStyles(template).totalContainer}>
+              <Text style={createStyles(template).totalLabel}>Subtotal:</Text>
+              <Text style={createStyles(template).totalValue}>{formatCurrency(grandTotal / 1.2)}</Text>
+            </View>
+            <View style={createStyles(template).totalContainer}>
+              <Text style={createStyles(template).totalLabel}>VAT (20%):</Text>
+              <Text style={createStyles(template).totalValue}>{formatCurrency(grandTotal * 0.2 / 1.2)}</Text>
+            </View>
+            <View style={createStyles(template).totalContainer}>
+              <Text style={[createStyles(template).totalLabel, createStyles(template).totalFinal]}>Total Amount:</Text>
+              <Text style={[createStyles(template).totalValue, createStyles(template).totalFinal]}>{formatCurrency(grandTotal)}</Text>
+            </View>
+          </View>
+        </View>
+      </Page>
+
+      {/* Page 3: Terms and Conditions */}
+      <Page size="A4" style={createStyles(template).page}>
+        <View style={createStyles(template).contentContainer}>
+          {/* Header */}
+          <View style={createStyles(template).pageHeader}>
+            <Text style={createStyles(template).pageTitle}>Terms and Conditions</Text>
+            <Text style={createStyles(template).pageSubtitle}>#{quote.id.slice(-6)}</Text>
+          </View>
+
+          {/* Terms Content - Optimized to prevent overflow */}
+          <View style={createStyles(template).termsContainer}>
+            <Text style={createStyles(template).termsSectionTitle}>General Terms and Conditions</Text>
+            
+            <Text style={createStyles(template).termsParagraph}>
+              This quotation is prepared by Cornwall Scale & Equipment Ltd (CSE LTD) and is valid for 30 days from the date of issue. 
+              All prices are exclusive of VAT unless otherwise stated.
+            </Text>
+
+            <Text style={createStyles(template).termsSectionTitle}>1. Payment Terms</Text>
+            <Text style={createStyles(template).termsText}>
+              • Deposit: A 50% deposit is required with order confirmation. Accepted methods include Bacs, cash, debit, or credit card.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • Payment Terms: Invoice payments are due within 30 days unless otherwise agreed.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • Late Payment: A 10% weekly surcharge will be applied to any outstanding balance if payment is not received within a 5-day grace period.
+            </Text>
+
+            <Text style={createStyles(template).termsSectionTitle}>2. Warranty and Support</Text>
+            <Text style={createStyles(template).termsText}>
+              • All New products come with a standard 12-month onsite or RTB (Return to Base) guarantee.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • Second hand and Reconditioned products are covered by a 6-month onsite or RTB guarantee.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • We operate a next working day replacement service for faulty equipment.
+            </Text>
+
+            <Text style={createStyles(template).termsSectionTitle}>3. Delivery and Installation</Text>
+            <Text style={createStyles(template).termsText}>
+              • Delivery time: 2-4 weeks from order confirmation, subject to stock availability.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • Installation and training services are available upon request and will be quoted separately.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • All equipment remains the property of Cornwall Scale & Equipment Ltd until full payment has been made.
+            </Text>
+
+            <Text style={createStyles(template).termsSectionTitle}>4. Returns Policy</Text>
+            <Text style={createStyles(template).termsText}>
+              • If not entirely happy, you may return the product with all manuals, attachments, and packaging within 7 days.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • Products with no faults or due to change of mind will be refunded, subject to a 30% + VAT restocking charge.
+            </Text>
+            <Text style={createStyles(template).termsText}>
+              • Any damage or missing parts must be reported within 24 hours of delivery.
+            </Text>
+
+            {/* Contact Information - Optimized layout */}
+            <View style={createStyles(template).contactSection}>
+              <Text style={createStyles(template).termsSectionTitle}>5. Contact Information</Text>
+              <View style={createStyles(template).contactInfo}>
+                <View style={createStyles(template).contactColumn}>
+                  <Text style={createStyles(template).contactLabel}>Company:</Text>
+                  <Text style={createStyles(template).contactValue}>Cornwall Scale & Equipment Ltd</Text>
+                </View>
+                <View style={createStyles(template).contactColumn}>
+                  <Text style={createStyles(template).contactLabel}>Address:</Text>
+                  <Text style={createStyles(template).contactValue}>Unit 2 Tregrehan Workshops</Text>
+                  <Text style={createStyles(template).contactValue}>Tregrehan Mills</Text>
+                  <Text style={createStyles(template).contactValue}>St Austell, Cornwall</Text>
+                  <Text style={createStyles(template).contactValue}>PL25 3TQ</Text>
+                </View>
+                <View style={createStyles(template).contactColumn}>
+                  <Text style={createStyles(template).contactLabel}>Contact:</Text>
+                  <Text style={createStyles(template).contactValue}>Telephone: 0333 577 0108</Text>
+                  <Text style={createStyles(template).contactValue}>Email: info@cornwallscalesltd.co.uk</Text>
+                  <Text style={createStyles(template).contactValue}>Accounts: accounts@cornwallscalesltd.co.uk</Text>
+                </View>
               </View>
             </View>
           </View>
 
           {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
+          <View style={createStyles(template).footer}>
+            <Text style={createStyles(template).footerText}>
               CSE Central Hub - Business Management System
             </Text>
-            <Text style={styles.footerText}>
-              Thank you for your business!
+            <Text style={createStyles(template).footerText}>
+              For questions or concerns, please contact your account manager.
             </Text>
-            <Text style={styles.pageNumber}>
-              Page 2 of 2
+            <Text style={createStyles(template).pageNumber}>
+              Page 3 of 3
             </Text>
           </View>
-        </Page>
-      )}
+        </View>
+      </Page>
     </Document>
   )
 }
 
-// Function to create styles based on template
+// Professional Styles Function
 function createStyles(template: any) {
   return {
     page: {
-      padding: template.layout.padding,
-      backgroundColor: template.colors.background,
+      padding: 50,
+      backgroundColor: '#FFFFFF',
+      fontFamily: 'Helvetica',
     },
-    header: {
-      borderBottom: `2 ${template.colors.headerBorder}`,
-      paddingBottom: 20,
+    coverContainer: {
+      flex: 1,
+      flexDirection: 'column',
+      justifyContent: 'space-between',
+    },
+    contentContainer: {
+      flex: 1,
+      flexDirection: 'column',
+    },
+    coverHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: 40,
+      borderBottom: '1 solid #E5E7EB',
+      paddingBottom: 30,
+    },
+    coverLogo: {
+      width: 80,
+      height: 'auto',
+      marginRight: 30,
+    },
+    coverInfo: {
+      flex: 1,
+    },
+    documentType: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#000000',
+      marginBottom: 2,
+    },
+    quoteNumber: {
+      fontSize: 14,
+      color: '#666666',
+    },
+    businessInfoSection: {
       marginBottom: 30,
     },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 10,
+    companyInfoSection: {
+      marginBottom: 30,
     },
-    headerLeft: {
-      flex: 1,
-    },
-    headerRight: {
-      flex: 1,
-      alignItems: 'flex-end',
-    },
-    companyName: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: template.colors.text,
-    },
-    companyLogo: {
-      width: template.logo.maxWidth,
-      height: 'auto',
-      marginBottom: 8,
-    },
-    title: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      color: template.colors.primary,
-      marginBottom: 5,
-    },
-    subtitle: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 3,
-    },
-    customHeader: {
-      fontSize: 14,
-      color: template.colors.accent,
-      fontWeight: 'bold',
-      marginTop: 5,
-    },
-    statusContainer: {
-      marginTop: 10,
-    },
-    status: {
-      fontSize: 10,
-      color: '#ffffff',
-      padding: 4,
-    },
-    section: {
+    quoteDetailsSection: {
       marginBottom: 30,
     },
     sectionTitle: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#000000',
+      marginBottom: 12,
+      textTransform: 'uppercase',
+      letterSpacing: 0.5,
+    },
+    businessName: {
       fontSize: 18,
       fontWeight: 'bold',
-      color: template.colors.primary,
-      backgroundColor: template.colors.background,
-      padding: 10,
-      marginBottom: 15,
-      borderLeftWidth: 4,
-      borderLeftColor: template.colors.accent,
-      borderLeftStyle: 'solid',
+      color: '#000000',
+      marginBottom: 6,
     },
-    row: {
-      flexDirection: 'row',
+    businessDescription: {
+      fontSize: 12,
+      color: '#666666',
       marginBottom: 8,
     },
-    label: {
-      fontWeight: 'bold',
-      width: 120,
-      color: template.colors.text,
+    businessDetails: {
+      marginTop: 8,
     },
-    value: {
-      flex: 1,
-      color: template.colors.text,
+    businessDetail: {
+      fontSize: 11,
+      color: '#666666',
+      marginBottom: 2,
+    },
+    companyName: {
+      fontSize: 16,
+      fontWeight: 'bold',
+      color: '#000000',
+      marginBottom: 6,
+    },
+    companyDetails: {
+      marginTop: 8,
+    },
+    companyAddress: {
+      fontSize: 11,
+      color: '#666666',
+      marginBottom: 2,
+    },
+    companyContact: {
+      fontSize: 11,
+      color: '#666666',
+      marginBottom: 2,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 8,
+    },
+    detailLabel: {
+      fontSize: 11,
+      color: '#666666',
+      fontWeight: 'bold',
+    },
+    detailValue: {
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: '#000000',
+    },
+    statusBadge: {
+      paddingHorizontal: 6,
+      paddingVertical: 3,
+      borderRadius: 3,
+    },
+    statusText: {
+      fontSize: 9,
+      color: '#FFFFFF',
+      fontWeight: 'bold',
+    },
+    accentLine: {
+      height: 2,
+      backgroundColor: '#DC2626',
+      width: 60,
+      marginVertical: 20,
+    },
+    pageHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 25,
+      borderBottom: '1 solid #E5E7EB',
+      paddingBottom: 15,
+    },
+    pageTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#000000',
+    },
+    pageSubtitle: {
+      fontSize: 12,
+      color: '#666666',
+    },
+    section: {
+      marginBottom: 25,
     },
     table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      marginBottom: 20,
+      marginBottom: 12,
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      backgroundColor: '#F9FAFB',
+      borderBottom: '1 solid #DC2626',
+      paddingVertical: 6,
     },
     tableRow: {
       flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderBottomColor: template.colors.headerBorder,
-      borderBottomStyle: 'solid',
+      borderBottom: '1 solid #F3F4F6',
+      paddingVertical: 6,
     },
     tableCell: {
-      padding: 12,
-      textAlign: 'left',
+      fontSize: 10,
+      color: '#374151',
     },
-    tableHeader: {
-      backgroundColor: template.colors.background,
+    sectionTotalContainer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: 8,
+      marginBottom: 15,
+    },
+    sectionTotalLabel: {
+      fontSize: 11,
       fontWeight: 'bold',
-      color: template.colors.text,
+      color: '#374151',
+      marginRight: 15,
+    },
+    sectionTotalValue: {
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: '#000000',
+    },
+    grandTotalSection: {
+      marginTop: 15,
+      borderTop: '1 solid #DC2626',
+      paddingTop: 15,
     },
     totalContainer: {
       flexDirection: 'row',
       justifyContent: 'flex-end',
-      marginTop: 10,
+      marginBottom: 8,
     },
     totalLabel: {
-      fontSize: 14,
-      color: template.colors.text,
-      marginRight: 20,
+      fontSize: 11,
+      color: '#374151',
+      marginRight: 15,
+      minWidth: 80,
+      textAlign: 'right',
     },
     totalValue: {
-      fontSize: 14,
-      color: template.colors.text,
-      fontWeight: 'bold',
+      fontSize: 11,
+      color: '#374151',
+      minWidth: 70,
+      textAlign: 'right',
     },
     totalFinal: {
-      fontSize: 18,
-      color: template.colors.primary,
-    },
-    termsSection: {
-      marginTop: 40,
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: template.colors.headerBorder,
-      borderTopStyle: 'solid',
-    },
-    termsTitle: {
-      fontSize: 16,
       fontWeight: 'bold',
-      color: template.colors.text,
-      marginBottom: 15,
+      color: '#000000',
+    },
+    termsContainer: {
+      flex: 1,
+    },
+    termsSectionTitle: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#000000',
+      marginBottom: 8,
+      marginTop: 15,
+    },
+    termsParagraph: {
+      fontSize: 10,
+      color: '#374151',
+      marginBottom: 10,
+      lineHeight: 1.3,
     },
     termsText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 5,
+      fontSize: 10,
+      color: '#374151',
+      marginBottom: 3,
+      lineHeight: 1.3,
     },
-    notesText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 10,
-      lineHeight: 1.5,
+    contactSection: {
+      marginTop: 15,
     },
-    signatureSection: {
-      marginTop: 40,
-    },
-    signatureTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: template.colors.text,
-      marginBottom: 10,
-    },
-    signatureText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 20,
-    },
-    signatureRow: {
+    contactInfo: {
       flexDirection: 'row',
       justifyContent: 'space-between',
+      marginTop: 8,
     },
-    signatureBox: {
+    contactColumn: {
       flex: 1,
-      marginRight: 20,
+      marginRight: 15,
     },
-    signatureLabel: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 5,
-    },
-    signatureLine: {
-      borderBottomWidth: 1,
-      borderBottomColor: template.colors.text,
-      borderBottomStyle: 'solid',
-      width: '100%',
-      marginBottom: 5,
-    },
-    signatureDate: {
+    contactLabel: {
       fontSize: 10,
-      color: template.colors.text,
+      fontWeight: 'bold',
+      color: '#000000',
+      marginBottom: 4,
+    },
+    contactValue: {
+      fontSize: 9,
+      color: '#374151',
+      marginBottom: 2,
     },
     footer: {
-      marginTop: 40,
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: template.colors.headerBorder,
-      borderTopStyle: 'solid',
-      fontSize: 12,
-      color: template.colors.text,
-      textAlign: 'center',
+      marginTop: 30,
+      borderTop: '1 solid #E5E7EB',
+      paddingTop: 15,
+      alignItems: 'center',
     },
     footerText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 5,
+      fontSize: 9,
+      color: '#9CA3AF',
+      marginBottom: 3,
+      textAlign: 'center',
     },
     pageNumber: {
-      fontSize: 10,
-      color: template.colors.text,
-      marginTop: 10,
-    }
+      fontSize: 9,
+      color: '#9CA3AF',
+      textAlign: 'center',
+    },
   }
 }
-
-// PDF Styles (keeping for backward compatibility)
-const styles = StyleSheet.create({
-  page: {
-    padding: 50, // Increased from 40 to prevent edge crowding
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    borderBottom: '2 solid #333333',
-    paddingBottom: 25, // Increased from 20
-    marginBottom: 35, // Increased from 30
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15, // Increased from 10
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  companyName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  companyLogo: {
-    width: 120,  // Adjusted width to maintain aspect ratio (287:75 ≈ 3.83:1, so 120px width for ~31px height equivalent area)
-    height: 'auto',  // Maintain aspect ratio
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 3,
-  },
-  statusContainer: {
-    marginTop: 10,
-  },
-  status: {
-    fontSize: 10,
-    color: '#ffffff',
-    padding: 4,
-    borderRadius: 3,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: 60,
-  },
-  section: {
-    marginBottom: 40, // Increased from 30 for better section spacing
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-    backgroundColor: '#f5f5f5',
-    padding: 10, // Increased from 8
-    marginBottom: 20, // Increased from 15
-    borderLeft: '4 solid #3B82F6',
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 12, // Increased from 8 for better row spacing
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#555555',
-    marginBottom: 5, // Increased from 3
-    width: 80,
-  },
-  value: {
-    fontSize: 10,
-    color: '#333333',
-    marginBottom: 10, // Increased from 8
-    flex: 1,
-  },
-  table: {
-    marginBottom: 25, // Increased from 20
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottom: '1 solid #dddddd',
-  },
-  tableCell: {
-    fontSize: 10,
-    padding: 12, // Increased from 8 for better cell spacing
-    flex: 1,
-  },
-  tableHeader: {
-    fontWeight: 'bold',
-    backgroundColor: '#f8f9fa',
-    color: '#333333',
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 10, // Increased from 5
-  },
-  totalLabel: {
-    fontSize: 10,
-    color: '#666666',
-    marginRight: 15, // Increased from 10
-    width: 80,
-    textAlign: 'right',
-  },
-  totalValue: {
-    fontSize: 10,
-    color: '#333333',
-    width: 60,
-    textAlign: 'right',
-  },
-  totalFinal: {
-    fontWeight: 'bold',
-    fontSize: 12,
-    color: '#333333',
-  },
-  termsSection: {
-    marginBottom: 35, // Increased from 30
-  },
-  termsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 15, // Increased from 10
-  },
-  termsText: {
-    fontSize: 9,
-    color: '#666666',
-    marginBottom: 8, // Increased from 5
-  },
-  footer: {
-    marginTop: 50, // Increased from 40
-    paddingTop: 25, // Increased from 20
-    borderTop: '1 solid #dddddd',
-  },
-  footerText: {
-    fontSize: 10,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 8, // Increased from 5
-  },
-  pageNumber: {
-    fontSize: 10,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 15, // Increased from 10
-  },
-  notesText: {
-    fontSize: 10,
-    color: '#666666',
-    marginBottom: 8,
-    lineHeight: 1.4,
-  },
-  signatureSection: {
-    marginBottom: 30,
-  },
-  signatureTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 10,
-  },
-  signatureText: {
-    fontSize: 10,
-    color: '#666666',
-    marginBottom: 15,
-  },
-  signatureRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  signatureBox: {
-    flex: 1,
-    marginRight: 20,
-  },
-  signatureLabel: {
-    fontSize: 10,
-    color: '#666666',
-    marginBottom: 5,
-  },
-  signatureLine: {
-    borderBottom: '1 solid #333333',
-    marginBottom: 5,
-    height: 1,
-  },
-  signatureDate: {
-    fontSize: 9,
-    color: '#666666',
-  },
-})
 
 // Generate PDF function
 async function generateQuotePDF(quote: any, logoUrl: string, template: any) {

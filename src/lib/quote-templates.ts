@@ -245,4 +245,4 @@ export function createCustomTemplate(baseTemplate: QuoteTemplate, customizations
 }
 
 // Default template
-export const DEFAULT_TEMPLATE = QUOTE_TEMPLATES[0] // Modern Professional
+export const DEFAULT_TEMPLATE = QUOTE_TEMPLATES[3] // Elegant Premium
