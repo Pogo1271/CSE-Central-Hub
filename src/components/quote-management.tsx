@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { toast } from 'sonner'
 import { 
   FileSignature, 
@@ -18,7 +18,6 @@ import {
   X,
   Filter,
   Download,
-  FileDown,
   Copy,
   CheckCircle,
   Clock,
@@ -30,6 +29,7 @@ import {
   Keyboard,
   Mouse,
   Printer,
+  Scanner,
   PlusCircle,
   MinusCircle,
   MoreHorizontal
@@ -502,35 +502,6 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
         </div>
       </div>
 
-      {/* Filter Controls */}
-      <div className="bg-white rounded-lg shadow-sm p-4">
-        <div className="flex items-center gap-4">
-          <div className="flex-1">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-              <Input
-                placeholder="Search quotes..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-48">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="All Statuses">All Statuses</SelectItem>
-              <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="sent">Sent</SelectItem>
-              <SelectItem value="accepted">Accepted</SelectItem>
-              <SelectItem value="rejected">Rejected</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
       {/* Quotes List */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
         {filteredQuotes.map((quote) => (
@@ -580,21 +551,25 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                 {quote.description && (
                   <p className="text-sm text-gray-600 line-clamp-2">{quote.description}</p>
                 )}
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Total:</span>
-                  <span className="font-semibold text-gray-900">{formatCurrency(quote.totalAmount)}</span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-500">Created:</span>
-                  <span className="text-gray-700">{formatDate(quote.createdAt)}</span>
-                </div>
-                {quote.user && (
+                
+                <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarFallback className="text-xs">
-                        {quote.user.name.split(' ').map(n => n[0]).join('').toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
+                    <Calendar className="h-4 w-4 text-gray-500" />
+                    <span className="text-sm text-gray-600">{formatDate(quote.createdAt)}</span>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-lg font-semibold text-gray-900">
+                      {formatCurrency(quote.totalAmount)}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {quote.items.length} items
+                    </p>
+                  </div>
+                </div>
+
+                {quote.user && (
+                  <div className="flex items-center gap-2 pt-2 border-t">
+                    <User className="h-4 w-4 text-gray-500" />
                     <span className="text-sm text-gray-600">{quote.user.name}</span>
                   </div>
                 )}
@@ -605,28 +580,30 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
       </div>
 
       {filteredQuotes.length === 0 && (
-        <div className="text-center py-12">
-          <FileSignature className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No quotes found</h3>
-          <p className="text-gray-600 mb-4">
-            {searchTerm || statusFilter !== 'All Statuses' 
-              ? 'Try adjusting your search or filters.' 
-              : 'Get started by creating your first quote.'
-            }
-          </p>
-          {(!searchTerm && statusFilter === 'All Statuses') && (
-            <Button 
-              onClick={() => {
-                resetForm()
-                setIsCreateQuoteOpen(true)
-              }}
-              className="bg-blue-600 hover:bg-blue-700"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Create Quote
-            </Button>
-          )}
-        </div>
+        <Card className="bg-white shadow-sm">
+          <CardContent className="p-12 text-center">
+            <FileSignature className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">No quotes found</h3>
+            <p className="text-gray-600 mb-4">
+              {searchTerm || statusFilter !== 'All Statuses' 
+                ? 'Try adjusting your filters or search terms.'
+                : 'Create your first quote to get started.'
+              }
+            </p>
+            {(!searchTerm && statusFilter === 'All Statuses') && (
+              <Button 
+                onClick={() => {
+                  resetForm()
+                  setIsCreateQuoteOpen(true)
+                }}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Create Quote
+              </Button>
+            )}
+          </CardContent>
+        </Card>
       )}
 
       {/* Create/Edit Quote Modal */}
@@ -641,21 +618,17 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
           }
         }}
       >
-        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
-          <div className="min-h-screen bg-white">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
-              <DialogHeader className="pb-0">
-                <DialogTitle className="text-2xl font-bold text-gray-900">
-                  {isEditQuoteOpen ? 'Edit Quote' : 'Create New Quote'}
-                </DialogTitle>
-                <DialogDescription className="text-gray-600 mt-1">
-                  {isEditQuoteOpen ? 'Update quote details and items' : 'Create a new quote for a client'}
-                </DialogDescription>
-              </DialogHeader>
-            </div>
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+          <DialogHeader>
+            <DialogTitle>
+              {isEditQuoteOpen ? 'Edit Quote' : 'Create New Quote'}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditQuoteOpen ? 'Update quote details and items' : 'Create a new quote for a client'}
+            </DialogDescription>
+          </DialogHeader>
           
-          <div className="px-6 py-4">
-          <div className="space-y-6 max-w-6xl mx-auto">
+          <div className="space-y-6">
             {/* Basic Information */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
@@ -787,11 +760,12 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                             <PlusCircle className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => removeQuoteItem(originalIndex)}
+                            className="text-red-600"
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -887,11 +861,12 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                             <PlusCircle className="h-4 w-4" />
                           </Button>
                           <Button
-                            variant="outline"
+                            variant="ghost"
                             size="sm"
                             onClick={() => removeQuoteItem(originalIndex)}
+                            className="text-red-600"
                           >
-                            <X className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
                       </div>
@@ -903,23 +878,21 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
 
             {/* Quote Summary */}
             <Card>
-              <CardContent className="p-6">
-                <h3 className="text-lg font-semibold mb-4">Quote Summary</h3>
-                <div className="space-y-2">
-                  {totals.hardwareTotal > 0 && (
-                    <div className="flex justify-between">
-                      <span>Hardware Total:</span>
-                      <span>{formatCurrency(totals.hardwareTotal)}</span>
-                    </div>
-                  )}
-                  {totals.softwareTotal > 0 && (
-                    <div className="flex justify-between">
-                      <span>Software Total:</span>
-                      <span>{formatCurrency(totals.softwareTotal)}/month</span>
-                    </div>
-                  )}
+              <CardHeader>
+                <CardTitle>Quote Summary</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between">
+                    <span>Hardware Total:</span>
+                    <span>{formatCurrency(totals.hardwareTotal)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Software Total:</span>
+                    <span>{formatCurrency(totals.softwareTotal)}</span>
+                  </div>
                   <Separator />
-                  <div className="flex justify-between font-semibold">
+                  <div className="flex justify-between">
                     <span>Subtotal:</span>
                     <span>{formatCurrency(totals.subtotal)}</span>
                   </div>
@@ -928,7 +901,7 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                     <span>{formatCurrency(totals.vat)}</span>
                   </div>
                   <Separator />
-                  <div className="flex justify-between text-lg font-bold">
+                  <div className="flex justify-between font-semibold text-lg">
                     <span>Total:</span>
                     <span>{formatCurrency(totals.total)}</span>
                   </div>
@@ -968,267 +941,216 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
               <Button 
                 onClick={isEditQuoteOpen ? handleUpdateQuote : handleCreateQuote}
                 disabled={!formData.title || !formData.businessId || formData.items.length === 0}
-                className="bg-blue-600 hover:bg-blue-700"
               >
                 <Save className="h-4 w-4 mr-2" />
                 {isEditQuoteOpen ? 'Update Quote' : 'Create Quote'}
               </Button>
             </div>
           </div>
-          </div>
-          </div>
         </DialogContent>
       </Dialog>
 
       {/* View Quote Modal */}
       <Dialog open={isViewQuoteOpen} onOpenChange={setIsViewQuoteOpen}>
-        <DialogContent className="fixed inset-0 m-0 w-screen h-screen max-w-none max-h-none rounded-none overflow-y-auto p-0">
-          <div className="min-h-screen bg-white">
-            <div className="sticky top-0 z-10 bg-white border-b border-gray-200 px-6 py-4">
-              <DialogHeader className="pb-0">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <DialogTitle className="text-2xl font-bold text-gray-900">Quote Details</DialogTitle>
-                    <DialogDescription className="text-gray-600 mt-1">View quote information and items</DialogDescription>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={() => {
-                        if (selectedQuote) {
-                          // Simple download functionality
-                          const quoteData = {
-                            ...selectedQuote,
-                            downloadDate: new Date().toISOString()
-                          }
-                          const dataStr = JSON.stringify(quoteData, null, 2)
-                          const dataBlob = new Blob([dataStr], { type: 'application/json' })
-                          const url = URL.createObjectURL(dataBlob)
-                          const link = document.createElement('a')
-                          link.href = url
-                          link.download = `quote-${selectedQuote.id}.json`
-                          document.body.appendChild(link)
-                          link.click()
-                          document.body.removeChild(link)
-                          URL.revokeObjectURL(url)
-                        }
-                      }}
-                      disabled={!selectedQuote}
-                      className="flex items-center gap-2"
-                    >
-                      <FileDown className="h-4 w-4" />
-                      Download
-                    </Button>
-                  </div>
-                </div>
-              </DialogHeader>
-            </div>
-            
-            <div className="px-6 py-4">
-            {selectedQuote && (
-              <div className="space-y-6 max-w-6xl mx-auto">
-                {/* Header Information */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Quote Information</h3>
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-sm text-gray-600">Title:</span>
-                        <p className="font-medium">{selectedQuote.title}</p>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-600">Status:</span>
-                        <div className="mt-1">{getStatusBadge(selectedQuote.status)}</div>
-                      </div>
-                      <div>
-                        <span className="text-sm text-gray-600">Created:</span>
-                        <p className="font-medium">{formatDate(selectedQuote.createdAt)}</p>
-                      </div>
-                      {selectedQuote.description && (
-                        <div>
-                          <span className="text-sm text-gray-600">Description:</span>
-                          <p className="font-medium">{selectedQuote.description}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-2">Business Information</h3>
-                    <div className="space-y-2">
-                      <div>
-                        <span className="text-sm text-gray-600">Business:</span>
-                        <p className="font-medium">{selectedQuote.business.name}</p>
-                      </div>
-                      {selectedQuote.business.email && (
-                        <div>
-                          <span className="text-sm text-gray-600">Email:</span>
-                          <p className="font-medium">{selectedQuote.business.email}</p>
-                        </div>
-                      )}
-                      {selectedQuote.business.phone && (
-                        <div>
-                          <span className="text-sm text-gray-600">Phone:</span>
-                          <p className="font-medium">{selectedQuote.business.phone}</p>
-                        </div>
-                      )}
-                      {selectedQuote.business.location && (
-                        <div>
-                          <span className="text-sm text-gray-600">Location:</span>
-                          <p className="font-medium">{selectedQuote.business.location}</p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Quote Items */}
+        <DialogContent className="!w-[50vw] !max-w-none max-h-[90vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+          <DialogHeader>
+            <DialogTitle>Quote Details</DialogTitle>
+            <DialogDescription>View quote information and items</DialogDescription>
+          </DialogHeader>
+          
+          {selectedQuote && (
+            <div className="space-y-6">
+              {/* Header Information */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-4">Quote Items</h3>
-                  
-                  {/* Hardware Items */}
-                  {selectedQuote.items.filter(item => item.product.pricingType === 'one-off').length > 0 && (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <HardDrive className="h-5 w-5 text-blue-600" />
-                        <h4 className="font-medium">Hardware (One-off)</h4>
-                      </div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Product</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Price</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Total</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedQuote.items
-                            .filter(item => item.product.pricingType === 'one-off')
-                            .map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.product.name}</TableCell>
-                                <TableCell>{item.product.description || '-'}</TableCell>
-                                <TableCell>{formatCurrency(item.price)}</TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
+                  <h3 className="font-semibold text-gray-900 mb-2">Quote Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600">Title:</span>
+                      <p className="font-medium">{selectedQuote.title}</p>
                     </div>
-                  )}
-
-                  {/* Software Items */}
-                  {selectedQuote.items.filter(item => item.product.pricingType === 'monthly').length > 0 && (
-                    <div className="mb-6">
-                      <div className="flex items-center gap-2 mb-3">
-                        <Cloud className="h-5 w-5 text-green-600" />
-                        <h4 className="font-medium">Software (Monthly)</h4>
-                      </div>
-                      <Table>
-                        <TableHeader>
-                          <TableRow>
-                            <TableHead>Product</TableHead>
-                            <TableHead>Description</TableHead>
-                            <TableHead>Price/Month</TableHead>
-                            <TableHead>Quantity</TableHead>
-                            <TableHead>Total/Month</TableHead>
-                          </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                          {selectedQuote.items
-                            .filter(item => item.product.pricingType === 'monthly')
-                            .map((item) => (
-                              <TableRow key={item.id}>
-                                <TableCell className="font-medium">{item.product.name}</TableCell>
-                                <TableCell>{item.product.description || '-'}</TableCell>
-                                <TableCell>{formatCurrency(item.price)}</TableCell>
-                                <TableCell>{item.quantity}</TableCell>
-                                <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
-                              </TableRow>
-                            ))}
-                        </TableBody>
-                      </Table>
+                    <div>
+                      <span className="text-sm text-gray-600">Status:</span>
+                      <div className="mt-1">{getStatusBadge(selectedQuote.status)}</div>
                     </div>
-                  )}
+                    <div>
+                      <span className="text-sm text-gray-600">Created:</span>
+                      <p className="font-medium">{formatDate(selectedQuote.createdAt)}</p>
+                    </div>
+                    {selectedQuote.description && (
+                      <div>
+                        <span className="text-sm text-gray-600">Description:</span>
+                        <p className="font-medium">{selectedQuote.description}</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
+                
+                <div>
+                  <h3 className="font-semibold text-gray-900 mb-2">Business Information</h3>
+                  <div className="space-y-2">
+                    <div>
+                      <span className="text-sm text-gray-600">Business:</span>
+                      <p className="font-medium">{selectedQuote.business.name}</p>
+                    </div>
+                    {selectedQuote.business.email && (
+                      <div>
+                        <span className="text-sm text-gray-600">Email:</span>
+                        <p className="font-medium">{selectedQuote.business.email}</p>
+                      </div>
+                    )}
+                    {selectedQuote.business.phone && (
+                      <div>
+                        <span className="text-sm text-gray-600">Phone:</span>
+                        <p className="font-medium">{selectedQuote.business.phone}</p>
+                      </div>
+                    )}
+                    {selectedQuote.business.location && (
+                      <div>
+                        <span className="text-sm text-gray-600">Location:</span>
+                        <p className="font-medium">{selectedQuote.business.location}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Quote Items */}
+              <div>
+                <h3 className="font-semibold text-gray-900 mb-4">Quote Items</h3>
+                
+                {/* Hardware Items */}
+                {selectedQuote.items.filter(item => item.product.pricingType === 'one-off').length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <HardDrive className="h-5 w-5 text-blue-600" />
+                      <h4 className="font-medium">Hardware (One-off)</h4>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Price</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedQuote.items
+                          .filter(item => item.product.pricingType === 'one-off')
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.product.name}</TableCell>
+                              <TableCell>{item.product.description || '-'}</TableCell>
+                              <TableCell>{formatCurrency(item.price)}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+
+                {/* Software Items */}
+                {selectedQuote.items.filter(item => item.product.pricingType === 'monthly').length > 0 && (
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Cloud className="h-5 w-5 text-green-600" />
+                      <h4 className="font-medium">Software (Monthly)</h4>
+                    </div>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Product</TableHead>
+                          <TableHead>Description</TableHead>
+                          <TableHead>Price/Month</TableHead>
+                          <TableHead>Quantity</TableHead>
+                          <TableHead>Total/Month</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedQuote.items
+                          .filter(item => item.product.pricingType === 'monthly')
+                          .map((item) => (
+                            <TableRow key={item.id}>
+                              <TableCell className="font-medium">{item.product.name}</TableCell>
+                              <TableCell>{item.product.description || '-'}</TableCell>
+                              <TableCell>{formatCurrency(item.price)}</TableCell>
+                              <TableCell>{item.quantity}</TableCell>
+                              <TableCell>{formatCurrency(item.price * item.quantity)}</TableCell>
+                            </TableRow>
+                          ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
 
                 {/* Quote Summary */}
                 <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4">Quote Summary</h3>
-                    <div className="space-y-2">
-                      {(() => {
-                        const hardwareTotal = selectedQuote.items
-                          .filter(item => item.product.pricingType === 'one-off')
-                          .reduce((sum, item) => sum + (item.price * item.quantity), 0)
-                        const softwareTotal = selectedQuote.items
-                          .filter(item => item.product.pricingType === 'monthly')
-                          .reduce((sum, item) => sum + (item.price * item.quantity), 0)
-                        const subtotal = hardwareTotal + softwareTotal
-                        const vat = subtotal * 0.20
-                        const total = subtotal + vat
-
-                        return (
-                          <>
-                            {hardwareTotal > 0 && (
-                              <div className="flex justify-between">
-                                <span>Hardware Total:</span>
-                                <span>{formatCurrency(hardwareTotal)}</span>
-                              </div>
-                            )}
-                            {softwareTotal > 0 && (
-                              <div className="flex justify-between">
-                                <span>Software Total:</span>
-                                <span>{formatCurrency(softwareTotal)}/month</span>
-                              </div>
-                            )}
-                            <Separator />
-                            <div className="flex justify-between font-semibold">
-                              <span>Subtotal:</span>
-                              <span>{formatCurrency(subtotal)}</span>
-                            </div>
-                            <div className="flex justify-between">
-                              <span>VAT (20%):</span>
-                              <span>{formatCurrency(vat)}</span>
-                            </div>
-                            <Separator />
-                            <div className="flex justify-between text-lg font-bold">
-                              <span>Total:</span>
-                              <span>{formatCurrency(total)}</span>
-                            </div>
-                          </>
-                        )
-                      })()}
+                  <CardHeader>
+                    <CardTitle>Quote Summary</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      {selectedQuote.items.filter(item => item.product.pricingType === 'one-off').length > 0 && (
+                        <div className="flex justify-between">
+                          <span>Hardware Total:</span>
+                          <span>{formatCurrency(
+                            selectedQuote.items
+                              .filter(item => item.product.pricingType === 'one-off')
+                              .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                          )}</span>
+                        </div>
+                      )}
+                      {selectedQuote.items.filter(item => item.product.pricingType === 'monthly').length > 0 && (
+                        <div className="flex justify-between">
+                          <span>Software Total:</span>
+                          <span>{formatCurrency(
+                            selectedQuote.items
+                              .filter(item => item.product.pricingType === 'monthly')
+                              .reduce((sum, item) => sum + (item.price * item.quantity), 0)
+                          )}/month</span>
+                        </div>
+                      )}
+                      <Separator />
+                      <div className="flex justify-between">
+                        <span>Subtotal:</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount / 1.2)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>VAT (20%):</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount - (selectedQuote.totalAmount / 1.2))}</span>
+                      </div>
+                      <Separator />
+                      <div className="flex justify-between font-semibold text-lg">
+                        <span>Total:</span>
+                        <span>{formatCurrency(selectedQuote.totalAmount)}</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
-
-                {/* Actions */}
-                <div className="flex justify-end gap-3 pt-4 border-t">
-                  <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
-                    Close
-                  </Button>
-                  {selectedQuote.user === currentUser?.id && selectedQuote.status === 'draft' && (
-                    <Button 
-                      onClick={() => {
-                        setIsViewQuoteOpen(false)
-                        handleEditQuote(selectedQuote)
-                      }}
-                      className="bg-blue-600 hover:bg-blue-700"
-                    >
-                      <Edit className="h-4 w-4 mr-2" />
-                      Edit Quote
-                    </Button>
-                  )}
-                </div>
               </div>
-            )}
+
+              {/* Actions */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
+                  Close
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => {
+                    setIsViewQuoteOpen(false)
+                    handleEditQuote(selectedQuote)
+                  }}
+                >
+                  <Edit className="h-4 w-4 mr-2" />
+                  Edit Quote
+                </Button>
+              </div>
             </div>
-          </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>
