@@ -50,7 +50,7 @@ async function getCompanyLogoUrl() {
       // Create a simple SVG fallback
       const svgFallback = `
         <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
-          <rect width="120" height="120" fill="#3B82F6" rx="8"/>
+          <rect width="120" height="120" fill="#1F2937" rx="8"/>
           <text x="60" y="60" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="14" font-weight="bold">CSE</text>
           <text x="60" y="80" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="10">Central Hub</text>
         </svg>
@@ -65,7 +65,7 @@ async function getCompanyLogoUrl() {
     // Ultimate fallback
     const svgFallback = `
       <svg width="120" height="120" xmlns="http://www.w3.org/2000/svg">
-        <rect width="120" height="120" fill="#3B82F6" rx="8"/>
+        <rect width="120" height="120" fill="#1F2937" rx="8"/>
         <text x="60" y="60" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="14" font-weight="bold">CSE</text>
         <text x="60" y="80" text-anchor="middle" dy="0.3em" fill="white" font-family="Arial" font-size="10">Central Hub</text>
       </svg>
@@ -166,8 +166,449 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// PDF Document Component with Template Support
-const QuoteDocument = ({ quote, logoUrl, template }: { quote: any; logoUrl: string; template: any }) => {
+// Create styles function based on template
+function createStyles(template: any) {
+  return StyleSheet.create({
+    page: {
+      flexDirection: 'column',
+      backgroundColor: '#FFFFFF',
+      padding: 30, // Reduced from 40 to 30 for more content space
+      fontFamily: 'Helvetica',
+      position: 'relative',
+    },
+    // Background design elements - more subtle approach
+    backgroundAccent: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: -1,
+    },
+    topAccent: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: 2,
+      backgroundColor: '#e63946',
+      opacity: 1, // Changed from 0.3 to 1 for full opacity
+    },
+    bottomAccent: {
+      position: 'absolute',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      height: 1,
+      backgroundColor: '#e63946',
+      opacity: 1, // Changed from 0.3 to 1 for full opacity
+    },
+    sideAccentLeft: {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      bottom: 0,
+      width: 1,
+      backgroundColor: '#e63946',
+      opacity: 1, // Changed from 0.2 to 1 for full opacity
+    },
+    // Creative background elements with softer red - improved for readability
+    backgroundCircle: {
+      position: 'absolute',
+      width: 150, // Reduced from 200
+      height: 150, // Reduced from 200
+      borderRadius: 75, // Half of width/height
+      backgroundColor: '#f87171',
+      opacity: 0.03, // Reduced from 0.1 to prevent dark overlaps
+    },
+    backgroundCircleTopRight: {
+      top: -30, // Adjusted position
+      right: -30, // Adjusted position
+    },
+    backgroundCircleBottomLeft: {
+      bottom: -30, // Adjusted position
+      left: -30, // Adjusted position
+    },
+    backgroundCircleTopLeft: {
+      top: -20, // New position
+      left: -20, // New position
+      width: 100, // Smaller size
+      height: 100, // Smaller size
+      borderRadius: 50, // Half of width/height
+    },
+    backgroundCircleBottomRight: {
+      bottom: -20, // New position
+      right: -20, // New position
+      width: 120, // Smaller size
+      height: 120, // Smaller size
+      borderRadius: 60, // Half of width/height
+    },
+    backgroundDiagonal: {
+      position: 'absolute',
+      top: -100, // Moved further away from content
+      right: -100, // Moved further away from content
+      width: 200, // Reduced from 300
+      height: 200, // Reduced from 300
+      backgroundColor: '#f87171',
+      opacity: 0.02, // Reduced from 0.05 for even more subtlety
+      transform: 'rotate(45deg)',
+      transformOrigin: 'top right',
+    },
+    cornerDecoration: {
+      position: 'absolute',
+      width: 80,
+      height: 80,
+      border: '1 solid #e63946',
+      opacity: 1, // Changed from 0.05 to 1 for full opacity
+    },
+    cornerDecorationTopRight: {
+      top: 20,
+      right: 20,
+      borderBottom: 'none',
+      borderLeft: 'none',
+    },
+    cornerDecorationBottomLeft: {
+      bottom: 20,
+      left: 20,
+      borderTop: 'none',
+      borderRight: 'none',
+    },
+    // Cover Page Styles
+    coverPage: {
+      flex: 1,
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'flex-end', // Changed from 'center' to move elements to bottom
+      paddingBottom: 80, // Add padding from bottom
+      minHeight: '70%', // Ensure cover page takes good portion of page
+      position: 'relative',
+    },
+    coverLogoContainer: {
+      marginBottom: 50, // Reduced from 60
+    },
+    coverLogo: {
+      width: 240,
+      height: 80,
+      objectFit: 'contain',
+    },
+    coverTitle: {
+      fontSize: 48,
+      fontWeight: 'bold',
+      color: '#1F2937',
+      marginBottom: 20, // Reduced from 24
+    },
+    coverSubtitle: {
+      fontSize: 18,
+      color: '#6B7280',
+      marginBottom: 60, // Reduced from 80
+    },
+    coverInfoContainer: {
+      width: '100%',
+      maxWidth: 672,
+      flexDirection: 'row', // Changed back to row for side-by-side layout
+      alignItems: 'flex-start', // Align items to top
+      justifyContent: 'space-between', // Space boxes evenly
+    },
+    coverInfoBox: {
+      width: '48%', // Each box takes up roughly half the width
+      backgroundColor: '#F9FAFB',
+      borderRadius: 8,
+      padding: 20,
+      borderLeft: '4 solid #e63946', // Original logo red
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+      alignItems: 'center',
+    },
+    coverInfoColumn: {
+      flex: 1,
+      alignItems: 'center', // Center content in each column
+    },
+    coverInfoSection: {
+      width: '100%',
+      alignItems: 'center',
+    },
+    coverSectionTitle: {
+      fontSize: 20,
+      fontWeight: 'bold',
+      color: '#e63946', // Original logo red
+      marginBottom: 12, // Reduced from 16
+      textAlign: 'center', // Center the title text
+    },
+    coverBusinessName: {
+      fontSize: 14,
+      fontWeight: 'bold',
+      color: '#1F2937',
+      marginBottom: 3, // Reduced from 4
+      textAlign: 'center', // Center the business name
+    },
+    coverBusinessInfo: {
+      fontSize: 12,
+      color: '#1F2937',
+      marginBottom: 1, // Reduced from 2
+      textAlign: 'center', // Center the business info
+    },
+    coverDetailLabel: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#1F2937',
+      marginBottom: 1, // Added spacing
+      textAlign: 'center', // Center the detail labels
+    },
+    coverDetailValue: {
+      fontSize: 12,
+      color: '#1F2937',
+      marginBottom: 2, // Added spacing between rows
+      textAlign: 'center', // Center the detail values
+    },
+    
+    // Content Page Styles
+    contentPage: {
+      flex: 1,
+      flexDirection: 'column',
+      position: 'relative',
+    },
+    pageHeader: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginBottom: 25, // Reduced from 32
+      borderBottom: '1 solid #E5E7EB', // Changed to light grey
+      opacity: 1, // Changed from 0.3 to 1 for full opacity
+      paddingBottom: 12,
+    },
+    pageHeaderInfo: {
+      alignItems: 'flex-end',
+    },
+    pageHeaderCompany: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#e63946', // Original logo red
+      marginBottom: 1, // Reduced from 2
+      opacity: 1, // Ensure 100% opacity
+    },
+    pageHeaderDetail: {
+      fontSize: 10,
+      color: '#1F2937',
+      marginBottom: 0, // Removed spacing
+      opacity: 1, // Ensure 100% opacity
+    },
+    sectionTitle: {
+      fontSize: 24,
+      fontWeight: 'bold',
+      color: '#1F2937',
+      marginBottom: 16, // Reduced from 24 to save space and prevent blank pages
+      position: 'relative',
+      opacity: 1, // Ensure 100% opacity
+    },
+    sectionDivider: {
+      borderBottom: '2 solid #e63946', // Original logo red
+      marginBottom: 12, // Reduced from 20 to save space and prevent blank pages
+      width: 40,
+      opacity: 1, // Ensure 100% opacity
+    },
+    table: {
+      width: '100%',
+      marginBottom: 15, // Reduced from 25 to save space and prevent blank pages
+      border: '1 solid #E5E7EB',
+      borderRadius: 4,
+      overflow: 'hidden',
+    },
+    tableHeader: {
+      flexDirection: 'row',
+      backgroundColor: '#F9FAFB',
+      borderBottom: '2 solid #e63946', // Original logo red
+      paddingTop: 12, // Increased from 0 to add top padding
+      paddingBottom: 12, // Increased from 6 to add bottom padding
+      marginBottom: 8, // Increased from 6 to add more space before table rows
+    },
+    tableHeaderCell: {
+      fontSize: 12,
+      fontWeight: 'bold',
+      color: '#1F2937',
+    },
+    tableHeaderCellLeft: {
+      flex: 4,
+      paddingLeft: 12, // Added left padding to match table cells
+      paddingRight: 8, // Added right padding for better spacing
+    },
+    tableHeaderCellRight: {
+      flex: 1,
+      textAlign: 'right',
+      paddingLeft: 8, // Added left padding for better spacing
+      paddingRight: 12, // Added right padding to match table cells
+    },
+    tableRow: {
+      flexDirection: 'row',
+      borderBottom: '1 solid #E5E7EB',
+      paddingTop: 12, // Increased from 8
+      paddingBottom: 12, // Increased from 8
+      backgroundColor: '#FFFFFF',
+    },
+    tableRowEven: {
+      backgroundColor: '#F9FAFB',
+    },
+    tableCellLeft: {
+      flex: 4,
+      fontSize: 11,
+      color: '#1F2937',
+      paddingLeft: 12, // Added left padding to bring content away from edge
+      paddingRight: 8, // Added right padding for better spacing
+    },
+    tableCellRight: {
+      flex: 1,
+      fontSize: 11,
+      color: '#1F2937',
+      textAlign: 'right',
+      paddingLeft: 8, // Added left padding for better spacing
+      paddingRight: 12, // Added right padding to bring content away from edge
+    },
+    pricingContainer: {
+      width: 256,
+      alignSelf: 'flex-end',
+      marginBottom: 20, // Reduced from 35 to save space and prevent blank pages
+      backgroundColor: '#F9FAFB',
+      border: '1 solid #E5E7EB',
+      borderRadius: 4,
+      padding: 12,
+    },
+    pricingRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: 5, // Reduced from 8
+    },
+    pricingLabel: {
+      fontSize: 11,
+      color: '#1F2937',
+    },
+    pricingValue: {
+      fontSize: 11,
+      color: '#1F2937',
+    },
+    pricingTotalRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: 6, // Reduced from 8
+      paddingTop: 6, // Reduced from 8
+      borderTop: '2 solid #e63946', // Original logo red
+    },
+    pricingTotalLabel: {
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: '#1F2937',
+    },
+    pricingTotalValue: {
+      fontSize: 11,
+      fontWeight: 'bold',
+      color: '#e63946', // Original logo red
+    },
+    
+    // Terms Page Styles - Optimized for better spacing
+    termsSection: {
+      marginBottom: 12, // Reduced from 18 to save space and prevent blank pages
+    },
+    termsBox: {
+      backgroundColor: '#F9FAFB',
+      borderLeft: '4 solid #e63946', // Original logo red
+      paddingLeft: 14, // Reduced from 16
+      paddingVertical: 12, // Reduced from 16
+      marginBottom: 18, // Reduced from 24
+      borderRadius: 4,
+      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
+    },
+    termsBoxTitle: {
+      fontSize: 16, // Reduced from 18
+      fontWeight: 'bold',
+      color: '#1F2937',
+      marginBottom: 6, // Reduced from 8
+    },
+    termsBoxContent: {
+      fontSize: 9, // Reduced from 10
+      color: '#1F2937',
+      lineHeight: 1.3, // Reduced from 1.4
+    },
+    termsList: {
+      marginLeft: 14, // Reduced from 16
+      marginBottom: 6, // Reduced from 8
+    },
+    termsListItem: {
+      fontSize: 9, // Reduced from 10
+      color: '#1F2937',
+      marginBottom: 5, // Reduced from 8
+      lineHeight: 1.3, // Reduced from 1.4
+    },
+    termsBold: {
+      fontWeight: 'bold',
+      color: '#e63946', // Original logo red
+    },
+    
+    // Footer Styles
+    pageNumber: {
+      fontSize: 9, // Reduced from 10
+      color: '#6B7280',
+      textAlign: 'center',
+      marginTop: 'auto',
+      paddingTop: 12, // Reduced from 16
+      borderTop: '1 solid #E5E7EB', // Changed to light grey
+      opacity: 1, // Changed from 0.3 to 1 for full opacity
+    },
+  })
+}
+
+// Generate PDF function
+async function generateQuotePDF(quote: any, logoUrl: string, template: any) {
+  try {
+    // Import the PDF rendering functions and Font
+    const { renderToStream, renderToBuffer, Font } = await import('@react-pdf/renderer')
+    
+    // Register fonts if needed
+    try {
+      // Try to register Georgia font, fallback to Helvetica if not available
+      Font.register({
+        family: 'Georgia',
+        src: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Regular.ttf',
+        fallback: 'Helvetica'
+      })
+      Font.register({
+        family: 'Georgia-Bold',
+        src: 'https://cdnjs.cloudflare.com/ajax/libs/pdfmake/0.1.66/fonts/Roboto/Roboto-Medium.ttf',
+        fallback: 'Helvetica-Bold'
+      })
+      Font.register({
+        family: 'Times-Roman',
+        fallback: 'Helvetica'
+      })
+      Font.register({
+        family: 'Times-Bold',
+        fallback: 'Helvetica-Bold'
+      })
+    } catch (fontError) {
+      console.warn('Font registration failed, using fallbacks:', fontError.message)
+    }
+    
+    // Create the PDF document component
+    const pdfDocument = createQuoteDocument(quote, logoUrl, template)
+    
+    // Try renderToBuffer first, fallback to renderToStream if needed
+    try {
+      const pdfBuffer = await renderToBuffer(pdfDocument)
+      return pdfBuffer
+    } catch (bufferError) {
+      console.warn('renderToBuffer failed, trying renderToStream:', bufferError.message)
+      const pdfStream = await renderToStream(pdfDocument)
+      
+      // Convert stream to buffer
+      const chunks: Buffer[] = []
+      for await (const chunk of pdfStream) {
+        chunks.push(chunk)
+      }
+      return Buffer.concat(chunks)
+    }
+  } catch (error) {
+    console.error('Error generating PDF:', error)
+    throw new Error('Failed to generate PDF')
+  }
+}
+
+// Create PDF document component function
+function createQuoteDocument(quote: any, logoUrl: string, template: any) {
   const formatDate = (date: Date | string) => {
     return new Date(date).toLocaleDateString('en-GB', {
       year: 'numeric',
@@ -183,656 +624,374 @@ const QuoteDocument = ({ quote, logoUrl, template }: { quote: any; logoUrl: stri
     }).format(amount)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'draft': return '#856404'
-      case 'sent': return '#0c5460'
-      case 'accepted': return '#155724'
-      case 'rejected': return '#721c24'
-      default: return '#666666'
-    }
-  }
+  // Separate items by pricing type
+  const oneOffItems = quote.items.filter((item: any) => item.product.pricingType === 'one-off')
+  const monthlyItems = quote.items.filter((item: any) => item.product.pricingType === 'monthly')
+  
+  // Calculate totals
+  const oneOffTotal = oneOffItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+  const monthlyTotal = monthlyItems.reduce((sum: number, item: any) => sum + (item.price * item.quantity), 0)
+  const grandTotal = quote.totalAmount
+  const subtotal = grandTotal / 1.2
+  const vat = grandTotal * 0.2 / 1.2
 
-  // Check if quote has many items (potential multi-page)
-  const isMultiPage = quote.items.length > 6
+  const styles = createStyles(template)
 
   return (
     <Document>
-      <Page size={template.layout.pageSize} style={createStyles(template)}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View style={styles.headerLeft}>
-              <Text style={styles.title}>Quote</Text>
-              <Text style={styles.subtitle}>Quote #{quote.id.slice(-6)}</Text>
-            </View>
-            <View style={styles.headerRight}>
-              <Image src={logoUrl} style={styles.companyLogo} alt="Company Logo" />
-              <Text style={styles.companyName}>CSE Central Hub</Text>
-              <Text style={styles.subtitle}>Date: {formatDate(quote.createdAt)}</Text>
-            </View>
-          </View>
-          <View style={styles.statusContainer}>
-            <Text style={[styles.status, { backgroundColor: getStatusColor(quote.status) }]}>
-              {quote.status.toUpperCase()}
-            </Text>
-          </View>
+      {/* Page 1: Cover Page */}
+      <Page size="A4" style={styles.page}>
+        {/* Background Design Elements */}
+        <View style={styles.backgroundAccent}>
+          <View style={styles.topAccent} />
+          <View style={styles.bottomAccent} />
+          <View style={styles.sideAccentLeft} />
+          {/* Creative background elements with softer red - improved positioning */}
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopRight]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomLeft]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopLeft]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomRight]} />
+          <View style={styles.backgroundDiagonal} />
+          <View style={[styles.cornerDecoration, styles.cornerDecorationTopRight]} />
+          <View style={[styles.cornerDecoration, styles.cornerDecorationBottomLeft]} />
         </View>
-
-        {/* Business Information */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Business Information</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Name:</Text>
-            <Text style={styles.value}>{quote.business.name}</Text>
-          </View>
-          {quote.business.description && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Description:</Text>
-              <Text style={styles.value}>{quote.business.description}</Text>
-            </View>
-          )}
-          {quote.business.location && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Location:</Text>
-              <Text style={styles.value}>{quote.business.location}</Text>
-            </View>
-          )}
-          {quote.business.email && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Email:</Text>
-              <Text style={styles.value}>{quote.business.email}</Text>
-            </View>
-          )}
-          {quote.business.phone && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Phone:</Text>
-              <Text style={styles.value}>{quote.business.phone}</Text>
-            </View>
-          )}
-        </View>
-
-        {/* Quote Details */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quote Details</Text>
-          <View style={styles.row}>
-            <Text style={styles.label}>Title:</Text>
-            <Text style={styles.value}>{quote.title}</Text>
-          </View>
-          {quote.description && (
-            <View style={styles.row}>
-              <Text style={styles.label}>Description:</Text>
-              <Text style={styles.value}>{quote.description}</Text>
-            </View>
-          )}
-          <View style={styles.row}>
-            <Text style={styles.label}>Created By:</Text>
-            <Text style={styles.value}>{quote.user?.name || 'Unknown'}</Text>
-          </View>
-        </View>
-
-        {/* Quote Items */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Quote Items</Text>
-          <View style={styles.table}>
-            {/* Table Header */}
-            <View style={styles.tableRow}>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 3 }]}>Item</Text>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 1 }]}>Qty</Text>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 2 }]}>Unit Price</Text>
-              <Text style={[styles.tableCell, styles.tableHeader, { flex: 2 }]}>Total</Text>
-            </View>
-            
-            {/* Table Rows */}
-            {quote.items.map((item: any, index: number) => (
-              <View key={index} style={styles.tableRow}>
-                <Text style={[styles.tableCell, { flex: 3 }]}>{item.product.name}</Text>
-                <Text style={[styles.tableCell, { flex: 1 }]}>{item.quantity}</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{formatCurrency(item.price)}</Text>
-                <Text style={[styles.tableCell, { flex: 2 }]}>{formatCurrency(item.price * item.quantity)}</Text>
-              </View>
-            ))}
+        
+        <View style={styles.coverPage}>
+          {/* Logo */}
+          <View style={styles.coverLogoContainer}>
+            <Image src={logoUrl} style={styles.coverLogo} alt="Company Logo" />
           </View>
           
-          {/* Total */}
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>Subtotal:</Text>
-            <Text style={styles.totalValue}>{formatCurrency(quote.totalAmount / 1.2)}</Text>
-          </View>
-          <View style={styles.totalContainer}>
-            <Text style={styles.totalLabel}>VAT (20%):</Text>
-            <Text style={styles.totalValue}>{formatCurrency(quote.totalAmount * 0.2 / 1.2)}</Text>
-          </View>
-          <View style={styles.totalContainer}>
-            <Text style={[styles.totalLabel, styles.totalFinal]}>Total Amount:</Text>
-            <Text style={[styles.totalValue, styles.totalFinal]}>{formatCurrency(quote.totalAmount)}</Text>
+          {/* Title */}
+          <Text style={styles.coverTitle}>Quotation</Text>
+          
+          {/* Business Information */}
+          <View style={styles.coverInfoContainer}>
+            {/* Prepared For Box */}
+            <View style={styles.coverInfoBox}>
+              <View style={styles.coverInfoSection}>
+                <Text style={styles.coverSectionTitle}>Prepared For</Text>
+                <Text style={styles.coverBusinessName}>{quote.business.name}</Text>
+                {quote.business.location && (
+                  <Text style={styles.coverBusinessInfo}>{quote.business.location}</Text>
+                )}
+                {quote.business.description && (
+                  <Text style={styles.coverBusinessInfo}>{quote.business.description}</Text>
+                )}
+              </View>
+            </View>
+            
+            {/* Details Box */}
+            <View style={styles.coverInfoBox}>
+              <View style={styles.coverInfoSection}>
+                <Text style={styles.coverSectionTitle}>Details</Text>
+                <Text style={styles.coverDetailLabel}>Quote Number:</Text>
+                <Text style={styles.coverDetailValue}>Q-{new Date().getFullYear()}-{String(quote.id).slice(-4).padStart(4, '0')}</Text>
+                <Text style={styles.coverDetailLabel}>Date:</Text>
+                <Text style={styles.coverDetailValue}>{formatDate(quote.createdAt)}</Text>
+              </View>
+            </View>
           </View>
         </View>
-
-        {/* Terms and Conditions */}
-        <View style={styles.termsSection}>
-          <Text style={styles.termsTitle}>Terms and Conditions</Text>
-          <Text style={styles.termsText}>
-            • Payment terms: 30 days from invoice date
-          </Text>
-          <Text style={styles.termsText}>
-            • Prices valid for 30 days from quote date
-          </Text>
-          <Text style={styles.termsText}>
-            • Subject to our standard terms and conditions
-          </Text>
-          <Text style={styles.termsText}>
-            • Delivery time: 2-4 weeks from order confirmation
-          </Text>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>
-            CSE Central Hub - Business Management System
-          </Text>
-          <Text style={styles.footerText}>
-            For questions or concerns, please contact your account manager.
-          </Text>
-          <Text style={styles.footerText}>
-            Email: info@csecentralhub.com | Phone: +44 (0) 1234 567890
-          </Text>
-          <Text style={styles.pageNumber}>
-            Page 1{isMultiPage ? ' of 2' : ' of 1'}
-          </Text>
-        </View>
+        
+        {/* Page Number */}
+        <Text style={styles.pageNumber}>Page 1</Text>
       </Page>
-      
-      {/* Second page for very large quotes */}
-      {isMultiPage && (
-        <Page size={template.layout.pageSize} style={createStyles(template)}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.headerRow}>
-              <View style={styles.headerLeft}>
-                <Text style={styles.title}>Quote</Text>
-                <Text style={styles.subtitle}>Quote #{quote.id.slice(-6)} (Continued)</Text>
-              </View>
-              <View style={styles.headerRight}>
-                <Text style={styles.companyName}>CSE Central Hub</Text>
-                <Text style={styles.subtitle}>Date: {formatDate(quote.createdAt)}</Text>
-              </View>
+
+      {/* Page 2: Hardware & Software */}
+      <Page size="A4" style={styles.page}>
+        {/* Background Design Elements */}
+        <View style={styles.backgroundAccent}>
+          <View style={styles.topAccent} />
+          <View style={styles.bottomAccent} />
+          <View style={styles.sideAccentLeft} />
+          {/* Creative background elements with softer red - improved positioning */}
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopRight]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomLeft]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopLeft]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomRight]} />
+          <View style={styles.backgroundDiagonal} />
+        </View>
+        
+        <View style={styles.contentPage}>
+          {/* Page Header */}
+          <View style={styles.pageHeader}>
+            <View style={styles.pageHeaderInfo}>
+              <Text style={styles.pageHeaderCompany}>Cornwall Scales Ltd</Text>
+              <Text style={styles.pageHeaderDetail}>Quote: Q-{new Date().getFullYear()}-{String(quote.id).slice(-4).padStart(4, '0')}</Text>
+              <Text style={styles.pageHeaderDetail}>Date: {formatDate(quote.createdAt)}</Text>
             </View>
           </View>
 
-          {/* Additional Notes Section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Additional Information</Text>
-            <Text style={styles.notesText}>
-              This quote includes comprehensive hardware and software solutions tailored to your business needs. 
-              All products come with manufacturer warranty and our standard support package.
-            </Text>
-            <Text style={styles.notesText}>
-              Installation and training services are available upon request. Please contact us for a detailed 
-              implementation plan and timeline.
-            </Text>
-          </View>
+          {/* Hardware & Initial Setup Section */}
+          {oneOffItems.length > 0 && (
+            <View style={styles.termsSection}>
+              <Text style={styles.sectionTitle}>Hardware & Initial Setup</Text>
+              <View style={styles.sectionDivider} />
+              
+              <View style={styles.table}>
+                {/* Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableHeaderCell, styles.tableHeaderCellLeft]}>DESCRIPTION</Text>
+                  <Text style={[styles.tableHeaderCell, styles.tableHeaderCellRight]}>TOTAL</Text>
+                </View>
+                
+                {/* Table Rows */}
+                {oneOffItems.map((item: any, index: number) => (
+                  <View key={index} style={styles.tableRow}>
+                    <Text style={styles.tableCellLeft}>{item.product.name}</Text>
+                    <Text style={styles.tableCellRight}>{formatCurrency(item.price * item.quantity)}</Text>
+                  </View>
+                ))}
+              </View>
+              
+              {/* Pricing Summary */}
+              <View style={styles.pricingContainer}>
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>Sub Total</Text>
+                  <Text style={styles.pricingValue}>{formatCurrency(oneOffTotal)}</Text>
+                </View>
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>VAT (20%)</Text>
+                  <Text style={styles.pricingValue}>{formatCurrency(vat)}</Text>
+                </View>
+                <View style={styles.pricingTotalRow}>
+                  <Text style={styles.pricingTotalLabel}>Initial Purchase Cost</Text>
+                  <Text style={styles.pricingTotalValue}>{formatCurrency(grandTotal)}</Text>
+                </View>
+              </View>
+            </View>
+          )}
 
-          {/* Signature Section */}
-          <View style={styles.signatureSection}>
-            <Text style={styles.signatureTitle}>Acceptance</Text>
-            <Text style={styles.signatureText}>
-              Please sign below to accept this quote and authorize the work to begin.
-            </Text>
-            <View style={styles.signatureRow}>
-              <View style={styles.signatureBox}>
-                <Text style={styles.signatureLabel}>Customer Signature:</Text>
-                <View style={styles.signatureLine}></View>
-                <Text style={styles.signatureDate}>Date: _______________</Text>
+          {/* Software & Support Section */}
+          {monthlyItems.length > 0 && (
+            <View style={styles.termsSection}>
+              <Text style={styles.sectionTitle}>Software & Support</Text>
+              <View style={styles.sectionDivider} />
+              
+              <View style={styles.table}>
+                {/* Table Header */}
+                <View style={styles.tableHeader}>
+                  <Text style={[styles.tableHeaderCell, styles.tableHeaderCellLeft]}>DESCRIPTION</Text>
+                  <Text style={[styles.tableHeaderCell, styles.tableHeaderCellRight]}>PER MONTH</Text>
+                </View>
+                
+                {/* Table Rows */}
+                {monthlyItems.map((item: any, index: number) => (
+                  <View key={index} style={styles.tableRow}>
+                    <Text style={styles.tableCellLeft}>{item.product.name}</Text>
+                    <Text style={styles.tableCellRight}>{formatCurrency(item.price * item.quantity)}</Text>
+                  </View>
+                ))}
               </View>
-              <View style={styles.signatureBox}>
-                <Text style={styles.signatureLabel}>Company Representative:</Text>
-                <View style={styles.signatureLine}></View>
-                <Text style={styles.signatureDate}>Date: _______________</Text>
+              
+              {/* Pricing Summary */}
+              <View style={styles.pricingContainer}>
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>Sub Total</Text>
+                  <Text style={styles.pricingValue}>{formatCurrency(monthlyTotal)}</Text>
+                </View>
+                <View style={styles.pricingRow}>
+                  <Text style={styles.pricingLabel}>VAT (20%)</Text>
+                  <Text style={styles.pricingValue}>{formatCurrency(monthlyTotal * 0.2)}</Text>
+                </View>
+                <View style={styles.pricingTotalRow}>
+                  <Text style={styles.pricingTotalLabel}>Monthly Costs</Text>
+                  <Text style={styles.pricingTotalValue}>{formatCurrency(monthlyTotal * 1.2)}</Text>
+                </View>
               </View>
+            </View>
+          )}
+        </View>
+        
+        {/* Page Number */}
+        <Text style={styles.pageNumber}>Page 2</Text>
+      </Page>
+
+      {/* Page 3: Terms and Conditions */}
+      <Page size="A4" style={styles.page}>
+        {/* Background Design Elements */}
+        <View style={styles.backgroundAccent}>
+          <View style={styles.topAccent} />
+          <View style={styles.bottomAccent} />
+          <View style={styles.sideAccentLeft} />
+          {/* Creative background elements with softer red - improved positioning */}
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopRight]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomLeft]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopLeft]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomRight]} />
+          <View style={styles.backgroundDiagonal} />
+        </View>
+        
+        <View style={styles.contentPage}>
+          {/* Page Header */}
+          <View style={styles.pageHeader}>
+            <View style={styles.pageHeaderInfo}>
+              <Text style={styles.pageHeaderCompany}>Cornwall Scales Ltd</Text>
+              <Text style={styles.pageHeaderDetail}>Quote: Q-{new Date().getFullYear()}-{String(quote.id).slice(-4).padStart(4, '0')}</Text>
+              <Text style={styles.pageHeaderDetail}>Date: {formatDate(quote.createdAt)}</Text>
             </View>
           </View>
 
-          {/* Footer */}
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>
-              CSE Central Hub - Business Management System
-            </Text>
-            <Text style={styles.footerText}>
-              Thank you for your business!
-            </Text>
-            <Text style={styles.pageNumber}>
-              Page 2 of 2
-            </Text>
+          {/* Terms and Conditions */}
+          <Text style={styles.sectionTitle}>General Terms and Conditions</Text>
+          <View style={styles.sectionDivider} />
+          
+          {/* Contact Details */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>Contact Details</Text>
+            <Text style={styles.termsBoxContent}>Cornwall Scale & Equipment Ltd (CSE LTD)</Text>
+            <Text style={styles.termsBoxContent}>Unit 2 Tregrehan Workshops, Tregrehan Mills, St Austell, Cornwall, PL25 3TQ</Text>
+            <Text style={styles.termsBoxContent}>Telephone: 0333 577 0108 | Email: info@cornwallscalesltd.co.uk</Text>
           </View>
-        </Page>
-      )}
+
+          {/* Payment Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>1. Payment</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Deposit:</Text> 50% required with order confirmation (Bacs, cash, debit, credit card).</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Bank Details:</Text> Barclays Bank PLC | Acc: 50839132 | Sort: 20-87-94</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Payment Terms:</Text> Due within 30 days unless otherwise agreed.</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Ownership:</Text> Equipment remains property of CSE Ltd until full payment.</Text>
+            </View>
+          </View>
+
+          {/* Warranty Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>2. Warranty and Return Policy</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}>New products: 12-month onsite/RTB guarantee. Reconditioned: 6-month onsite/RTB guarantee.</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Exclusions:</Text> No cover for intentional/accidental misuse or liquid ingress.</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Shipping:</Text> Customer responsible for return shipping costs and insurance.</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Data:</Text> CSE Ltd not liable for data loss or compatibility issues.</Text>
+            </View>
+          </View>
+        </View>
+        
+        {/* Page Number */}
+        <Text style={styles.pageNumber}>Page 3</Text>
+      </Page>
+
+      {/* Page 4: Additional Terms */}
+      <Page size="A4" style={styles.page}>
+        {/* Background Design Elements */}
+        <View style={styles.backgroundAccent}>
+          <View style={styles.topAccent} />
+          <View style={styles.bottomAccent} />
+          <View style={styles.sideAccentLeft} />
+          {/* Creative background elements with softer red */}
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopRight]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomLeft]} />
+          <View style={styles.backgroundDiagonal} />
+        </View>
+        
+        <View style={styles.contentPage}>
+          {/* Page Header */}
+          <View style={styles.pageHeader}>
+            <View style={styles.pageHeaderInfo}>
+              <Text style={styles.pageHeaderCompany}>Cornwall Scales Ltd</Text>
+              <Text style={styles.pageHeaderDetail}>Quote: Q-{new Date().getFullYear()}-{String(quote.id).slice(-4).padStart(4, '0')}</Text>
+              <Text style={styles.pageHeaderDetail}>Date: {formatDate(quote.createdAt)}</Text>
+            </View>
+          </View>
+
+          {/* Returns Policy */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>3. Returns Policy</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}>Returns within 7 days with all manuals, attachments, and original packaging.</Text>
+              <Text style={styles.termsListItem}>No-fault returns subject to 30% + VAT restocking charge.</Text>
+              <Text style={styles.termsListItem}>Damage/missing parts must be reported within 24 hours of delivery.</Text>
+              <Text style={styles.termsListItem}>Postage costs non-refundable. Customer may arrange own courier.</Text>
+            </View>
+          </View>
+
+          {/* Late Payment Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>4. Late Payment and Equipment Removal</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Late Payment:</Text> 10% weekly surcharge after 5-day grace period.</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Equipment Removal:</Text> Right to reclaim equipment. £400 + VAT reinstallation fee.</Text>
+            </View>
+          </View>
+
+          {/* Equipment Hire Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>5. Equipment Hire</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}>First month's rental and setup due upon delivery. Standing order required.</Text>
+              <Text style={styles.termsListItem}>Minimum one month's notice required to cancel hire agreement.</Text>
+              <Text style={styles.termsListItem}>Equipment remains property of CSE Ltd. Peripherals billed separately.</Text>
+              <Text style={styles.termsListItem}>Equipment must be returned in same condition. Damages billed to hirer.</Text>
+            </View>
+          </View>
+
+          {/* Purchase Plan Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>6. Purchase Plan</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}>First payment and setup charges due upon delivery. Standing order required.</Text>
+              <Text style={styles.termsListItem}><Text style={styles.termsBold}>Ownership:</Text> Equipment remains our property until full payment.</Text>
+              <Text style={styles.termsListItem}>Peripherals not included and charged separately.</Text>
+              <Text style={styles.termsListItem}>Warranty: 12 months new, 6 months reconditioned (RTB).</Text>
+            </View>
+          </View>
+        </View>
+        
+        {/* Page Number */}
+        <Text style={styles.pageNumber}>Page 4</Text>
+      </Page>
+
+      {/* Page 5: Final Terms */}
+      <Page size="A4" style={styles.page}>
+        {/* Background Design Elements */}
+        <View style={styles.backgroundAccent}>
+          <View style={styles.topAccent} />
+          <View style={styles.bottomAccent} />
+          <View style={styles.sideAccentLeft} />
+          {/* Creative background elements with softer red */}
+          <View style={[styles.backgroundCircle, styles.backgroundCircleTopRight]} />
+          <View style={[styles.backgroundCircle, styles.backgroundCircleBottomLeft]} />
+          <View style={styles.backgroundDiagonal} />
+        </View>
+        
+        <View style={styles.contentPage}>
+          {/* Page Header */}
+          <View style={styles.pageHeader}>
+            <View style={styles.pageHeaderInfo}>
+              <Text style={styles.pageHeaderCompany}>Cornwall Scales Ltd</Text>
+              <Text style={styles.pageHeaderDetail}>Quote: Q-{new Date().getFullYear()}-{String(quote.id).slice(-4).padStart(4, '0')}</Text>
+              <Text style={styles.pageHeaderDetail}>Date: {formatDate(quote.createdAt)}</Text>
+            </View>
+          </View>
+
+          {/* SaaS Contract Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>7. SaaS Contract Terms</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}>Initial 3-year term, then renews annually. 30 days' written notice to cancel.</Text>
+              <Text style={styles.termsListItem}>SaaS products suspended in event of late payment per Section 4.</Text>
+            </View>
+          </View>
+
+          {/* Support Service Terms */}
+          <View style={styles.termsBox}>
+            <Text style={styles.termsBoxTitle}>8. Telephone and Remote Support Service</Text>
+            <View style={styles.termsList}>
+              <Text style={styles.termsListItem}>Support: Standard hours (Mon-Fri 9am-5pm), out-of-hours (9am-11pm) for urgent issues.</Text>
+              <Text style={styles.termsListItem}>Covers remote troubleshooting only. On-site visits separate services.</Text>
+              <Text style={styles.termsListItem}>Specific programming requests charged separately.</Text>
+              <Text style={styles.termsListItem}>Contract renews monthly. 30 days' written notice to terminate.</Text>
+            </View>
+          </View>
+
+          {/* Additional space for better layout */}
+          <View style={{ height: 50 }} />
+        </View>
+        
+        {/* Page Number */}
+        <Text style={styles.pageNumber}>Page 5</Text>
+      </Page>
     </Document>
   )
-}
-
-// Function to create styles based on template
-function createStyles(template: any) {
-  return {
-    page: {
-      padding: template.layout.padding,
-      backgroundColor: template.colors.background,
-    },
-    header: {
-      borderBottom: `2 ${template.colors.headerBorder}`,
-      paddingBottom: 20,
-      marginBottom: 30,
-    },
-    headerRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      marginBottom: 10,
-    },
-    headerLeft: {
-      flex: 1,
-    },
-    headerRight: {
-      flex: 1,
-      alignItems: 'flex-end',
-    },
-    companyName: {
-      fontSize: 14,
-      fontWeight: 'bold',
-      color: template.colors.text,
-    },
-    companyLogo: {
-      width: template.logo.maxWidth,
-      height: 'auto',
-      marginBottom: 8,
-    },
-    title: {
-      fontSize: 28,
-      fontWeight: 'bold',
-      color: template.colors.primary,
-      marginBottom: 5,
-    },
-    subtitle: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 3,
-    },
-    customHeader: {
-      fontSize: 14,
-      color: template.colors.accent,
-      fontWeight: 'bold',
-      marginTop: 5,
-    },
-    statusContainer: {
-      marginTop: 10,
-    },
-    status: {
-      fontSize: 10,
-      color: '#ffffff',
-      padding: 4,
-    },
-    section: {
-      marginBottom: 30,
-    },
-    sectionTitle: {
-      fontSize: 18,
-      fontWeight: 'bold',
-      color: template.colors.primary,
-      backgroundColor: template.colors.background,
-      padding: 10,
-      marginBottom: 15,
-      borderLeftWidth: 4,
-      borderLeftColor: template.colors.accent,
-      borderLeftStyle: 'solid',
-    },
-    row: {
-      flexDirection: 'row',
-      marginBottom: 8,
-    },
-    label: {
-      fontWeight: 'bold',
-      width: 120,
-      color: template.colors.text,
-    },
-    value: {
-      flex: 1,
-      color: template.colors.text,
-    },
-    table: {
-      width: '100%',
-      borderCollapse: 'collapse',
-      marginBottom: 20,
-    },
-    tableRow: {
-      flexDirection: 'row',
-      borderBottomWidth: 1,
-      borderBottomColor: template.colors.headerBorder,
-      borderBottomStyle: 'solid',
-    },
-    tableCell: {
-      padding: 12,
-      textAlign: 'left',
-    },
-    tableHeader: {
-      backgroundColor: template.colors.background,
-      fontWeight: 'bold',
-      color: template.colors.text,
-    },
-    totalContainer: {
-      flexDirection: 'row',
-      justifyContent: 'flex-end',
-      marginTop: 10,
-    },
-    totalLabel: {
-      fontSize: 14,
-      color: template.colors.text,
-      marginRight: 20,
-    },
-    totalValue: {
-      fontSize: 14,
-      color: template.colors.text,
-      fontWeight: 'bold',
-    },
-    totalFinal: {
-      fontSize: 18,
-      color: template.colors.primary,
-    },
-    termsSection: {
-      marginTop: 40,
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: template.colors.headerBorder,
-      borderTopStyle: 'solid',
-    },
-    termsTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: template.colors.text,
-      marginBottom: 15,
-    },
-    termsText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 5,
-    },
-    notesText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 10,
-      lineHeight: 1.5,
-    },
-    signatureSection: {
-      marginTop: 40,
-    },
-    signatureTitle: {
-      fontSize: 16,
-      fontWeight: 'bold',
-      color: template.colors.text,
-      marginBottom: 10,
-    },
-    signatureText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 20,
-    },
-    signatureRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
-    signatureBox: {
-      flex: 1,
-      marginRight: 20,
-    },
-    signatureLabel: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 5,
-    },
-    signatureLine: {
-      borderBottomWidth: 1,
-      borderBottomColor: template.colors.text,
-      borderBottomStyle: 'solid',
-      width: '100%',
-      marginBottom: 5,
-    },
-    signatureDate: {
-      fontSize: 10,
-      color: template.colors.text,
-    },
-    footer: {
-      marginTop: 40,
-      paddingTop: 20,
-      borderTopWidth: 1,
-      borderTopColor: template.colors.headerBorder,
-      borderTopStyle: 'solid',
-      fontSize: 12,
-      color: template.colors.text,
-      textAlign: 'center',
-    },
-    footerText: {
-      fontSize: 12,
-      color: template.colors.text,
-      marginBottom: 5,
-    },
-    pageNumber: {
-      fontSize: 10,
-      color: template.colors.text,
-      marginTop: 10,
-    }
-  }
-}
-
-// PDF Styles (keeping for backward compatibility)
-const styles = StyleSheet.create({
-  page: {
-    padding: 50, // Increased from 40 to prevent edge crowding
-    backgroundColor: '#ffffff',
-  },
-  header: {
-    borderBottom: '2 solid #333333',
-    paddingBottom: 25, // Increased from 20
-    marginBottom: 35, // Increased from 30
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 15, // Increased from 10
-  },
-  headerLeft: {
-    flex: 1,
-  },
-  headerRight: {
-    flex: 1,
-    alignItems: 'flex-end',
-  },
-  companyName: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-  },
-  companyLogo: {
-    width: 120,  // Adjusted width to maintain aspect ratio (287:75 ≈ 3.83:1, so 120px width for ~31px height equivalent area)
-    height: 'auto',  // Maintain aspect ratio
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 5,
-  },
-  subtitle: {
-    fontSize: 12,
-    color: '#666666',
-    marginBottom: 3,
-  },
-  statusContainer: {
-    marginTop: 10,
-  },
-  status: {
-    fontSize: 10,
-    color: '#ffffff',
-    padding: 4,
-    borderRadius: 3,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    width: 60,
-  },
-  section: {
-    marginBottom: 40, // Increased from 30 for better section spacing
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333333',
-    backgroundColor: '#f5f5f5',
-    padding: 10, // Increased from 8
-    marginBottom: 20, // Increased from 15
-    borderLeft: '4 solid #3B82F6',
-  },
-  row: {
-    flexDirection: 'row',
-    marginBottom: 12, // Increased from 8 for better row spacing
-  },
-  label: {
-    fontSize: 10,
-    fontWeight: 'bold',
-    color: '#555555',
-    marginBottom: 5, // Increased from 3
-    width: 80,
-  },
-  value: {
-    fontSize: 10,
-    color: '#333333',
-    marginBottom: 10, // Increased from 8
-    flex: 1,
-  },
-  table: {
-    marginBottom: 25, // Increased from 20
-  },
-  tableRow: {
-    flexDirection: 'row',
-    borderBottom: '1 solid #dddddd',
-  },
-  tableCell: {
-    fontSize: 10,
-    padding: 12, // Increased from 8 for better cell spacing
-    flex: 1,
-  },
-  tableHeader: {
-    fontWeight: 'bold',
-    backgroundColor: '#f8f9fa',
-    color: '#333333',
-  },
-  totalContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 10, // Increased from 5
-  },
-  totalLabel: {
-    fontSize: 10,
-    color: '#666666',
-    marginRight: 15, // Increased from 10
-    width: 80,
-    textAlign: 'right',
-  },
-  totalValue: {
-    fontSize: 10,
-    color: '#333333',
-    width: 60,
-    textAlign: 'right',
-  },
-  totalFinal: {
-    fontWeight: 'bold',
-    fontSize: 12,
-    color: '#333333',
-  },
-  termsSection: {
-    marginBottom: 35, // Increased from 30
-  },
-  termsTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 15, // Increased from 10
-  },
-  termsText: {
-    fontSize: 9,
-    color: '#666666',
-    marginBottom: 8, // Increased from 5
-  },
-  footer: {
-    marginTop: 50, // Increased from 40
-    paddingTop: 25, // Increased from 20
-    borderTop: '1 solid #dddddd',
-  },
-  footerText: {
-    fontSize: 10,
-    color: '#666666',
-    textAlign: 'center',
-    marginBottom: 8, // Increased from 5
-  },
-  pageNumber: {
-    fontSize: 10,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 15, // Increased from 10
-  },
-  notesText: {
-    fontSize: 10,
-    color: '#666666',
-    marginBottom: 8,
-    lineHeight: 1.4,
-  },
-  signatureSection: {
-    marginBottom: 30,
-  },
-  signatureTitle: {
-    fontSize: 14,
-    fontWeight: 'bold',
-    color: '#333333',
-    marginBottom: 10,
-  },
-  signatureText: {
-    fontSize: 10,
-    color: '#666666',
-    marginBottom: 15,
-  },
-  signatureRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  signatureBox: {
-    flex: 1,
-    marginRight: 20,
-  },
-  signatureLabel: {
-    fontSize: 10,
-    color: '#666666',
-    marginBottom: 5,
-  },
-  signatureLine: {
-    borderBottom: '1 solid #333333',
-    marginBottom: 5,
-    height: 1,
-  },
-  signatureDate: {
-    fontSize: 9,
-    color: '#666666',
-  },
-})
-
-// Generate PDF function
-async function generateQuotePDF(quote: any, logoUrl: string, template: any) {
-  try {
-    // Import the renderToBuffer function dynamically
-    const { renderToBuffer } = await import('@react-pdf/renderer')
-    
-    // Render the PDF document to buffer
-    const pdfBuffer = await renderToBuffer(<QuoteDocument quote={quote} logoUrl={logoUrl} template={template} />)
-    
-    return pdfBuffer
-  } catch (error) {
-    console.error('Error generating PDF:', error)
-    throw new Error('Failed to generate PDF')
-  }
 }
