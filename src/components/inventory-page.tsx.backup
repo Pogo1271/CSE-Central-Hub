@@ -54,8 +54,6 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
   })
   const [serialManagerOpen, setSerialManagerOpen] = useState(false)
   const [selectedProductForSerials, setSelectedProductForSerials] = useState(null)
-  const [productDetailOpen, setProductDetailOpen] = useState(false)
-  const [selectedProductForDetail, setSelectedProductForDetail] = useState(null)
   
   // Permission checking function
   const hasPermission = (feature: string) => {
@@ -149,8 +147,7 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
           price: '',
           pricingType: 'one-off',
           category: '',
-          sku: '',
-          isSerialized: false
+          sku: ''
         })
         setIsAddProductOpen(false)
       } else {
@@ -171,8 +168,7 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
       price: product.price.toString(),
       pricingType: product.pricingType,
       category: product.category,
-      sku: product.sku || '',
-      isSerialized: product.isSerialized || false
+      sku: product.sku || ''
     })
     setIsEditProductOpen(true)
   }
@@ -202,8 +198,7 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
           price: '',
           pricingType: 'one-off',
           category: '',
-          sku: '',
-          isSerialized: false
+          sku: ''
         })
       }
     } catch (error) {
@@ -240,11 +235,6 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
   const handleManageSerialNumbers = (product) => {
     setSelectedProductForSerials(product)
     setSerialManagerOpen(true)
-  }
-
-  const handleViewProductDetails = (product) => {
-    setSelectedProductForDetail(product)
-    setProductDetailOpen(true)
   }
 
   const getPricingTypeIcon = (type) => {
@@ -376,20 +366,20 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
                       />
                     </div>
                   </div>
-                  <div className="flex justify-start pt-4 pb-2">
-                <div className="flex items-center space-x-3">
-                  <input
-                    id="isSerialized"
-                    type="checkbox"
-                    checked={newProduct.isSerialized || false}
-                    onChange={(e) => setNewProduct({ ...newProduct, isSerialized: e.target.checked })}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <Label htmlFor="isSerialized" className="text-sm font-medium cursor-pointer">
-                    Requires Serial Number Tracking?
-                  </Label>
-                </div>
-              </div>
+                  <div className="flex justify-center pt-4 pb-2">
+                    <div className="flex items-center space-x-3">
+                      <input
+                        id="isSerialized"
+                        type="checkbox"
+                        checked={newProduct.isSerialized || false}
+                        onChange={(e) => setNewProduct({ ...newProduct, isSerialized: e.target.checked })}
+                        className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      />
+                      <Label htmlFor="isSerialized" className="text-base font-medium cursor-pointer">
+                        Requires Serial Number Tracking?
+                      </Label>
+                    </div>
+                  </div>
                 </div>
                 <div className="flex justify-end space-x-2">
                 <Button variant="outline" onClick={() => setIsAddProductOpen(false)}>
@@ -518,10 +508,6 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => handleViewProductDetails(product)}>
-                            <Package className="mr-2 h-4 w-4" />
-                            View Details
-                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditProduct(product)}>
                             <Edit className="mr-2 h-4 w-4" />
                             Edit
@@ -693,22 +679,21 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
                 />
               </div>
             </div>
-            <div className="flex justify-start pt-4 pb-2">
+            <div className="flex justify-center pt-4 pb-2">
               <div className="flex items-center space-x-3">
                 <input
                   id="edit-isSerialized"
                   type="checkbox"
                   checked={newProduct.isSerialized || false}
                   onChange={(e) => setNewProduct({ ...newProduct, isSerialized: e.target.checked })}
-                  className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                  className="h-5 w-5 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                 />
-                <Label htmlFor="edit-isSerialized" className="text-sm font-medium cursor-pointer">
+                <Label htmlFor="edit-isSerialized" className="text-base font-medium cursor-pointer">
                   Requires Serial Number Tracking?
                 </Label>
               </div>
             </div>
-            </div>
-            <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-2">
             <Button variant="outline" onClick={() => setIsEditProductOpen(false)}>
               Cancel
             </Button>
@@ -740,8 +725,6 @@ export default function InventoryPage({ searchTerm: propSearchTerm = '' } = {}) 
           onClose={() => setSerialManagerOpen(false)}
         />
       )}
-
-  
     </div>
   )
 }

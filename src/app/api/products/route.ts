@@ -22,7 +22,7 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { name, description, price, pricingType, category, sku } = body;
+    const { name, description, price, pricingType, category, sku, isSerialized } = body;
 
     if (!name || !price || !pricingType || !category) {
       return NextResponse.json(
@@ -39,6 +39,7 @@ export async function POST(request: NextRequest) {
         pricingType,
         category,
         sku: sku || `${category.toUpperCase()}-${Date.now()}`,
+        isSerialized: isSerialized || false,
         stock: 0, // Default value
         lowStockThreshold: 10, // Default value
         createdAt: new Date(),

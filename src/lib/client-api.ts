@@ -1,5 +1,79 @@
 // Client-side API service that uses fetch calls to Next.js API routes
 
+// Import JWT utilities for token validation
+import { verifyJWTToken, isTokenExpired, refreshToken } from './jwt'
+
+// Helper function to get valid token or refresh if needed
+async function getValidToken(): Promise<string | null> {
+  if (typeof window === 'undefined') return null
+  
+  try {
+    const token = localStorage.getItem('authToken')
+    if (!token) {
+      console.warn('No auth token found in localStorage')
+      return null
+    }
+
+    // Check if token is expired
+    if (isTokenExpired(token)) {
+      console.warn('Token expired, attempting to refresh...')
+      
+      // Try to refresh the token
+      const newToken = refreshToken(token)
+      if (newToken) {
+        localStorage.setItem('authToken', newToken)
+        console.log('Token refreshed successfully')
+        return newToken
+      } else {
+        console.error('Failed to refresh token')
+        // Clear invalid token and redirect to login
+        localStorage.removeItem('isAuthenticated')
+        localStorage.removeItem('currentUser')
+        localStorage.removeItem('authToken')
+        window.location.href = '/auth'
+        return null
+      }
+    }
+
+    return token
+  } catch (error) {
+    console.error('Error getting valid token:', error)
+    return null
+  }
+}
+
+// Helper function to make authenticated API calls
+async function authenticatedFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const token = await getValidToken()
+  
+  if (!token) {
+    throw new Error('No valid authentication token available')
+  }
+
+  const headers = {
+    ...options.headers,
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  }
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  })
+
+  // Handle 401 Unauthorized errors
+  if (response.status === 401) {
+    console.warn('Received 401 Unauthorized response, clearing auth state')
+    localStorage.removeItem('isAuthenticated')
+    localStorage.removeItem('currentUser')
+    localStorage.removeItem('authToken')
+    window.location.href = '/auth'
+    throw new Error('Session expired. Please log in again.')
+  }
+
+  return response
+}
+
 // Business API functions
 export async function getBusinesses() {
   try {
@@ -17,56 +91,41 @@ export async function getBusinesses() {
 
 export async function createBusiness(businessData: any) {
   try {
-    const response = await fetch('/api/businesses', {
+    const response = await authenticatedFetch('/api/businesses', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(businessData),
     })
-    if (!response.ok) {
-      throw new Error('Failed to create business')
-    }
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error creating business:', error)
-    return { success: false, error: 'Failed to create business' }
+    return { success: false, error: error.message || 'Failed to create business' }
   }
 }
 
 export async function updateBusiness(id: string, businessData: any) {
   try {
-    const response = await fetch(`/api/businesses/${id}`, {
+    const response = await authenticatedFetch(`/api/businesses/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(businessData),
     })
-    if (!response.ok) {
-      throw new Error('Failed to update business')
-    }
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error updating business:', error)
-    return { success: false, error: 'Failed to update business' }
+    return { success: false, error: error.message || 'Failed to update business' }
   }
 }
 
 export async function deleteBusiness(id: string) {
   try {
-    const response = await fetch(`/api/businesses/${id}`, {
+    const response = await authenticatedFetch(`/api/businesses/${id}`, {
       method: 'DELETE',
     })
-    if (!response.ok) {
-      throw new Error('Failed to delete business')
-    }
     return { success: true }
   } catch (error) {
     console.error('Error deleting business:', error)
-    return { success: false, error: 'Failed to delete business' }
+    return { success: false, error: error.message || 'Failed to delete business' }
   }
 }
 
@@ -87,69 +146,45 @@ export async function getUsers() {
 
 export async function createUser(userData: any) {
   try {
-    const token = localStorage.getItem('authToken')
-    const response = await fetch('/api/users', {
+    const response = await authenticatedFetch('/api/users', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify(userData),
     })
-    if (!response.ok) {
-      throw new Error('Failed to create user')
-    }
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error creating user:', error)
-    return { success: false, error: 'Failed to create user' }
+    return { success: false, error: error.message || 'Failed to create user' }
   }
 }
 
 export async function updateUser(id: string, userData: any) {
   try {
-    const token = localStorage.getItem('authToken')
-    
     // Check if only color is being updated
     const keys = Object.keys(userData)
     const isColorOnly = keys.length === 1 && keys.includes('color')
     
-    const response = await fetch(`/api/users/${id}`, {
+    const response = await authenticatedFetch(`/api/users/${id}`, {
       method: isColorOnly ? 'PATCH' : 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
       body: JSON.stringify(userData),
     })
-    if (!response.ok) {
-      throw new Error('Failed to update user')
-    }
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error updating user:', error)
-    return { success: false, error: 'Failed to update user' }
+    return { success: false, error: error.message || 'Failed to update user' }
   }
 }
 
 export async function deleteUser(id: string) {
   try {
-    const token = localStorage.getItem('authToken')
-    const response = await fetch(`/api/users/${id}`, {
+    const response = await authenticatedFetch(`/api/users/${id}`, {
       method: 'DELETE',
-      headers: {
-        'Authorization': `Bearer ${token}`
-      },
     })
-    if (!response.ok) {
-      throw new Error('Failed to delete user')
-    }
     return { success: true }
   } catch (error) {
     console.error('Error deleting user:', error)
-    return { success: false, error: 'Failed to delete user' }
+    return { success: false, error: error.message || 'Failed to delete user' }
   }
 }
 
@@ -606,24 +641,23 @@ export async function getNotes() {
 // Business-related data API functions
 export async function getBusinessContacts(businessId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/contacts`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch business contacts')
-    }
+    const response = await authenticatedFetch(`/api/businesses/${businessId}/contacts`)
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error fetching business contacts:', error)
-    return { success: false, error: 'Failed to fetch business contacts' }
+    return { success: false, error: error.message || 'Failed to fetch business contacts' }
   }
 }
 
 export async function createBusinessContact(businessId: string, contactData: any) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/contacts`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(contactData),
     })
@@ -640,10 +674,12 @@ export async function createBusinessContact(businessId: string, contactData: any
 
 export async function updateBusinessContact(businessId: string, contactId: string, contactData: any) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/contacts/${contactId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(contactData),
     })
@@ -660,8 +696,12 @@ export async function updateBusinessContact(businessId: string, contactId: strin
 
 export async function deleteBusinessContact(businessId: string, contactId: string) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/contacts/${contactId}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
     })
     if (!response.ok) {
       throw new Error('Failed to delete business contact')
@@ -675,7 +715,12 @@ export async function deleteBusinessContact(businessId: string, contactId: strin
 
 export async function getBusinessTasks(businessId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/tasks`)
+    const token = localStorage.getItem('authToken')
+    const response = await fetch(`/api/businesses/${businessId}/tasks`, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    })
     if (!response.ok) {
       throw new Error('Failed to fetch business tasks')
     }
@@ -689,10 +734,12 @@ export async function getBusinessTasks(businessId: string) {
 
 export async function createBusinessTask(businessId: string, taskData: any) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/tasks`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(taskData),
     })
@@ -709,24 +756,23 @@ export async function createBusinessTask(businessId: string, taskData: any) {
 
 export async function getBusinessNotes(businessId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/notes`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch business notes')
-    }
+    const response = await authenticatedFetch(`/api/businesses/${businessId}/notes`)
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error fetching business notes:', error)
-    return { success: false, error: 'Failed to fetch business notes' }
+    return { success: false, error: error.message || 'Failed to fetch business notes' }
   }
 }
 
 export async function createBusinessNote(businessId: string, noteData: any) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/notes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(noteData),
     })
@@ -743,10 +789,12 @@ export async function createBusinessNote(businessId: string, noteData: any) {
 
 export async function updateBusinessNote(businessId: string, noteId: string, noteData: any) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/notes/${noteId}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(noteData),
     })
@@ -763,8 +811,12 @@ export async function updateBusinessNote(businessId: string, noteId: string, not
 
 export async function deleteBusinessNote(businessId: string, noteId: string) {
   try {
+    const token = localStorage.getItem('authToken')
     const response = await fetch(`/api/businesses/${businessId}/notes/${noteId}`, {
       method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      },
     })
     if (!response.ok) {
       throw new Error('Failed to delete business note')
@@ -778,59 +830,106 @@ export async function deleteBusinessNote(businessId: string, noteId: string) {
 
 export async function getBusinessProducts(businessId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/products`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch business products')
-    }
+    const response = await authenticatedFetch(`/api/businesses/${businessId}/products`)
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error fetching business products:', error)
-    return { success: false, error: 'Failed to fetch business products' }
+    return { success: false, error: error.message || 'Failed to fetch business products' }
+  }
+}
+
+// Product Instances API functions
+export async function getProductInstances(params?: {
+  productId?: string
+  businessId?: string
+  status?: string
+  search?: string
+  productIds?: string
+}) {
+  try {
+    // Build query string
+    const searchParams = new URLSearchParams()
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          searchParams.append(key, value.toString())
+        }
+      })
+    }
+    
+    const queryString = searchParams.toString()
+    const url = `/api/product-instances${queryString ? `?${queryString}` : ''}`
+    
+    const response = await authenticatedFetch(url)
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error fetching product instances:', error)
+    return { success: false, error: error.message || 'Failed to fetch product instances' }
+  }
+}
+
+export async function createProductInstance(instanceData: any) {
+  try {
+    const response = await authenticatedFetch('/api/product-instances', {
+      method: 'POST',
+      body: JSON.stringify(instanceData),
+    })
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error creating product instance:', error)
+    return { success: false, error: error.message || 'Failed to create product instance' }
+  }
+}
+
+export async function updateProductInstance(id: string, instanceData: any) {
+  try {
+    const response = await authenticatedFetch(`/api/product-instances/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(instanceData),
+    })
+    const data = await response.json()
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error updating product instance:', error)
+    return { success: false, error: error.message || 'Failed to update product instance' }
   }
 }
 
 export async function addBusinessProduct(businessId: string, productId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/products/${productId}`, {
+    const response = await authenticatedFetch(`/api/businesses/${businessId}/products/${productId}`, {
       method: 'POST',
     })
-    if (!response.ok) {
-      throw new Error('Failed to add business product')
-    }
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error adding business product:', error)
-    return { success: false, error: 'Failed to add business product' }
+    return { success: false, error: error.message || 'Failed to add business product' }
   }
 }
 
 export async function removeBusinessProduct(businessId: string, productId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/products/${productId}`, {
+    const response = await authenticatedFetch(`/api/businesses/${businessId}/products/${productId}`, {
       method: 'DELETE',
     })
-    if (!response.ok) {
-      throw new Error('Failed to remove business product')
-    }
     return { success: true }
   } catch (error) {
     console.error('Error removing business product:', error)
-    return { success: false, error: 'Failed to remove business product' }
+    return { success: false, error: error.message || 'Failed to remove business product' }
   }
 }
 
 export async function getBusinessQuotes(businessId: string) {
   try {
-    const response = await fetch(`/api/businesses/${businessId}/quotes`)
-    if (!response.ok) {
-      throw new Error('Failed to fetch business quotes')
-    }
+    const response = await authenticatedFetch(`/api/businesses/${businessId}/quotes`)
     const data = await response.json()
     return { success: true, data }
   } catch (error) {
     console.error('Error fetching business quotes:', error)
-    return { success: false, error: 'Failed to fetch business quotes' }
+    return { success: false, error: error.message || 'Failed to fetch business quotes' }
   }
 }

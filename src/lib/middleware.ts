@@ -37,7 +37,18 @@ export async function authenticateToken(request: NextRequest): Promise<NextRespo
       )
     }
 
-    // Verify user exists in database
+    // Verify user exists in database (or is SuperUser)
+    if (payload.role === 'SuperUser') {
+      // For SuperUser, we don't need to check the database
+      const requestWithUser = request as AuthenticatedRequest
+      requestWithUser.user = {
+        id: payload.userId,
+        email: payload.email,
+        role: payload.role
+      }
+      return null // Success, continue to the route handler
+    }
+
     const user = await db.user.findUnique({
       where: { id: payload.userId },
       select: {

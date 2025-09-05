@@ -1,38 +1,38 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "sqlite"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String?  // Added password field
-  name        String?
-  role        String   @default("User")
-  status      String   @default("Active")
-  color       String?  // For calendar event identification
-  lastLogin   DateTime?
-  joined      DateTime @default(now())
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id                      String            @id @default(cuid())
+  email                   String            @unique
+  password                String?
+  name                    String?
+  role                    String            @default("User")
+  status                  String            @default("Active")
+  color                   String?
+  lastLogin               DateTime?
+  joined                  DateTime          @default(now())
+  createdAt               DateTime          @default(now())
+  updatedAt               DateTime          @updatedAt
+  // Google Calendar integration fields
+  googleCalendarToken     String?
+  googleCalendarRefreshToken String?
+  googleCalendarId        String?
+  googleCalendarEnabled   Boolean           @default(false)
   // Relationships
-  assignedTasks Task[] @relation("assignedTasks")
-  createdTasks  Task[] @relation("createdTasks")
-  businesses    Business[]
-  quotes        Quote[]
-  privilegedLogs PrivilegedLog[]
-  
+  businesses              Business[]
+  privilegedLogs          PrivilegedLog[]
+  updatedProductInstances ProductInstance[] @relation("UpdatedProductInstances")
+  quotes                  Quote[]
+  createdTasks            Task[]            @relation("createdTasks")
+  assignedTasks           Task[]            @relation("assignedTasks")
+  assignedBusinessProducts BusinessProduct[] @relation("AssignedBusinessProducts")
+
   @@map("users")
 }
 
@@ -41,111 +41,147 @@ model Role {
   name        String   @unique
   description String?
   color       String?
-  permissions Json     // Store permissions as JSON
+  permissions Json
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@map("roles")
 }
 
 model Business {
-  id              String   @id @default(cuid())
-  name            String
-  description     String?
-  category        String?
-  location        String?
-  phone           String?
-  email           String?
-  website         String?
-  status          String   @default("Active")
-  supportContract Boolean  @default(false)
-  supportExpiry   DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  // Relationships
-  userId          String?
-  user            User?    @relation(fields: [userId], references: [id])
-  contacts        Contact[]
-  tasks           Task[]
-  notes           Note[]
-  quotes          Quote[]
-  products        BusinessProduct[]
-  
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  category         String?
+  location         String?
+  phone            String?
+  email            String?
+  website          String?
+  status           String            @default("Active")
+  supportContract  Boolean           @default(false)
+  supportExpiry    DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  userId           String?
+  products         BusinessProduct[]
+  user             User?             @relation(fields: [userId], references: [id])
+  contacts         Contact[]
+  notes            Note[]
+  productInstances ProductInstance[]
+  quotes           Quote[]
+  tasks            Task[]
+
   @@map("businesses")
 }
 
 model Contact {
-  id         String   @id @default(cuid())
-  name       String
-  email      String?
-  phone      String?
-  position   String?
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  
+  id               String            @id @default(cuid())
+  name             String
+  email            String?
+  phone            String?
+  position         String?
+  businessId       String
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  productInstances ProductInstance[]
+
   @@map("contacts")
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  price       Float
-  pricingType String   @default("one-off") // "one-off" or "monthly"
-  category    String?
-  sku         String?  @unique
-  stock       Int      @default(0)
-  lowStockThreshold Int @default(10)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relationships
-  businessProducts BusinessProduct[]
-  quoteItems       QuoteItem[]
-  
+  id                String            @id @default(cuid())
+  name              String
+  description       String?
+  price             Float
+  pricingType       String            @default("one-off")
+  category          String?
+  sku               String?           @unique
+  stock             Int               @default(0)
+  lowStockThreshold Int               @default(10)
+  isSerialized      Boolean           @default(false)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  businessProducts  BusinessProduct[]
+  instances         ProductInstance[]
+  quoteItems        QuoteItem[]
+
   @@map("products")
 }
 
 model BusinessProduct {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   businessId String
-  business  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  productId String
-  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
-  createdAt DateTime @default(now())
-  
+  productId  String
+  quantity   Int      @default(1)
+  status     String   @default("active")
+  notes      String?
+  validFrom  DateTime @default(now())
+  validTo    DateTime?
+  assignedBy String?
+  assignedDate DateTime @default(now())
+  createdAt  DateTime @default(now())
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assignedByUser User? @relation("AssignedBusinessProducts", fields: [assignedBy], references: [id])
+
   @@unique([businessId, productId])
   @@map("business_products")
 }
 
+model ProductInstance {
+  id                String    @id @default(cuid())
+  serialNumber      String?   // Optional for license-based products
+  licenseNumber     String?   // For software products
+  productId         String
+  status            String    @default("in-stock")
+  businessId        String?
+  contactId         String?
+  soldDate          DateTime?
+  warrantyExpiry    DateTime?
+  comments          String?
+  isLicense         Boolean   @default(false) // true for software licenses
+  lastUpdatedBy     String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  lastUpdatedByUser User?     @relation("UpdatedProductInstances", fields: [lastUpdatedBy], references: [id])
+  contact           Contact?  @relation(fields: [contactId], references: [id])
+  business          Business? @relation(fields: [businessId], references: [id])
+  product           Product   @relation(fields: [productId], references: [id])
+
+  @@unique([serialNumber]) // Only serial numbers need to be unique
+  @@map("product_instances")
+}
+
 model Task {
-  id          String    @id @default(cuid())
-  title       String
-  description String?
-  startDate   DateTime?
-  endDate     DateTime?
-  allDay      Boolean   @default(false)
-  recurring   Boolean   @default(false)
-  recurringPattern String? // "daily", "weekly", "monthly", "yearly"
-  recurrenceEndDate DateTime? // When the recurrence pattern ends
-  parentTaskId String?  // For recurring task instances
-  parentTask  Task?     @relation("RecurringTasks", fields: [parentTaskId], references: [id])
-  instances   Task[]    @relation("RecurringTasks")
-  businessId  String?
-  business    Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  assigneeId  String?
-  assignee    User?     @relation("assignedTasks", fields: [assigneeId], references: [id], onDelete: SetNull)
-  createdById String?
-  createdBy   User?     @relation("createdTasks", fields: [createdById], references: [id], onDelete: SetNull)
-  status      String    @default("pending") // "pending", "in-progress", "completed"
-  priority    String    @default("medium") // "low", "medium", "high"
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Add indexes for better performance
+  id                String    @id @default(cuid())
+  title             String
+  description       String?
+  startDate         DateTime?
+  endDate           DateTime?
+  allDay            Boolean   @default(false)
+  recurring         Boolean   @default(false)
+  recurringPattern  String?
+  recurrenceEndDate DateTime?
+  parentTaskId      String?
+  businessId        String?
+  assigneeId        String?
+  createdById       String?
+  status            String    @default("pending")
+  priority          String    @default("medium")
+  // Google Calendar integration fields
+  googleCalendarEventId String?
+  syncStatus        String?   // 'synced', 'pending', 'error'
+  lastSynced        DateTime?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  // Relationships
+  createdBy         User?     @relation("createdTasks", fields: [createdById], references: [id])
+  assignee          User?     @relation("assignedTasks", fields: [assigneeId], references: [id])
+  business          Business? @relation(fields: [businessId], references: [id])
+  parentTask        Task?     @relation("RecurringTasks", fields: [parentTaskId], references: [id])
+  instances         Task[]    @relation("RecurringTasks")
+
   @@index([startDate])
   @@index([status])
   @@index([assigneeId])
@@ -153,7 +189,8 @@ model Task {
   @@index([parentTaskId])
   @@index([recurring])
   @@index([recurrenceEndDate])
-  
+  @@index([googleCalendarEventId])
+  @@index([syncStatus])
   @@map("tasks")
 }
 
@@ -162,56 +199,54 @@ model Note {
   title      String?
   content    String
   businessId String
-  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  
+  business   Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
   @@map("notes")
 }
 
 model Quote {
-  id          String   @id @default(cuid())
+  id          String      @id @default(cuid())
   title       String
   description String?
   businessId  String
-  business    Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   userId      String?
-  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
-  status      String   @default("draft") // "draft", "sent", "accepted", "rejected"
+  status      String      @default("draft")
   totalAmount Float
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relationships
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
   items       QuoteItem[]
-  
+  user        User?       @relation(fields: [userId], references: [id])
+  business    Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
   @@map("quotes")
 }
 
 model QuoteItem {
-  id       String @id @default(cuid())
-  quoteId  String
-  quote    Quote  @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  quoteId   String
   productId String
-  product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  quantity Int    @default(1)
-  price    Float
+  quantity  Int      @default(1)
+  price     Float
   createdAt DateTime @default(now())
-  
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  quote     Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
   @@map("quote_items")
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  name        String
-  type        String?
-  size        String?
-  path        String
-  category    String?
-  uploadedBy  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  id         String   @id @default(cuid())
+  name       String
+  type       String?
+  size       String?
+  path       String
+  category   String?
+  uploadedBy String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
   @@map("documents")
 }
 
@@ -235,9 +270,8 @@ model PrivilegedLog {
   userAgent   String?
   timestamp   DateTime @default(now())
   details     String?
-  
   user        User     @relation(fields: [userId], references: [id])
-  
+
   @@map("privileged_logs")
 }
 
@@ -246,6 +280,6 @@ model SystemConfig {
   value       String
   description String?
   updatedAt   DateTime @updatedAt
-  
+
   @@map("system_configs")
 }

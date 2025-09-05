@@ -33,7 +33,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { name, description, price, pricingType, category, sku } = body;
+    const { name, description, price, pricingType, category, sku, isSerialized } = body;
 
     const existingProduct = await db.product.findUnique({
       where: { id: (await params).id }
@@ -55,6 +55,7 @@ export async function PUT(
         pricingType: pricingType || existingProduct.pricingType,
         category: category || existingProduct.category,
         sku: sku || existingProduct.sku,
+        isSerialized: isSerialized !== undefined ? isSerialized : existingProduct.isSerialized,
         updatedAt: new Date()
       }
     });

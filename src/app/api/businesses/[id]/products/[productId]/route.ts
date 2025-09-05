@@ -1,11 +1,42 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { verifyJWTToken } from '@/lib/jwt'
+
+// Helper function to get current user from request
+async function getCurrentUser(request: NextRequest) {
+  try {
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null
+    }
+    
+    const token = authHeader.substring(7)
+    const payload = verifyJWTToken(token)
+    if (!payload) {
+      return null
+    }
+    
+    const user = await db.user.findUnique({
+      where: { id: payload.userId }
+    })
+    
+    return user
+  } catch (error) {
+    return null
+  }
+}
 
 export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string; productId: string }> }
 ) {
   try {
+    // Check authentication
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const businessId = (await params).id
     const productId = (await params).productId
 
@@ -54,7 +85,9 @@ export async function POST(
     const businessProduct = await db.businessProduct.create({
       data: {
         businessId: businessId,
-        productId: productId
+        productId: productId,
+        assignedBy: currentUser.id, // Use current user ID
+        assignedDate: new Date()
       },
       include: {
         product: {
@@ -87,6 +120,12 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string; productId: string }> }
 ) {
   try {
+    // Check authentication
+    const currentUser = await getCurrentUser(request)
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const businessId = (await params).id
     const productId = (await params).productId
 

@@ -29,7 +29,6 @@ import {
   Keyboard,
   Mouse,
   Printer,
-  Scanner,
   PlusCircle,
   MinusCircle,
   MoreHorizontal
@@ -398,6 +397,43 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
     setIsViewQuoteOpen(true)
   }
 
+  const handleDownloadPDF = async (quote: Quote) => {
+    try {
+      // Show loading state
+      toast.loading('Generating PDF...')
+      
+      // Call the PDF generation API endpoint
+      const response = await fetch(`/api/quotes/${quote.id}/pdf`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to generate PDF')
+      }
+      
+      // Get the PDF blob
+      const pdfBlob = await response.blob()
+      
+      // Create a download link
+      const url = window.URL.createObjectURL(pdfBlob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `quote-${quote.id.slice(-6)}.pdf`
+      
+      // Trigger download
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      
+      // Clean up the object URL
+      window.URL.revokeObjectURL(url)
+      
+      // Show success message
+      toast.success('PDF downloaded successfully')
+    } catch (error) {
+      console.error('Error downloading PDF:', error)
+      toast.error('Failed to download PDF')
+    }
+  }
+
   // Optimized addProductToQuote function - memoized for performance
   const addProductToQuote = useCallback((product: Product, category: 'hardware' | 'software') => {
     const existingItemIndex = formData.items.findIndex(item => 
@@ -533,6 +569,10 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
                       <DropdownMenuItem onClick={() => handleEditQuote(quote)}>
                         <Edit className="h-4 w-4 mr-2" />
                         Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => handleDownloadPDF(quote)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onClick={() => handleDeleteQuote(quote.id)}
@@ -1137,6 +1177,14 @@ export default function QuoteManagement({ editQuoteId, onEditComplete, searchTer
               <div className="flex justify-end gap-3 pt-4 border-t">
                 <Button variant="outline" onClick={() => setIsViewQuoteOpen(false)}>
                   Close
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={() => handleDownloadPDF(selectedQuote)}
+                  className="flex items-center gap-2"
+                >
+                  <Download className="h-4 w-4" />
+                  Download PDF
                 </Button>
                 <Button 
                   variant="outline"

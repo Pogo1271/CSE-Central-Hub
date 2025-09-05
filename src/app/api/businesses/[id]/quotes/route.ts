@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withAuth, AuthenticatedRequest } from '@/lib/middleware'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+const getHandler = async (request: AuthenticatedRequest, { params }: { params: Promise<{ id: string }> }) => {
   try {
     const businessId = (await params).id
 
@@ -59,3 +57,5 @@ export async function GET(
     )
   }
 }
+
+export const GET = withAuth(getHandler)

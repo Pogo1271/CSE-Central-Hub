@@ -49,8 +49,21 @@ import {
   Cloud,
   Save,
   PlusCircle,
-  MinusCircle
+  MinusCircle,
+  Calendar as CalendarIcon,
+  ExternalLink,
+  CheckCircle as CheckCircleIcon,
+  XCircle as XCircleIcon
 } from 'lucide-react'
+
+// FullCalendar imports
+import FullCalendar from '@fullcalendar/react'
+import dayGridPlugin from '@fullcalendar/daygrid'
+import timeGridPlugin from '@fullcalendar/timegrid'
+import interactionPlugin from '@fullcalendar/interaction'
+import listPlugin from '@fullcalendar/list'
+import { formatDate } from '@fullcalendar/core'
+import { EventClickArg, EventDropArg, DateSelectArg } from '@fullcalendar/core'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
@@ -99,6 +112,7 @@ import EnhancedUsersManagement from '@/components/enhanced-users-management'
 import ActivityLogsPage from '@/components/activity-logs-page'
 import EmergencyControlPage from '@/components/emergency-control-page'
 import QuoteManagement from '@/components/quote-management'
+import BusinessProductTab from '@/components/business-product-tab'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useAuth } from '@/hooks/use-auth'
 
@@ -151,6 +165,33 @@ export default function BusinessHub() {
   const [activeTab, setActiveTab] = useState('dashboard')
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('All Categories')
+
+  // Handle OAuth callback on page load
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const googleAccessToken = urlParams.get('google_access_token')
+    const googleRefreshToken = urlParams.get('google_refresh_token')
+    const googleEmail = urlParams.get('google_email')
+    const error = urlParams.get('error')
+    const oauthFlow = sessionStorage.getItem('google_oauth_flow')
+
+    // Clear the OAuth flow flag
+    sessionStorage.removeItem('google_oauth_flow')
+
+    if (error) {
+      toast.error(`Google Calendar authorization failed: ${error}`)
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+      return
+    }
+
+    if (googleAccessToken && googleEmail && oauthFlow) {
+      // Store the tokens and connect to calendar
+      handleGoogleCalendarTokens(googleAccessToken, googleRefreshToken || '', googleEmail)
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  }, [])
   const [selectedLocation, setSelectedLocation] = useState('All Locations')
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [filteredBusinesses, setFilteredBusinesses] = useState<any[]>([])
@@ -158,25 +199,15 @@ export default function BusinessHub() {
   
   // Handle authentication state
   const [isClient, setIsClient] = useState(false)
-  const [displayName, setDisplayName] = useState(() => {
-    // Try to get user name from localStorage during initial state setup
-    if (typeof window !== 'undefined') {
-      try {
-        const userString = localStorage.getItem('currentUser')
-        if (userString) {
-          const user = JSON.parse(userString)
-          return user.name || 'User'
-        }
-      } catch (error) {
-        console.error('Error reading user from localStorage:', error)
-      }
-    }
-    return 'User'
-  })
+  const [displayName, setDisplayName] = useState('User')
   
   // Role-based permissions - will be populated dynamically from backend
   const [rolePermissions, setRolePermissions] = useState<any>({})
   const [permissionsLoaded, setPermissionsLoaded] = useState(false)
+  
+  // Cache for user permissions to avoid recalculating on every render
+  const [cachedUserPermissions, setCachedUserPermissions] = useState<any>(null)
+  const [permissionCacheKey, setPermissionCacheKey] = useState<string>('')
   
   // Data state
   const [roles, setRoles] = useState<any[]>([])
@@ -189,15 +220,17 @@ export default function BusinessHub() {
   const [quotes, setQuotes] = useState<any[]>([])
   const [notes, setNotes] = useState<any[]>([])
   
-  // Debug logging - moved after state declarations
-  console.log('BusinessHub render:', {
-    isAuthenticated,
-    currentUser: currentUser?.email,
-    userRole: currentUser?.role,
-    isLoading,
-    permissionsLoaded,
-    rolePermissionsLoaded: Object.keys(rolePermissions).length
-  })
+  // Debug logging - moved after state declarations (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('BusinessHub render:', {
+      isAuthenticated,
+      currentUser: currentUser?.email,
+      userRole: currentUser?.role,
+      isLoading,
+      permissionsLoaded,
+      rolePermissionsLoaded: Object.keys(rolePermissions).length
+    })
+  }
   
   // Dashboard stats
   const [dashboardStats, setDashboardStats] = useState({
@@ -216,6 +249,18 @@ export default function BusinessHub() {
   const [isSendMessageOpen, setIsSendMessageOpen] = useState(false)
   const [isViewQuoteOpen, setIsViewQuoteOpen] = useState(false)
   const [isEditQuoteOpen, setIsEditQuoteOpen] = useState(false)
+  
+  // Google Calendar integration states
+  const [googleCalendarConnected, setGoogleCalendarConnected] = useState(false)
+  const [googleCalendarLoading, setGoogleCalendarLoading] = useState(false)
+  const [googleCalendarEvents, setGoogleCalendarEvents] = useState<any[]>([])
+  const [showGoogleCalendarConnect, setShowGoogleCalendarConnect] = useState(false)
+  const [calendarStatus, setCalendarStatus] = useState<any>(null)
+  
+  // FullCalendar states
+  const [calendarView, setCalendarView] = useState('dayGridMonth')
+  const [currentDate, setCurrentDate] = useState(new Date())
+  const calendarRef = useRef(null)
   
   // Quote edit form states
   const [quoteFormData, setQuoteFormData] = useState({
@@ -242,6 +287,13 @@ export default function BusinessHub() {
   const [isAssignProductOpen, setIsAssignProductOpen] = useState(false)
   const [availableProducts, setAvailableProducts] = useState<any[]>([])
   const [selectedProducts, setSelectedProducts] = useState<string[]>([])
+  const [serialNumbers, setSerialNumbers] = useState<Record<string, { 
+    instanceId?: string; // For selecting existing instances
+    serialNumber?: string; // For creating new instances (fallback)
+    warrantyExpiry?: string; 
+    comments?: string 
+  }>>({})
+  const [availableSerialNumbers, setAvailableSerialNumbers] = useState<Record<string, any[]>>({})
   
   // Contact Management Modal state
   const [isAddContactOpen, setIsAddContactOpen] = useState(false)
@@ -358,19 +410,285 @@ export default function BusinessHub() {
     }).format(amount)
   }
 
+  // Google Calendar integration functions
+  const checkCalendarStatus = async () => {
+    try {
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('authToken')
+      
+      const response = await fetch('/api/calendar/status', {
+        headers: token ? {
+          'Authorization': `Bearer ${token}`,
+        } : {},
+      })
+      
+      if (response.ok) {
+        const status = await response.json()
+        setCalendarStatus(status)
+        setGoogleCalendarConnected(status.connected)
+        return status.connected
+      }
+      return false
+    } catch (error) {
+      console.error('Error checking calendar status:', error)
+      return false
+    }
+  }
+
+  // Handle Google Calendar OAuth tokens
+  const handleGoogleCalendarTokens = async (accessToken: string, refreshToken: string, email: string) => {
+    try {
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.')
+        setGoogleCalendarLoading(false)
+        return
+      }
+      
+      const response = await fetch('/api/calendar/connect', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          accessToken,
+          refreshToken,
+          calendarId: 'primary'
+        }),
+      })
+
+      if (response.ok) {
+        const result = await response.json()
+        setGoogleCalendarConnected(true)
+        toast.success('Google Calendar connected successfully!')
+        setShowGoogleCalendarConnect(false)
+        await checkCalendarStatus()
+      } else {
+        toast.error('Failed to connect Google Calendar')
+      }
+    } catch (error) {
+      console.error('Error connecting Google Calendar:', error)
+      toast.error('Failed to connect Google Calendar')
+    } finally {
+      setGoogleCalendarLoading(false)
+    }
+  }
+
+  const connectGoogleCalendar = async () => {
+    try {
+      setGoogleCalendarLoading(true)
+      
+      // Use redirect-based OAuth flow instead of popup for better compatibility
+      const authUrl = new URL(`${window.location.origin}/api/auth/google`)
+      authUrl.searchParams.append('redirect_uri', `${window.location.origin}/api/auth/google/callback`)
+      
+      // Store the current state to know we're in OAuth flow
+      sessionStorage.setItem('google_oauth_flow', 'true')
+      
+      // Redirect to Google OAuth
+      window.location.href = authUrl.toString()
+      
+    } catch (error) {
+      console.error('Error initiating Google Calendar connection:', error)
+      toast.error('Failed to initiate Google Calendar connection')
+      setGoogleCalendarLoading(false)
+    }
+  }
+
+  const disconnectGoogleCalendar = async () => {
+    try {
+      setGoogleCalendarLoading(true)
+      
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.')
+        return
+      }
+      
+      const response = await fetch('/api/calendar/connect', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+
+      if (response.ok) {
+        setGoogleCalendarConnected(false)
+        setGoogleCalendarEvents([])
+        toast.success('Google Calendar disconnected successfully!')
+        await checkCalendarStatus()
+      } else {
+        toast.error('Failed to disconnect Google Calendar')
+      }
+    } catch (error) {
+      console.error('Error disconnecting Google Calendar:', error)
+      toast.error('Failed to disconnect Google Calendar')
+    } finally {
+      setGoogleCalendarLoading(false)
+    }
+  }
+
+  const fetchGoogleCalendarEvents = async () => {
+    if (!googleCalendarConnected) return
+
+    try {
+      setGoogleCalendarLoading(true)
+      
+      // Get JWT token from localStorage
+      const token = localStorage.getItem('authToken')
+      if (!token) {
+        toast.error('Authentication token not found. Please log in again.')
+        return
+      }
+      
+      // Get events for the current month
+      const now = new Date()
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+      const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+      
+      const params = new URLSearchParams({
+        timeMin: startOfMonth.toISOString(),
+        timeMax: endOfMonth.toISOString(),
+      })
+      
+      const response = await fetch(`/api/calendar/events?${params}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      })
+      
+      if (response.ok) {
+        const events = await response.json()
+        setGoogleCalendarEvents(events)
+      } else {
+        console.error('Failed to fetch Google Calendar events')
+        setGoogleCalendarEvents([])
+      }
+    } catch (error) {
+      console.error('Error fetching Google Calendar events:', error)
+      setGoogleCalendarEvents([])
+    } finally {
+      setGoogleCalendarLoading(false)
+    }
+  }
+
+  // Convert tasks to FullCalendar events
+  const tasksToCalendarEvents = useCallback(() => {
+    const taskEvents = tasks.map(task => ({
+      id: task.id,
+      title: task.title,
+      start: task.startDate,
+      end: task.endDate,
+      backgroundColor: task.businessId ? '#3B82F6' : '#10B981',
+      borderColor: task.businessId ? '#2563EB' : '#059669',
+      extendedProps: {
+        type: 'task',
+        taskId: task.id,
+        businessId: task.businessId,
+        assigneeId: task.assigneeId,
+        status: task.status
+      }
+    }))
+
+    // Convert Google Calendar events
+    const googleEvents = googleCalendarEvents.map(event => ({
+      id: event.id,
+      title: event.summary,
+      start: event.start?.dateTime || event.start?.date,
+      end: event.end?.dateTime || event.end?.date,
+      backgroundColor: '#F59E0B',
+      borderColor: '#D97706',
+      extendedProps: {
+        type: 'google',
+        googleEventId: event.id,
+        description: event.description
+      }
+    }))
+
+    return [...taskEvents, ...googleEvents]
+  }, [tasks, googleCalendarEvents])
+
+  // FullCalendar event handlers
+  const handleEventClick = (clickInfo: EventClickArg) => {
+    const event = clickInfo.event
+    const extendedProps = event.extendedProps
+
+    if (extendedProps.type === 'task') {
+      // Handle task click
+      const task = tasks.find(t => t.id === extendedProps.taskId)
+      if (task) {
+        toast.info(`Task: ${task.title}`)
+        // You can open task details modal here
+      }
+    } else if (extendedProps.type === 'google') {
+      // Handle Google Calendar event click
+      toast.info(`Google Calendar Event: ${event.title}`)
+      // You can show event details in a modal
+    }
+  }
+
+  const handleDateSelect = (selectInfo: DateSelectArg) => {
+    // Handle date selection to create new task
+    const title = prompt('Enter title for new task:')
+    if (title) {
+      // Create new task at selected date
+      toast.info(`Would create task: ${title} on ${selectInfo.startStr}`)
+      // Implement task creation logic here
+    }
+  }
+
+  const handleEventDrop = (dropInfo: EventDropArg) => {
+    // Handle event drag and drop
+    const event = dropInfo.event
+    toast.info(`Event moved to: ${event.startStr}`)
+    // Implement event update logic here
+  }
+
+  const navigateCalendar = (direction: number) => {
+    const calendarApi = calendarRef.current?.getApi()
+    if (calendarApi) {
+      if (direction === -1) {
+        calendarApi.prev()
+      } else if (direction === 1) {
+        calendarApi.next()
+      } else {
+        calendarApi.today()
+      }
+      setCurrentDate(calendarApi.getDate())
+    }
+  }
+
   // Simplified welcome component that uses the parent's authentication state
   const WelcomeMessage = () => {
     return <span>{displayName}</span>
   }
   const getUserPermissions = () => {
+    // Create cache key based on current user and permissions state
+    const currentCacheKey = `${currentUser?.id || 'no-user'}-${currentUser?.role || 'no-role'}-${permissionsLoaded}-${Object.keys(rolePermissions).length}`
+    
+    // Return cached permissions if available and cache key matches
+    if (cachedUserPermissions && permissionCacheKey === currentCacheKey) {
+      return cachedUserPermissions
+    }
+    
+    // Calculate permissions (only when cache is invalid or missing)
+    let permissions
+    
     // If permissions are still loading, return default permissions based on user role
     if (!permissionsLoaded && currentUser) {
+      // Only log in development mode
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Permissions not loaded yet, using defaults for role:', currentUser.role)
+      }
       // Provide default permissions during loading to prevent UI flicker
-      const defaultPermissions = {
+      permissions = {
         tabs: ['dashboard'],
         features: {
           canViewDashboardPage: true,
-          canViewTasksPage: currentUser.role === 'User',
+          canViewTasksPage: true,
           canViewBusinessesPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
           canViewInventoryPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
           canViewUsersPage: currentUser.role === 'Manager' || currentUser.role === 'Admin',
@@ -386,32 +704,79 @@ export default function BusinessHub() {
           canDeleteBusiness: currentUser.role === 'Manager' || currentUser.role === 'Admin'
         }
       }
-      return defaultPermissions
     }
-    
-    // Remove hardcoded fallback - only use permissions loaded from backend
-    if (currentUser && rolePermissions[currentUser.role]) {
-      return rolePermissions[currentUser.role]
+    // If we have loaded permissions but no rolePermissions, provide minimal permissions
+    else if (permissionsLoaded && Object.keys(rolePermissions).length === 0) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Permissions loaded but no roles found, using minimal permissions')
+      }
+      permissions = {
+        tabs: ['dashboard'],
+        features: {
+          canViewDashboardPage: true
+        }
+      }
     }
-    
+    // Try exact match first
+    else if (currentUser && rolePermissions[currentUser.role]) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Found exact role match for:', currentUser.role)
+      }
+      permissions = rolePermissions[currentUser.role]
+    }
     // Try case-insensitive matching
-    if (currentUser) {
+    else if (currentUser) {
       const userRoleLower = currentUser.role.toLowerCase()
       const matchingRole = Object.keys(rolePermissions).find(role => 
         role.toLowerCase() === userRoleLower
       )
       
       if (matchingRole) {
-        return rolePermissions[matchingRole]
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Found case-insensitive match:', matchingRole)
+        }
+        permissions = rolePermissions[matchingRole]
+      } else {
+        // Try to find a role that contains the user's role (partial match)
+        const partialMatch = Object.keys(rolePermissions).find(role => 
+          role.toLowerCase().includes(userRoleLower) || userRoleLower.includes(role.toLowerCase())
+        )
+        
+        if (partialMatch) {
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Found partial match:', partialMatch)
+          }
+          permissions = rolePermissions[partialMatch]
+        } else {
+          // Return minimal permissions if role not found (no hardcoded fallback)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('No role match found for:', currentUser?.role, 'Available roles:', Object.keys(rolePermissions))
+            console.log('Role permissions keys:', Object.keys(rolePermissions))
+            console.log('User role:', currentUser?.role)
+          }
+          permissions = {
+            tabs: ['dashboard'],
+            features: {
+              canViewDashboardPage: true
+            }
+          }
+        }
+      }
+    } else {
+      // No current user
+      permissions = {
+        tabs: ['dashboard'],
+        features: {
+          canViewDashboardPage: true
+        }
       }
     }
     
-    // Return minimal permissions if role not found (no hardcoded fallback)
-    console.log('No role match found for:', currentUser?.role, 'Available roles:', Object.keys(rolePermissions))
-    return {
-      tabs: ['dashboard'],
-      features: {}
-    }
+    // Cache the calculated permissions
+    setCachedUserPermissions(permissions)
+    setPermissionCacheKey(currentCacheKey)
+    
+    return permissions
   }
   
   const hasPermission = (feature) => {
@@ -457,12 +822,15 @@ export default function BusinessHub() {
         
         // Load roles first to get permissions
         const rolesResponse = await api.getRoles()
-        if (rolesResponse.success) {
+        console.log('Roles response:', rolesResponse)
+        if (rolesResponse.success && rolesResponse.data && rolesResponse.data.length > 0) {
+          console.log('Roles data:', rolesResponse.data)
           setRoles(rolesResponse.data)
           
           // Convert roles array to rolePermissions object
           const dynamicRolePermissions: any = {}
           rolesResponse.data.forEach((role: any) => {
+            console.log(`Processing role: ${role.name}`, role.permissions)
             const permissions = role.permissions || {}
             dynamicRolePermissions[role.name] = {
               tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
@@ -480,10 +848,10 @@ export default function BusinessHub() {
                 canQuickUploadDocument: permissions.canQuickUploadDocument === true,
                 canQuickSendMessage: permissions.canQuickSendMessage === true,
                 // Page access permissions for sidebar visibility
-                canViewDashboardPage: permissions.canViewDashboardPage === true,
+                canViewDashboardPage: permissions.canViewDashboardPage !== false, // Default to true if not specified
                 canViewBusinessesPage: permissions.canViewBusinessesPage === true,
                 canViewInventoryPage: permissions.canViewInventoryPage === true,
-                canViewTasksPage: permissions.canViewTasksPage === true,
+                canViewTasksPage: permissions.canViewTasksPage !== false, // Default to true if not specified
                 canViewUsersPage: permissions.canViewUsersPage === true,
                 canViewQuotesPage: permissions.canViewQuotesPage === true,
                 canEditQuote: permissions.canViewQuotesPage === true, // Base edit permission on view permission for now
@@ -500,84 +868,199 @@ export default function BusinessHub() {
             }
           })
           setRolePermissions(dynamicRolePermissions)
-          setPermissionsLoaded(true)
+          // Clear permission cache when role permissions change
+          setCachedUserPermissions(null)
+          setPermissionCacheKey('')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Final rolePermissions:', dynamicRolePermissions)
+            console.log('Current user role:', currentUser?.role)
+            console.log('Matching permissions for user role:', dynamicRolePermissions[currentUser?.role])
+          }
         } else {
-          console.error('Failed to load roles:', rolesResponse.error)
-          setPermissionsLoaded(true) // Set to true even on error to prevent infinite loading
+          if (process.env.NODE_ENV === 'development') {
+            console.error('Failed to load roles or no roles returned:', rolesResponse.error)
+          }
+          // Create fallback role permissions based on common roles
+          const fallbackRolePermissions: any = {
+            'Admin': {
+              tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages', 'analytics', 'settings'],
+              features: {
+                canViewDashboardPage: true,
+                canViewBusinessesPage: true,
+                canViewInventoryPage: true,
+                canViewTasksPage: true,
+                canViewUsersPage: true,
+                canViewQuotesPage: true,
+                canEditQuote: true,
+                canDeleteQuote: true,
+                canViewDocumentsPage: true,
+                canViewMessagesPage: true,
+                canViewAnalyticsPage: true,
+                canViewActivityLogsPage: true,
+                canViewEmergencyControlPage: true,
+                canViewSettingsPage: true,
+                canDeleteBusiness: true
+              }
+            },
+            'Manager': {
+              tabs: ['dashboard', 'businesses', 'inventory', 'tasks', 'users', 'quotes', 'documents', 'messages'],
+              features: {
+                canViewDashboardPage: true,
+                canViewBusinessesPage: true,
+                canViewInventoryPage: true,
+                canViewTasksPage: true,
+                canViewUsersPage: true,
+                canViewQuotesPage: true,
+                canEditQuote: true,
+                canDeleteQuote: true,
+                canViewDocumentsPage: true,
+                canViewMessagesPage: true,
+                canViewAnalyticsPage: false,
+                canViewActivityLogsPage: false,
+                canViewEmergencyControlPage: false,
+                canViewSettingsPage: false,
+                canDeleteBusiness: true
+              }
+            },
+            'User': {
+              tabs: ['dashboard', 'tasks'],
+              features: {
+                canViewDashboardPage: true,
+                canViewBusinessesPage: false,
+                canViewInventoryPage: false,
+                canViewTasksPage: true,
+                canViewUsersPage: false,
+                canViewQuotesPage: false,
+                canEditQuote: false,
+                canDeleteQuote: false,
+                canViewDocumentsPage: false,
+                canViewMessagesPage: false,
+                canViewAnalyticsPage: false,
+                canViewActivityLogsPage: false,
+                canViewEmergencyControlPage: false,
+                canViewSettingsPage: false,
+                canDeleteBusiness: false
+              }
+            }
+          }
+          setRolePermissions(fallbackRolePermissions)
+          // Clear permission cache when role permissions change
+          setCachedUserPermissions(null)
+          setPermissionCacheKey('')
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Using fallback role permissions:', fallbackRolePermissions)
+          }
         }
+        setPermissionsLoaded(true)
         
         // Load businesses
         const businessesResponse = await api.getBusinesses()
-        console.log('Businesses response:', businessesResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Businesses response:', businessesResponse)
+        }
         if (businessesResponse.success) {
           setBusinessList(businessesResponse.data)
           setFilteredBusinesses(businessesResponse.data)
-          console.log('Businesses loaded:', businessesResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Businesses loaded:', businessesResponse.data.length)
+          }
         }
 
         // Load users
         const usersResponse = await api.getUsers()
-        console.log('Users response:', usersResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Users response:', usersResponse)
+        }
         if (usersResponse.success) {
           setUsers(usersResponse.data)
           setFilteredUsers(usersResponse.data)
-          console.log('Users loaded:', usersResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Users loaded:', usersResponse.data.length)
+          }
         }
 
         // Load products
         const productsResponse = await api.getProducts()
-        console.log('Products response:', productsResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Products response:', productsResponse)
+        }
         if (productsResponse.success) {
           setProducts(productsResponse.data)
-          console.log('Products loaded:', productsResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Products loaded:', productsResponse.data.length)
+          }
         }
 
         // Load tasks
         const tasksResponse = await api.getTasks()
-        console.log('Tasks response:', tasksResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Tasks response:', tasksResponse)
+        }
         if (tasksResponse.success) {
           setTasks(tasksResponse.data)
-          console.log('Tasks loaded:', tasksResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Tasks loaded:', tasksResponse.data.length)
+          }
         }
 
         // Load quotes
         const quotesResponse = await api.getQuotes()
-        console.log('Quotes response:', quotesResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Quotes response:', quotesResponse)
+        }
         if (quotesResponse.success) {
           setQuotes(quotesResponse.data)
-          console.log('Quotes loaded:', quotesResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Quotes loaded:', quotesResponse.data.length)
+          }
         }
 
         // Load documents
         const documentsResponse = await api.getDocuments()
-        console.log('Documents response:', documentsResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Documents response:', documentsResponse)
+        }
         if (documentsResponse.success) {
           setDocuments(documentsResponse.data)
-          console.log('Documents loaded:', documentsResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Documents loaded:', documentsResponse.data.length)
+          }
         }
 
         // Load messages
         const messagesResponse = await api.getMessages()
-        console.log('Messages response:', messagesResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Messages response:', messagesResponse)
+        }
         if (messagesResponse.success) {
           setMessages(messagesResponse.data)
-          console.log('Messages loaded:', messagesResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Messages loaded:', messagesResponse.data.length)
+          }
         }
 
         // Load notes
         const notesResponse = await api.getNotes()
-        console.log('Notes response:', notesResponse)
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Notes response:', notesResponse)
+        }
         if (notesResponse.success) {
           setNotes(notesResponse.data)
-          console.log('Notes loaded:', notesResponse.data.length)
+          if (process.env.NODE_ENV === 'development') {
+            console.log('Notes loaded:', notesResponse.data.length)
+          }
         }
 
         // Update dashboard stats
         updateDashboardStats()
-        console.log('Data loading completed')
+        if (process.env.NODE_ENV === 'development') {
+          console.log('Data loading completed')
+        }
         
       } catch (error) {
-        console.error('Error loading data:', error)
+        if (process.env.NODE_ENV === 'development') {
+          console.error('Error loading data:', error)
+        }
       }
     }
     
@@ -588,6 +1071,19 @@ export default function BusinessHub() {
   useEffect(() => {
     // Mark that we're on the client side
     setIsClient(true)
+    
+    // Set display name from localStorage if available (for non-authenticated users)
+    if (typeof window !== 'undefined') {
+      try {
+        const userString = localStorage.getItem('currentUser')
+        if (userString) {
+          const user = JSON.parse(userString)
+          setDisplayName(user.name || 'User')
+        }
+      } catch (error) {
+        console.error('Error reading user from localStorage:', error)
+      }
+    }
     
     // Set display name if user is authenticated
     if (isAuthenticated && currentUser) {
@@ -613,6 +1109,20 @@ export default function BusinessHub() {
     
     loadBusinessRelatedData()
   }, [selectedBusiness])
+
+  // Initialize Google Calendar status
+  useEffect(() => {
+    const initCalendar = async () => {
+      if (isAuthenticated && currentUser && activeTab === 'tasks') {
+        await checkCalendarStatus()
+        if (googleCalendarConnected) {
+          await fetchGoogleCalendarEvents()
+        }
+      }
+    }
+    
+    initCalendar()
+  }, [isAuthenticated, currentUser, activeTab, googleCalendarConnected])
 
   // Handle click outside for dropdowns
   useEffect(() => {
@@ -836,8 +1346,40 @@ export default function BusinessHub() {
       if (productsResponse.success && businessProductsResponse.success) {
         // Filter out products already assigned to this business
         const assignedProductIds = businessProductsResponse.data.map(p => p.id)
-        const available = productsResponse.data.filter(p => !assignedProductIds.includes(p.id))
+        const available = productsResponse.data.filter(p => !assignedProductIds.includes(p.id) && p.isSerialized)
+        
+        // Fetch available serial numbers for serialized products
+        const serialNumbersData: Record<string, any[]> = {}
+        const serializedProducts = available.filter(p => p.isSerialized)
+        
+        // Fetch serial numbers for all serialized products in parallel
+        const serialPromises = serializedProducts.map(async (product) => {
+          try {
+            const response = await api.getProductInstances({ 
+              productId: product.id, 
+              status: 'in-stock' 
+            })
+            if (response.success) {
+              return { productId: product.id, instances: response.data }
+            } else {
+              console.error(`Error fetching serial numbers for product ${product.id}:`, response.error)
+              return { productId: product.id, instances: [] }
+            }
+          } catch (error) {
+            console.error(`Error fetching serial numbers for product ${product.id}:`, error)
+            return { productId: product.id, instances: [] }
+          }
+        })
+        
+        const serialResults = await Promise.all(serialPromises)
+        
+        // Organize results by product ID
+        serialResults.forEach(({ productId, instances }) => {
+          serialNumbersData[productId] = instances
+        })
+        
         setAvailableProducts(available)
+        setAvailableSerialNumbers(serialNumbersData)
         setSelectedBusiness(business)
         setIsAssignProductOpen(true)
       }
@@ -961,7 +1503,7 @@ export default function BusinessHub() {
         productId: item.productId,
         quantity: item.quantity,
         price: item.price,
-        category: item.product.pricingType === 'one-off' ? 'hardware' : 'software'
+        category: item.product.category.toLowerCase() === 'software' ? 'software' : 'hardware'
       }))
     })
     
@@ -1081,13 +1623,13 @@ export default function BusinessHub() {
   // Filter products for dropdowns - memoized for performance
   const hardwareProducts = useMemo(() => 
     products.filter(product => 
-      product.pricingType === 'one-off' && 
+      product.category.toLowerCase() !== 'software' && 
       product.name.toLowerCase().includes(hardwareSearchTerm.toLowerCase())
     ), [products, hardwareSearchTerm])
   
   const softwareProducts = useMemo(() => 
     products.filter(product => 
-      product.pricingType === 'monthly' && 
+      product.category.toLowerCase() === 'software' && 
       product.name.toLowerCase().includes(softwareSearchTerm.toLowerCase())
     ), [products, softwareSearchTerm])
 
@@ -1251,13 +1793,61 @@ export default function BusinessHub() {
       const results = await Promise.all(assignPromises)
       
       if (results.every(result => result.success)) {
+        // Now handle serial number assignment for serialized products
+        const serialPromises = selectedProducts.map(async (productId) => {
+          const product = availableProducts.find(p => p.id === productId)
+          const serialData = serialNumbers[productId]
+          
+          // Only process if product is serialized and we have serial data
+          if (product?.isSerialized && serialData) {
+            try {
+              if (serialData.instanceId) {
+                // Update existing instance with business assignment
+                const response = await api.updateProductInstance(serialData.instanceId, {
+                  businessId: selectedBusiness.id,
+                  status: 'sold',
+                  soldDate: new Date().toISOString(),
+                  warrantyExpiry: serialData.warrantyExpiry,
+                  comments: serialData.comments,
+                })
+                
+                if (!response.success) {
+                  console.error('Failed to update serial number instance:', response.error)
+                }
+              } else if (serialData.serialNumber) {
+                // Create new instance if no existing one was selected (fallback)
+                const response = await api.createProductInstance({
+                  productId,
+                  serialNumber: serialData.serialNumber,
+                  businessId: selectedBusiness.id,
+                  warrantyExpiry: serialData.warrantyExpiry,
+                  comments: serialData.comments,
+                  status: 'sold',
+                  soldDate: new Date().toISOString(),
+                  isLicense: false,
+                })
+                
+                if (!response.success) {
+                  console.error('Failed to create serial number instance:', response.error)
+                }
+              }
+            } catch (error) {
+              console.error('Error handling serial number assignment:', error)
+            }
+          }
+        })
+        
+        await Promise.all(serialPromises)
+        
         // Refresh the business related data
         const data = await getBusinessRelatedData(selectedBusiness.id)
         setBusinessRelatedData(data)
         
-        // Close the assign product modal
+        // Close the assign product modal and reset state
         setIsAssignProductOpen(false)
         setSelectedProducts([])
+        setSerialNumbers({})
+        setAvailableSerialNumbers({})
         setAvailableProducts([])
         
         // Show success message
@@ -1269,6 +1859,106 @@ export default function BusinessHub() {
       console.error('Error assigning products:', error)
       toast.error('Error assigning products. Please try again.')
     }
+  }
+
+  // Handler for product selection changes
+  const handleProductSelectionChange = (productId: string, isSelected: boolean) => {
+    const product = availableProducts.find(p => p.id === productId)
+    
+    if (isSelected) {
+      setSelectedProducts(prev => [...prev, productId])
+      
+      // Initialize serial number data for serialized products
+      if (product?.isSerialized) {
+        const availableInstances = availableSerialNumbers[productId] || []
+        
+        // If there are available serial numbers, pre-select the first one
+        if (availableInstances.length > 0) {
+          setSerialNumbers(prev => ({
+            ...prev,
+            [productId]: {
+              instanceId: availableInstances[0].id,
+              serialNumber: availableInstances[0].serialNumber,
+              warrantyExpiry: '',
+              comments: ''
+            }
+          }))
+        } else {
+          // No available serial numbers, initialize empty state
+          setSerialNumbers(prev => ({
+            ...prev,
+            [productId]: {
+              serialNumber: '',
+              warrantyExpiry: '',
+              comments: ''
+            }
+          }))
+        }
+      }
+    } else {
+      setSelectedProducts(prev => prev.filter(id => id !== productId))
+      
+      // Remove serial number data if product is deselected
+      if (product?.isSerialized) {
+        setSerialNumbers(prev => {
+          const newSerialNumbers = { ...prev }
+          delete newSerialNumbers[productId]
+          return newSerialNumbers
+        })
+      }
+    }
+  }
+
+  // Handler for serial number selection changes
+  const handleSerialNumberChange = (productId: string, field: string, value: string) => {
+    setSerialNumbers(prev => ({
+      ...prev,
+      [productId]: {
+        ...prev[productId],
+        [field]: value
+      }
+    }))
+  }
+
+  // Handler for selecting an existing serial number instance
+  const handleSerialNumberSelect = (productId: string, instanceId: string) => {
+    const selectedInstance = availableSerialNumbers[productId]?.find(instance => instance.id === instanceId)
+    
+    if (selectedInstance) {
+      setSerialNumbers(prev => ({
+        ...prev,
+        [productId]: {
+          ...prev[productId],
+          instanceId: selectedInstance.id,
+          serialNumber: selectedInstance.serialNumber,
+          warrantyExpiry: selectedInstance.warrantyExpiry ? 
+            new Date(selectedInstance.warrantyExpiry).toISOString().split('T')[0] : '',
+          comments: selectedInstance.comments || ''
+        }
+      }))
+    }
+  }
+
+  // Check if a serialized product has valid serial number data
+  const isSerializedProductValid = (productId: string) => {
+    const product = availableProducts.find(p => p.id === productId)
+    if (!product?.isSerialized) return true
+    
+    const serialData = serialNumbers[productId]
+    
+    // If there are available serial numbers, an instance must be selected
+    const availableInstances = availableSerialNumbers[productId] || []
+    if (availableInstances.length > 0) {
+      return !!serialData?.instanceId
+    }
+    
+    // If no available serial numbers, manual entry is required
+    return serialData?.serialNumber?.trim() !== ''
+  }
+
+  // Check if all selected products are valid (for form submission)
+  const areAllSelectedProductsValid = () => {
+    return selectedProducts.every(productId => isSerializedProductValid(productId))
   }
 
   const handleRemoveProduct = async (businessId, productId) => {
@@ -1301,20 +1991,51 @@ export default function BusinessHub() {
 
   // Get business stats for display in cards
   const getBusinessStats = (business) => {
-    // Get tasks for this business
-    const businessTasks = tasks.filter(task => task.businessId === business.id)
+    // Use the data that's already included in the business object from the API
+    // The businesses API includes contacts, tasks, products, notes, and quotes in the response
     
-    // Get products for this business
-    const businessProducts = products.filter(product => product.businessId === business.id)
+    // Get contacts for this business (already included in the business object)
+    const businessContacts = business.contacts || []
     
-    // For contacts, we'll show 0 since they're loaded on-demand per business
-    // The actual contact count will be visible in the business detail view
-    const businessContacts = []
+    // Get tasks for this business (already included in the business object)
+    const businessTasks = business.tasks || []
+    
+    // Get products for this business (included via BusinessProduct junction)
+    const businessProducts = business.products || []
+    
+    // Get notes for this business (already included in the business object)
+    const businessNotes = business.notes || []
+    
+    // Get quotes for this business (already included in the business object)
+    const businessQuotes = business.quotes || []
+    
+    // Get product instances (serial numbers) for this business
+    const businessInstances = business.productInstances || []
+    
+    // Calculate total products - count both product assignments and instances
+    // Each product in the products array represents a product assignment to this business
+    const assignedProducts = businessProducts.length
+    const serializedInstances = businessInstances.length
+    
+    console.log(`Business ${business.name} stats:`, {
+      contacts: businessContacts.length,
+      tasks: businessTasks.length,
+      assignedProducts: assignedProducts,
+      serializedInstances: serializedInstances,
+      notes: businessNotes.length,
+      quotes: businessQuotes.length
+    })
     
     return {
       contacts: businessContacts,
       tasks: businessTasks,
-      products: businessProducts
+      products: businessProducts,
+      notes: businessNotes,
+      quotes: businessQuotes,
+      instances: businessInstances,
+      totalProducts: assignedProducts + serializedInstances,
+      assignedProducts: assignedProducts,
+      serializedInstances: serializedInstances
     }
   }
 
@@ -1355,13 +2076,19 @@ export default function BusinessHub() {
         api.getBusinessProducts(businessId),
         api.getBusinessContacts(businessId),
         api.getBusinessNotes(businessId),
-        api.getBusinessQuotes(businessId) // Get quotes specifically for this business
+        api.getBusinessQuotes(businessId), // Get quotes specifically for this business
       ])
       
       const businessProducts = businessProductsResponse.success ? businessProductsResponse.data : []
       const businessContacts = businessContactsResponse.success ? businessContactsResponse.data : []
       const businessNotes = businessNotesResponse.success ? businessNotesResponse.data : []
       const businessQuotes = businessQuotesResponse.success ? businessQuotesResponse.data : []
+      
+      // Get product instances (serial numbers) assigned directly to this business
+      const businessInstancesResponse = await api.getProductInstances({ businessId })
+      const businessInstances = businessInstancesResponse.success 
+        ? businessInstancesResponse.data 
+        : []
       
       // Filter other related data from local state
       const businessTasks = tasks.filter(t => t.businessId === businessId)
@@ -1377,7 +2104,8 @@ export default function BusinessHub() {
         tasks: businessTasks,
         quotes: businessQuotes,
         documents: businessDocuments,
-        notes: businessNotes
+        notes: businessNotes,
+        instances: businessInstances
       }
     } catch (error) {
       console.error('Error getting business related data:', error)
@@ -1387,7 +2115,8 @@ export default function BusinessHub() {
         tasks: [],
         quotes: [],
         documents: [],
-        notes: []
+        notes: [],
+        instances: []
       }
     }
   }
@@ -1945,18 +2674,22 @@ export default function BusinessHub() {
                               <Separator className="my-3" />
                               
                               {/* Stats */}
-                              <div className="grid grid-cols-3 gap-2">
-                                <div className="text-center p-2 bg-blue-50 rounded-lg">
-                                  <div className="text-lg font-bold text-blue-600">{businessStats.contacts.length}</div>
+                              <div className="grid grid-cols-4 gap-1">
+                                <div className="text-center p-1.5 bg-blue-50 rounded-lg">
+                                  <div className="text-sm font-bold text-blue-600">{businessStats.contacts.length}</div>
                                   <div className="text-xs text-blue-600">Contacts</div>
                                 </div>
-                                <div className="text-center p-2 bg-green-50 rounded-lg">
-                                  <div className="text-lg font-bold text-green-600">{businessStats.tasks.length}</div>
+                                <div className="text-center p-1.5 bg-green-50 rounded-lg">
+                                  <div className="text-sm font-bold text-green-600">{businessStats.tasks.length}</div>
                                   <div className="text-xs text-green-600">Tasks</div>
                                 </div>
-                                <div className="text-center p-2 bg-purple-50 rounded-lg">
-                                  <div className="text-lg font-bold text-purple-600">{businessStats.products.length}</div>
+                                <div className="text-center p-1.5 bg-purple-50 rounded-lg">
+                                  <div className="text-sm font-bold text-purple-600">{businessStats.totalProducts || 0}</div>
                                   <div className="text-xs text-purple-600">Products</div>
+                                </div>
+                                <div className="text-center p-1.5 bg-orange-50 rounded-lg">
+                                  <div className="text-sm font-bold text-orange-600">{businessStats.notes.length}</div>
+                                  <div className="text-xs text-orange-600">Notes</div>
                                 </div>
                               </div>
                             </div>
@@ -1975,6 +2708,75 @@ export default function BusinessHub() {
 
             {activeTab === 'tasks' && (
               <div className="space-y-6">
+                {/* Google Calendar Integration Section */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center space-x-3">
+                      <CalendarIcon className="h-6 w-6 text-blue-600" />
+                      <div>
+                        <h3 className="text-lg font-semibold text-gray-900">Google Calendar Integration</h3>
+                        <p className="text-sm text-gray-600">Connect your Google Calendar to sync events</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      {googleCalendarConnected ? (
+                        <>
+                          <div className="flex items-center space-x-2">
+                            <CheckCircleIcon className="h-4 w-4 text-green-600" />
+                            <span className="text-sm text-green-600">Connected</span>
+                          </div>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={disconnectGoogleCalendar}
+                            disabled={googleCalendarLoading}
+                          >
+                            {googleCalendarLoading ? 'Disconnecting...' : 'Disconnect'}
+                          </Button>
+                        </>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowGoogleCalendarConnect(true)}
+                          disabled={googleCalendarLoading}
+                        >
+                          <Cloud className="h-4 w-4 mr-2" />
+                          Connect Calendar
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Google Calendar Events Preview */}
+                  {googleCalendarConnected && googleCalendarEvents.length > 0 && (
+                    <div className="mt-4 border-t pt-4">
+                      <h4 className="text-sm font-medium text-gray-900 mb-3">Upcoming Google Calendar Events</h4>
+                      <div className="space-y-2">
+                        {googleCalendarEvents.slice(0, 5).map((event) => (
+                          <div key={event.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center space-x-3">
+                              <div className="w-2 h-2 bg-blue-600 rounded-full"></div>
+                              <div>
+                                <p className="text-sm font-medium text-gray-900">{event.summary}</p>
+                                <p className="text-xs text-gray-500">
+                                  {event.start?.dateTime 
+                                    ? new Date(event.start.dateTime).toLocaleDateString()
+                                    : event.start?.date 
+                                      ? new Date(event.start.date).toLocaleDateString()
+                                      : 'No date'
+                                  }
+                                </p>
+                              </div>
+                            </div>
+                            <ExternalLink className="h-4 w-4 text-gray-400" />
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-white rounded-lg shadow-sm p-6">
                   <div className="flex items-center justify-between">
                     <div>
@@ -2056,6 +2858,84 @@ export default function BusinessHub() {
                       ))}
                     </CardContent>
                   </Card>
+                </div>
+
+                {/* FullCalendar Section */}
+                <div className="bg-white rounded-lg shadow-sm p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h3 className="text-lg font-semibold text-gray-900">Calendar View</h3>
+                      <p className="text-sm text-gray-600">View tasks and Google Calendar events in calendar format</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigateCalendar(-1)}
+                      >
+                        Previous
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigateCalendar(0)}
+                      >
+                        Today
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigateCalendar(1)}
+                      >
+                        Next
+                      </Button>
+                      <Select value={calendarView} onValueChange={setCalendarView}>
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="dayGridMonth">Month</SelectItem>
+                          <SelectItem value="timeGridWeek">Week</SelectItem>
+                          <SelectItem value="timeGridDay">Day</SelectItem>
+                          <SelectItem value="listWeek">List</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <div className="border rounded-lg overflow-hidden">
+                    <FullCalendar
+                      ref={calendarRef}
+                      plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin, listPlugin]}
+                      initialView={calendarView}
+                      headerToolbar={false}
+                      events={tasksToCalendarEvents()}
+                      eventClick={handleEventClick}
+                      select={handleDateSelect}
+                      eventDrop={handleEventDrop}
+                      editable={true}
+                      selectable={true}
+                      selectMirror={true}
+                      dayMaxEvents={true}
+                      height={600}
+                    />
+                  </div>
+
+                  {/* Calendar Legend */}
+                  <div className="mt-4 flex items-center justify-center space-x-6 text-sm">
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-blue-600 rounded"></div>
+                      <span className="text-gray-600">Business Tasks</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-green-600 rounded"></div>
+                      <span className="text-gray-600">General Tasks</span>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-3 h-3 bg-amber-600 rounded"></div>
+                      <span className="text-gray-600">Google Calendar Events</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
@@ -2570,7 +3450,7 @@ export default function BusinessHub() {
 
       {/* View Business Dialog */}
       <Dialog open={isViewBusinessOpen} onOpenChange={setIsViewBusinessOpen}>
-        <DialogContent className="!w-[50vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '50vw' }}>
+        <DialogContent className="!w-[70vw] !max-w-none max-h-[95vh] overflow-y-auto p-8" style={{ width: '70vw' }}>
           <DialogHeader className="pb-4">
             <div className="flex items-center justify-between">
               <div>
@@ -2733,7 +3613,9 @@ export default function BusinessHub() {
                         </div>
                         <div>
                           <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Products</p>
-                          <p className="text-3xl font-bold text-purple-600 mt-1">{businessRelatedData.products.length}</p>
+                          <p className="text-3xl font-bold text-purple-600 mt-1">
+                            {(businessRelatedData.instances?.length || 0) + (businessRelatedData.products?.length || 0)}
+                          </p>
                         </div>
                       </div>
                       <div className="mt-6">
@@ -3073,60 +3955,15 @@ export default function BusinessHub() {
                 </TabsContent>
                 
                 <TabsContent value="products" className="mt-4">
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h3 className="text-lg font-semibold">Related Products</h3>
-                      <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={() => handleOpenAssignProduct(selectedBusiness)}
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Products
-                      </Button>
-                    </div>
-                    
-                    {businessRelatedData.products.length > 0 ? (
-                      <div className="space-y-3">
-                        {businessRelatedData.products.map((product) => (
-                          <Card key={product.id} className="bg-white shadow-sm">
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-start">
-                                <div className="flex-1">
-                                  <h4 className="font-medium text-gray-900">{product.name}</h4>
-                                  <p className="text-sm text-gray-600">{product.description}</p>
-                                  <p className="text-sm font-medium text-gray-900 mt-1">£{product.price}</p>
-                                  <div className="flex items-center mt-2 space-x-4">
-                                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">{product.category}</Badge>
-                                    <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200">
-                                      {product.pricingType || 'one-off'}
-                                    </Badge>
-                                  </div>
-                                </div>
-                                <div className="flex space-x-1">
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => {
-                                      setRemoveProductDialog({
-                                        open: true,
-                                        businessId: selectedBusiness.id,
-                                        productId: product.id
-                                      })
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-gray-500 text-center py-4">No products found</p>
-                    )}
-                  </div>
+                  <BusinessProductTab
+                    business={selectedBusiness}
+                    instances={businessRelatedData.instances || []}
+                    businessProducts={businessRelatedData.products || []}
+                    refreshData={async () => {
+                      const data = await getBusinessRelatedData(selectedBusiness.id)
+                      setBusinessRelatedData(data)
+                    }}
+                  />
                 </TabsContent>
             </div>
           </Tabs>
@@ -3325,48 +4162,181 @@ export default function BusinessHub() {
               <div className="max-h-96 overflow-y-auto">
                 {availableProducts.length > 0 ? (
                   <div className="divide-y divide-gray-200">
-                    {availableProducts.map((product) => (
-                      <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-start w-full">
-                          <div className="flex-shrink-0 pt-1 pr-4">
-                            <Checkbox
-                              id={`product-${product.id}`}
-                              checked={selectedProducts.includes(product.id)}
-                              onCheckedChange={(checked) => {
-                                if (checked) {
-                                  setSelectedProducts([...selectedProducts, product.id])
-                                } else {
-                                  setSelectedProducts(selectedProducts.filter(id => id !== product.id))
-                                }
-                              }}
-                              className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <Label htmlFor={`product-${product.id}`} className="cursor-pointer">
-                              <div className="flex items-start justify-between w-full">
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-medium text-gray-900 truncate">
-                                    {product.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500 mt-1">
-                                    {product.category || 'Uncategorized'}
-                                  </p>
+                    {availableProducts.map((product) => {
+                      const isSelected = selectedProducts.includes(product.id)
+                      const showSerialInput = isSelected && product.isSerialized
+                      const serialData = serialNumbers[product.id]
+                      
+                      return (
+                        <div key={product.id} className="p-4 hover:bg-gray-50 transition-colors">
+                          <div className="flex items-start w-full">
+                            <div className="flex-shrink-0 pt-1 pr-4">
+                              <Checkbox
+                                id={`product-${product.id}`}
+                                checked={isSelected}
+                                onCheckedChange={(checked) => {
+                                  handleProductSelectionChange(product.id, checked as boolean)
+                                }}
+                                className="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <Label htmlFor={`product-${product.id}`} className="cursor-pointer">
+                                <div className="flex items-start justify-between w-full">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {product.name}
+                                      </p>
+                                      {product.isSerialized && (
+                                        <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                          Serial Required
+                                        </Badge>
+                                      )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">
+                                      {product.category || 'Uncategorized'}
+                                    </p>
+                                  </div>
+                                  <div className="flex-shrink-0 ml-auto text-right pl-8">
+                                    <p className="text-sm font-bold text-purple-600">
+                                      £{product.price?.toLocaleString()}
+                                    </p>
+                                    <p className="text-xs text-gray-500">
+                                      {product.pricingType || 'one-off'}
+                                    </p>
+                                  </div>
                                 </div>
-                                <div className="flex-shrink-0 ml-auto text-right pl-8">
-                                  <p className="text-sm font-bold text-purple-600">
-                                    £{product.price?.toLocaleString()}
-                                  </p>
-                                  <p className="text-xs text-gray-500">
-                                    {product.pricingType || 'one-off'}
-                                  </p>
+                              </Label>
+                              
+                              {/* Serial Number Selection for Serialized Products */}
+                              {showSerialInput && (
+                                <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <Package className="h-4 w-4 text-blue-600" />
+                                    <span className="text-sm font-medium text-blue-900">
+                                      Serial Number Information
+                                    </span>
+                                  </div>
+                                  
+                                  {availableSerialNumbers[product.id]?.length > 0 ? (
+                                    <>
+                                      <div className="space-y-3">
+                                        <div>
+                                          <Label className="text-xs font-medium text-blue-700">
+                                            Select Serial Number *
+                                          </Label>
+                                          <Select 
+                                            value={serialData?.instanceId || ''} 
+                                            onValueChange={(value) => handleSerialNumberSelect(product.id, value)}
+                                          >
+                                            <SelectTrigger className="mt-1 h-8 text-sm">
+                                              <SelectValue placeholder="Choose a serial number" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                              {availableSerialNumbers[product.id].map((instance) => (
+                                                <SelectItem key={instance.id} value={instance.id}>
+                                                  {instance.serialNumber}
+                                                  {instance.comments && ` (${instance.comments})`}
+                                                </SelectItem>
+                                              ))}
+                                            </SelectContent>
+                                          </Select>
+                                          <p className="text-xs text-gray-500 mt-1">
+                                            {availableSerialNumbers[product.id].length} serial number(s) available
+                                          </p>
+                                        </div>
+                                        
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                          <div>
+                                            <Label className="text-xs font-medium text-blue-700">
+                                              Warranty Expiry
+                                            </Label>
+                                            <Input
+                                              type="date"
+                                              value={serialData?.warrantyExpiry || ''}
+                                              onChange={(e) => handleSerialNumberChange(product.id, 'warrantyExpiry', e.target.value)}
+                                              className="mt-1 h-8 text-sm"
+                                            />
+                                          </div>
+                                          
+                                          <div>
+                                            <Label className="text-xs font-medium text-blue-700">
+                                              Comments/Initials
+                                            </Label>
+                                            <Input
+                                              value={serialData?.comments || ''}
+                                              onChange={(e) => handleSerialNumberChange(product.id, 'comments', e.target.value)}
+                                              placeholder="Initials: JD"
+                                              className="mt-1 h-8 text-sm"
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </>
+                                  ) : (
+                                    <div className="space-y-3">
+                                      <div className="p-2 bg-yellow-50 border border-yellow-200 rounded">
+                                        <p className="text-xs text-yellow-800">
+                                          No serial numbers available in inventory. Please add serial numbers first, or enter one manually below.
+                                        </p>
+                                      </div>
+                                      
+                                      <div>
+                                        <Label className="text-xs font-medium text-blue-700">
+                                          Serial Number *
+                                        </Label>
+                                        <Input
+                                          value={serialData?.serialNumber || ''}
+                                          onChange={(e) => handleSerialNumberChange(product.id, 'serialNumber', e.target.value)}
+                                          placeholder="Enter serial number"
+                                          className="mt-1 h-8 text-sm"
+                                        />
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                        <div>
+                                          <Label className="text-xs font-medium text-blue-700">
+                                            Warranty Expiry
+                                          </Label>
+                                          <Input
+                                            type="date"
+                                            value={serialData?.warrantyExpiry || ''}
+                                            onChange={(e) => handleSerialNumberChange(product.id, 'warrantyExpiry', e.target.value)}
+                                            className="mt-1 h-8 text-sm"
+                                          />
+                                        </div>
+                                        
+                                        <div>
+                                          <Label className="text-xs font-medium text-blue-700">
+                                            Comments/Initials
+                                          </Label>
+                                          <Input
+                                            value={serialData?.comments || ''}
+                                            onChange={(e) => handleSerialNumberChange(product.id, 'comments', e.target.value)}
+                                            placeholder="Initials: JD"
+                                            className="mt-1 h-8 text-sm"
+                                          />
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+                                  
+                                  {!isSerializedProductValid(product.id) && (
+                                    <p className="text-xs text-red-600 mt-2">
+                                      {availableSerialNumbers[product.id]?.length > 0 
+                                        ? 'Please select a serial number from the dropdown'
+                                        : 'Serial number is required for this product'
+                                      }
+                                    </p>
+                                  )}
                                 </div>
-                              </div>
-                            </Label>
+                              )}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )
+                    })}
                   </div>
                 ) : (
                   <div className="p-12 text-center">
@@ -3419,7 +4389,7 @@ export default function BusinessHub() {
               </Button>
               <Button 
                 onClick={handleAssignProducts}
-                disabled={selectedProducts.length === 0}
+                disabled={selectedProducts.length === 0 || !areAllSelectedProductsValid()}
                 className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300"
               >
                 <Package className="h-4 w-4 mr-2" />
@@ -4221,6 +5191,69 @@ export default function BusinessHub() {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Google Calendar Connection Dialog */}
+      <Dialog open={showGoogleCalendarConnect} onOpenChange={setShowGoogleCalendarConnect}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center space-x-2">
+              <CalendarIcon className="h-5 w-5" />
+              <span>Connect Google Calendar</span>
+            </DialogTitle>
+            <DialogDescription>
+              Connect your Google Calendar to sync events with your task management system.
+              This will allow you to view your Google Calendar events alongside your tasks.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-blue-900 mb-2">What you'll get:</h4>
+              <ul className="text-sm text-blue-800 space-y-1">
+                <li>• View Google Calendar events in your task dashboard</li>
+                <li>• Two-way sync between tasks and calendar events</li>
+                <li>• Business-specific event linking</li>
+                <li>• Real-time event updates</li>
+              </ul>
+            </div>
+
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+              <h4 className="text-sm font-medium text-yellow-900 mb-2">Required permissions:</h4>
+              <ul className="text-sm text-yellow-800 space-y-1">
+                <li>• View your calendars</li>
+                <li>• View and edit events</li>
+                <li>• Create new events</li>
+              </ul>
+            </div>
+
+            <div className="flex justify-end space-x-2 pt-4 border-t">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowGoogleCalendarConnect(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                onClick={connectGoogleCalendar}
+                disabled={googleCalendarLoading}
+                className="bg-blue-600 hover:bg-blue-700"
+              >
+                {googleCalendarLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Connecting...
+                  </>
+                ) : (
+                  <>
+                    <Cloud className="h-4 w-4 mr-2" />
+                    Connect Google Calendar
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 

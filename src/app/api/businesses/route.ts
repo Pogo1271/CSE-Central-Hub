@@ -28,11 +28,13 @@ export async function GET(request: NextRequest) {
         contacts: true,
         tasks: true,
         notes: true,
+        quotes: true,
         products: {
           include: {
             product: true
           }
         },
+        productInstances: true,
         user: true
       },
       orderBy: { createdAt: 'desc' }
@@ -85,11 +87,13 @@ export async function POST(request: NextRequest) {
         contacts: true,
         tasks: true,
         notes: true,
+        quotes: true,
         products: {
           include: {
             product: true
           }
         },
+        productInstances: true,
         user: true
       }
     })

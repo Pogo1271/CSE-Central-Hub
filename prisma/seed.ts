@@ -117,7 +117,9 @@ async function main() {
         canViewDocumentsPage: true,
         canViewMessagesPage: true,
         canViewAnalyticsPage: true,
-        canViewSettingsPage: true
+        canViewSettingsPage: true,
+        canViewActivityLogsPage: true,
+        canViewEmergencyControlPage: true
       }
     },
   })
@@ -180,7 +182,9 @@ async function main() {
         canViewDocumentsPage: true,
         canViewMessagesPage: true,
         canViewAnalyticsPage: false,
-        canViewSettingsPage: false
+        canViewSettingsPage: false,
+        canViewActivityLogsPage: false,
+        canViewEmergencyControlPage: false
       }
     },
   })
@@ -243,7 +247,9 @@ async function main() {
         canViewDocumentsPage: false,
         canViewMessagesPage: false,
         canViewAnalyticsPage: false,
-        canViewSettingsPage: false
+        canViewSettingsPage: false,
+        canViewActivityLogsPage: false,
+        canViewEmergencyControlPage: false
       }
     },
   })
