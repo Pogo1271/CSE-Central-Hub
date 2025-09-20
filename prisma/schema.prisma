@@ -173,6 +173,15 @@ model Task {
   googleCalendarEventId String?
   syncStatus        String?   // 'synced', 'pending', 'error'
   lastSynced        DateTime?
+  // Enhanced recurrence fields
+  recurrenceRule    String?   // RRULE format for complex recurrence patterns
+  recurrenceInterval Int?     // Interval for recurrence (e.g., every 2 days)
+  recurrenceCount   Int?      // Number of occurrences (null for infinite)
+  recurrenceCustomDays String? // JSON array for custom day selection (e.g., [1,3,5] for Mon/Wed/Fri)
+  isRecurringMaster Boolean  @default(false) // True for the master recurring task
+  isException       Boolean  @default(false) // True if this is an exception to a recurring series
+  originalStartDate DateTime? // Original start date for exceptions
+  modifiedFields    String?  // JSON array of fields that were modified from the master
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
   // Relationships
@@ -181,6 +190,9 @@ model Task {
   business          Business? @relation(fields: [businessId], references: [id])
   parentTask        Task?     @relation("RecurringTasks", fields: [parentTaskId], references: [id])
   instances         Task[]    @relation("RecurringTasks")
+  exceptions        TaskException[]
+  originalExceptions TaskException[] @relation("OriginalTaskExceptions")
+  newExceptions     TaskException[] @relation("NewTaskExceptions")
 
   @@index([startDate])
   @@index([status])
@@ -191,7 +203,31 @@ model Task {
   @@index([recurrenceEndDate])
   @@index([googleCalendarEventId])
   @@index([syncStatus])
+  @@index([isRecurringMaster])
+  @@index([isException])
   @@map("tasks")
+}
+
+model TaskException {
+  id                String    @id @default(cuid())
+  taskId            String    // The master recurring task
+  exceptionDate     DateTime  // The date of the exception
+  exceptionType     String    // 'modified', 'cancelled', 'moved'
+  originalTaskId    String?   // The original task instance that was modified
+  newTaskId         String?   // The new task instance (for modified/moved exceptions)
+  modifiedFields    String?   // JSON array of fields that were modified
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  // Relationships
+  task              Task      @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  originalTask      Task?     @relation("OriginalTaskExceptions", fields: [originalTaskId], references: [id])
+  newTask           Task?     @relation("NewTaskExceptions", fields: [newTaskId], references: [id])
+
+  @@index([taskId])
+  @@index([exceptionDate])
+  @@index([exceptionType])
+  @@map("task_exceptions")
 }
 
 model Note {

@@ -1,0 +1,9 @@
+
+> nextjs_tailwind_shadcn_ts@0.1.0 start
+> NODE_ENV=production tsx server.ts
+
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3001
+> Socket.IO server running at ws://localhost:3001/api/socketio
+> Server bound to 0.0.0.0:3001

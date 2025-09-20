@@ -1,0 +1,383 @@
+
+> nextjs_tailwind_shadcn_ts@0.1.0 dev
+> nodemon --exec "npx tsx server.ts" --watch server.ts --watch src --ext ts,tsx,js,jsx
+
+[33m[nodemon] 3.1.10[39m
+[33m[nodemon] to restart at any time, enter `rs`[39m
+[33m[nodemon] watching path(s): server.ts src/**/*[39m
+[33m[nodemon] watching extensions: ts,tsx,js,jsx[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3000
+> Socket.IO server running at ws://localhost:3000/api/socketio
+> Server bound to 0.0.0.0:3000
+ ○ Compiling / ...
+ ✓ Compiled / in 12.9s (2346 modules)
+ GET / 200 in 12971ms
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  permissionsLoaded: false,
+  rolePermissionsLoaded: 0
+}
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  permissionsLoaded: false,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 2020ms
+ ○ Compiling /api/roles ...
+ ✓ Compiled /api/roles in 1229ms (2347 modules)
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 1497ms
+ ✓ Compiled /api/businesses in 396ms (2335 modules)
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE `main`.`quotes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`quantity`, `main`.`business_products`.`status`, `main`.`business_products`.`notes`, `main`.`business_products`.`validFrom`, `main`.`business_products`.`validTo`, `main`.`business_products`.`assignedBy`, `main`.`business_products`.`assignedDate`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`product_instances`.`id`, `main`.`product_instances`.`serialNumber`, `main`.`product_instances`.`licenseNumber`, `main`.`product_instances`.`productId`, `main`.`product_instances`.`status`, `main`.`product_instances`.`businessId`, `main`.`product_instances`.`contactId`, `main`.`product_instances`.`soldDate`, `main`.`product_instances`.`warrantyExpiry`, `main`.`product_instances`.`comments`, `main`.`product_instances`.`isLicense`, `main`.`product_instances`.`lastUpdatedBy`, `main`.`product_instances`.`createdAt`, `main`.`product_instances`.`updatedAt` FROM `main`.`product_instances` WHERE `main`.`product_instances`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/businesses 200 in 477ms
+ ○ Compiling /api/users ...
+ ✓ Compiled /api/users in 677ms (2417 modules)
+ GET /api/users 200 in 779ms
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ ✓ Compiled /api/products in 362ms (2419 modules)
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/products 200 in 412ms
+ ✓ Compiled /api/tasks in 364ms (2421 modules)
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+ GET /api/tasks 200 in 415ms
+ ✓ Compiled /api/quotes in 348ms (2423 modules)
+ GET /api/quotes 200 in 396ms
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ ✓ Compiled /api/documents in 409ms (2425 modules)
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 457ms
+ ✓ Compiled /api/messages in 418ms (2427 modules)
+ GET /api/messages 200 in 467ms
+ ✓ Compiled /api/notes in 418ms (2429 modules)
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notes 200 in 472ms
+BusinessHub render: {
+  isAuthenticated: false,
+  currentUser: undefined,
+  userRole: undefined,
+  isLoading: true,
+  permissionsLoaded: false,
+  rolePermissionsLoaded: 0
+}
+ GET / 200 in 678ms
+prisma:query SELECT 1
+prisma:query SELECT `main`.`roles`.`id`, `main`.`roles`.`name`, `main`.`roles`.`description`, `main`.`roles`.`color`, `main`.`roles`.`permissions`, `main`.`roles`.`createdAt`, `main`.`roles`.`updatedAt` FROM `main`.`roles` WHERE 1=1 ORDER BY `main`.`roles`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/roles 200 in 30ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE `main`.`quotes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`quantity`, `main`.`business_products`.`status`, `main`.`business_products`.`notes`, `main`.`business_products`.`validFrom`, `main`.`business_products`.`validTo`, `main`.`business_products`.`assignedBy`, `main`.`business_products`.`assignedDate`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`product_instances`.`id`, `main`.`product_instances`.`serialNumber`, `main`.`product_instances`.`licenseNumber`, `main`.`product_instances`.`productId`, `main`.`product_instances`.`status`, `main`.`product_instances`.`businessId`, `main`.`product_instances`.`contactId`, `main`.`product_instances`.`soldDate`, `main`.`product_instances`.`warrantyExpiry`, `main`.`product_instances`.`comments`, `main`.`product_instances`.`isLicense`, `main`.`product_instances`.`lastUpdatedBy`, `main`.`product_instances`.`createdAt`, `main`.`product_instances`.`updatedAt` FROM `main`.`product_instances` WHERE `main`.`product_instances`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/businesses 200 in 29ms
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/users 200 in 45ms
+ GET /api/products 200 in 32ms
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE 1=1 ORDER BY `main`.`products`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+ GET /api/tasks 200 in 25ms
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE 1=1 ORDER BY `main`.`quotes`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quote_items`.`id`, `main`.`quote_items`.`quoteId`, `main`.`quote_items`.`productId`, `main`.`quote_items`.`quantity`, `main`.`quote_items`.`price`, `main`.`quote_items`.`createdAt` FROM `main`.`quote_items` WHERE `main`.`quote_items`.`quoteId` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ GET /api/quotes 200 in 25ms
+prisma:query SELECT `main`.`documents`.`id`, `main`.`documents`.`name`, `main`.`documents`.`type`, `main`.`documents`.`size`, `main`.`documents`.`path`, `main`.`documents`.`category`, `main`.`documents`.`uploadedBy`, `main`.`documents`.`createdAt`, `main`.`documents`.`updatedAt` FROM `main`.`documents` WHERE 1=1 ORDER BY `main`.`documents`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/documents 200 in 28ms
+ GET /api/messages 200 in 26ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?) ORDER BY `main`.`notes`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/notes 200 in 22ms
+ GET /api/tasks 200 in 43ms
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE `main`.`quotes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`quantity`, `main`.`business_products`.`status`, `main`.`business_products`.`notes`, `main`.`business_products`.`validFrom`, `main`.`business_products`.`validTo`, `main`.`business_products`.`assignedBy`, `main`.`business_products`.`assignedDate`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+ GET /api/businesses 200 in 69ms
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`product_instances`.`id`, `main`.`product_instances`.`serialNumber`, `main`.`product_instances`.`licenseNumber`, `main`.`product_instances`.`productId`, `main`.`product_instances`.`status`, `main`.`product_instances`.`businessId`, `main`.`product_instances`.`contactId`, `main`.`product_instances`.`soldDate`, `main`.`product_instances`.`warrantyExpiry`, `main`.`product_instances`.`comments`, `main`.`product_instances`.`isLicense`, `main`.`product_instances`.`lastUpdatedBy`, `main`.`product_instances`.`createdAt`, `main`.`product_instances`.`updatedAt` FROM `main`.`product_instances` WHERE `main`.`product_instances`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+ ○ Compiling /api/calendar/status ...
+ ✓ Compiled /api/calendar/status in 849ms (2432 modules)
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/users 200 in 927ms
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`startDate` >= ? AND `main`.`tasks`.`startDate` <= ?) ORDER BY `main`.`tasks`.`startDate` ASC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`role`, `main`.`users`.`status` FROM `main`.`users` WHERE (`main`.`users`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+ GET /api/tasks 200 in 686ms
+ GET /api/businesses 200 in 503ms
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name`, `main`.`businesses`.`description`, `main`.`businesses`.`category`, `main`.`businesses`.`location`, `main`.`businesses`.`phone`, `main`.`businesses`.`email`, `main`.`businesses`.`website`, `main`.`businesses`.`status`, `main`.`businesses`.`supportContract`, `main`.`businesses`.`supportExpiry`, `main`.`businesses`.`createdAt`, `main`.`businesses`.`updatedAt`, `main`.`businesses`.`userId` FROM `main`.`businesses` WHERE 1=1 ORDER BY `main`.`businesses`.`createdAt` DESC LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`contacts`.`id`, `main`.`contacts`.`name`, `main`.`contacts`.`email`, `main`.`contacts`.`phone`, `main`.`contacts`.`position`, `main`.`contacts`.`businessId`, `main`.`contacts`.`createdAt`, `main`.`contacts`.`updatedAt` FROM `main`.`contacts` WHERE `main`.`contacts`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`notes`.`id`, `main`.`notes`.`title`, `main`.`notes`.`content`, `main`.`notes`.`businessId`, `main`.`notes`.`createdAt`, `main`.`notes`.`updatedAt` FROM `main`.`notes` WHERE `main`.`notes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`quotes`.`id`, `main`.`quotes`.`title`, `main`.`quotes`.`description`, `main`.`quotes`.`businessId`, `main`.`quotes`.`userId`, `main`.`quotes`.`status`, `main`.`quotes`.`totalAmount`, `main`.`quotes`.`createdAt`, `main`.`quotes`.`updatedAt` FROM `main`.`quotes` WHERE `main`.`quotes`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`business_products`.`id`, `main`.`business_products`.`businessId`, `main`.`business_products`.`productId`, `main`.`business_products`.`quantity`, `main`.`business_products`.`status`, `main`.`business_products`.`notes`, `main`.`business_products`.`validFrom`, `main`.`business_products`.`validTo`, `main`.`business_products`.`assignedBy`, `main`.`business_products`.`assignedDate`, `main`.`business_products`.`createdAt` FROM `main`.`business_products` WHERE `main`.`business_products`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`products`.`id`, `main`.`products`.`name`, `main`.`products`.`description`, `main`.`products`.`price`, `main`.`products`.`pricingType`, `main`.`products`.`category`, `main`.`products`.`sku`, `main`.`products`.`stock`, `main`.`products`.`lowStockThreshold`, `main`.`products`.`isSerialized`, `main`.`products`.`createdAt`, `main`.`products`.`updatedAt` FROM `main`.`products` WHERE `main`.`products`.`id` IN (?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`product_instances`.`id`, `main`.`product_instances`.`serialNumber`, `main`.`product_instances`.`licenseNumber`, `main`.`product_instances`.`productId`, `main`.`product_instances`.`status`, `main`.`product_instances`.`businessId`, `main`.`product_instances`.`contactId`, `main`.`product_instances`.`soldDate`, `main`.`product_instances`.`warrantyExpiry`, `main`.`product_instances`.`comments`, `main`.`product_instances`.`isLicense`, `main`.`product_instances`.`lastUpdatedBy`, `main`.`product_instances`.`createdAt`, `main`.`product_instances`.`updatedAt` FROM `main`.`product_instances` WHERE `main`.`product_instances`.`businessId` IN (?,?,?,?,?,?,?,?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`googleCalendarEnabled`, `main`.`users`.`googleCalendarId` FROM `main`.`users` WHERE (`main`.`users`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+ GET /api/calendar/status 200 in 970ms
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`email`, `main`.`users`.`password`, `main`.`users`.`name`, `main`.`users`.`role`, `main`.`users`.`status`, `main`.`users`.`color`, `main`.`users`.`lastLogin`, `main`.`users`.`joined`, `main`.`users`.`createdAt`, `main`.`users`.`updatedAt`, `main`.`users`.`googleCalendarToken`, `main`.`users`.`googleCalendarRefreshToken`, `main`.`users`.`googleCalendarId`, `main`.`users`.`googleCalendarEnabled` FROM `main`.`users` WHERE 1=1 ORDER BY `main`.`users`.`createdAt` DESC LIMIT ? OFFSET ?
+ GET /api/users 200 in 19ms
+ ✓ Compiled /api/tasks/[id] in 448ms (2434 modules)
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query BEGIN IMMEDIATE
+prisma:query UPDATE `main`.`tasks` SET `title` = ?, `description` = ?, `startDate` = ?, `endDate` = ?, `allDay` = ?, `recurring` = ?, `recurringPattern` = ?, `businessId` = ?, `assigneeId` = ?, `status` = ?, `priority` = ?, `updatedAt` = ? WHERE (`main`.`tasks`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `description` AS `description`, `startDate` AS `startDate`, `endDate` AS `endDate`, `allDay` AS `allDay`, `recurring` AS `recurring`, `recurringPattern` AS `recurringPattern`, `recurrenceEndDate` AS `recurrenceEndDate`, `parentTaskId` AS `parentTaskId`, `businessId` AS `businessId`, `assigneeId` AS `assigneeId`, `createdById` AS `createdById`, `status` AS `status`, `priority` AS `priority`, `googleCalendarEventId` AS `googleCalendarEventId`, `syncStatus` AS `syncStatus`, `lastSynced` AS `lastSynced`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+ PUT /api/tasks/cmf4etbwy000lmmmyucvuuhpm 200 in 1369ms
+ ✓ Compiled in 1293ms (1120 modules)
+prisma:query SELECT 1
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query BEGIN IMMEDIATE
+prisma:query UPDATE `main`.`tasks` SET `title` = ?, `description` = ?, `startDate` = ?, `endDate` = ?, `allDay` = ?, `recurring` = ?, `recurringPattern` = ?, `businessId` = ?, `assigneeId` = ?, `status` = ?, `priority` = ?, `updatedAt` = ? WHERE (`main`.`tasks`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `description` AS `description`, `startDate` AS `startDate`, `endDate` AS `endDate`, `allDay` AS `allDay`, `recurring` AS `recurring`, `recurringPattern` AS `recurringPattern`, `recurrenceEndDate` AS `recurrenceEndDate`, `parentTaskId` AS `parentTaskId`, `businessId` AS `businessId`, `assigneeId` AS `assigneeId`, `createdById` AS `createdById`, `status` AS `status`, `priority` AS `priority`, `googleCalendarEventId` AS `googleCalendarEventId`, `syncStatus` AS `syncStatus`, `lastSynced` AS `lastSynced`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?) LIMIT ? OFFSET ?
+ PUT /api/tasks/cmf4etbwy000lmmmyucvuuhpm 200 in 48ms
+prisma:query COMMIT
+ ✓ Compiled in 476ms (1120 modules)
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE (`main`.`tasks`.`id` = ? AND 1=1) LIMIT ? OFFSET ?
+prisma:query BEGIN IMMEDIATE
+prisma:query UPDATE `main`.`tasks` SET `title` = ?, `description` = ?, `startDate` = ?, `endDate` = ?, `allDay` = ?, `recurring` = ?, `recurringPattern` = ?, `businessId` = ?, `assigneeId` = ?, `status` = ?, `priority` = ?, `updatedAt` = ? WHERE (`main`.`tasks`.`id` = ? AND 1=1) RETURNING `id` AS `id`, `title` AS `title`, `description` AS `description`, `startDate` AS `startDate`, `endDate` AS `endDate`, `allDay` AS `allDay`, `recurring` AS `recurring`, `recurringPattern` AS `recurringPattern`, `recurrenceEndDate` AS `recurrenceEndDate`, `parentTaskId` AS `parentTaskId`, `businessId` AS `businessId`, `assigneeId` AS `assigneeId`, `createdById` AS `createdById`, `status` AS `status`, `priority` AS `priority`, `googleCalendarEventId` AS `googleCalendarEventId`, `syncStatus` AS `syncStatus`, `lastSynced` AS `lastSynced`, `createdAt` AS `createdAt`, `updatedAt` AS `updatedAt`
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`title`, `main`.`tasks`.`description`, `main`.`tasks`.`startDate`, `main`.`tasks`.`endDate`, `main`.`tasks`.`allDay`, `main`.`tasks`.`recurring`, `main`.`tasks`.`recurringPattern`, `main`.`tasks`.`recurrenceEndDate`, `main`.`tasks`.`parentTaskId`, `main`.`tasks`.`businessId`, `main`.`tasks`.`assigneeId`, `main`.`tasks`.`createdById`, `main`.`tasks`.`status`, `main`.`tasks`.`priority`, `main`.`tasks`.`googleCalendarEventId`, `main`.`tasks`.`syncStatus`, `main`.`tasks`.`lastSynced`, `main`.`tasks`.`createdAt`, `main`.`tasks`.`updatedAt` FROM `main`.`tasks` WHERE `main`.`tasks`.`id` = ? LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email`, `main`.`users`.`color` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`users`.`id`, `main`.`users`.`name`, `main`.`users`.`email` FROM `main`.`users` WHERE `main`.`users`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`businesses`.`id`, `main`.`businesses`.`name` FROM `main`.`businesses` WHERE `main`.`businesses`.`id` IN (?) LIMIT ? OFFSET ?
+prisma:query SELECT `main`.`tasks`.`id`, `main`.`tasks`.`startDate`, `main`.`tasks`.`status`, `main`.`tasks`.`parentTaskId` FROM `main`.`tasks` WHERE `main`.`tasks`.`parentTaskId` IN (?) LIMIT ? OFFSET ?
+prisma:query COMMIT
+ PUT /api/tasks/cmf4etbwy000lmmmyucvuuhpm 200 in 45ms
+ ✓ Compiled in 408ms (1120 modules)
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3000
+> Socket.IO server running at ws://localhost:3000/api/socketio
+> Server bound to 0.0.0.0:3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3000
+> Socket.IO server running at ws://localhost:3000/api/socketio
+> Server bound to 0.0.0.0:3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+> Ready on http://localhost:3000
+> Socket.IO server running at ws://localhost:3000/api/socketio
+> Server bound to 0.0.0.0:3000
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+[32m[nodemon] restarting due to changes...[39m
+[32m[nodemon] starting `npx tsx server.ts`[39m
+Starting Next.js app...
+Next.js app prepared
+Port 3000 is already in use. Please:
+1. Kill the process using this port, or
+2. Use a different port by setting PORT environment variable
+Example: PORT=3001 npm run dev
+[31m[nodemon] app crashed - waiting for file changes before starting...[39m

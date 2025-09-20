@@ -1,14 +1,26 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
+import { withAuth, getCurrentUser } from '@/lib/middleware'
+import { 
+  generateRecurringInstances, 
+  parseRRULE, 
+  toRRULE, 
+  getRecurrenceDescription,
+  type RecurrenceRule 
+} from '@/lib/recurrence-utils'
 
-export async function GET(request: NextRequest) {
+async function getTasksHandler(request: NextRequest) {
   try {
+    const currentUser = getCurrentUser(request)
+
     const { searchParams } = new URL(request.url)
     const assigneeId = searchParams.get('assigneeId')
     const businessId = searchParams.get('businessId')
     const status = searchParams.get('status')
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const includeRecurring = searchParams.get('includeRecurring') === 'true'
+    const expandInstances = searchParams.get('expandInstances') === 'true'
 
     let whereClause: any = {}
     
@@ -22,6 +34,21 @@ export async function GET(request: NextRequest) {
     
     if (status) {
       whereClause.status = status
+    }
+    
+    // For recurring tasks, we need special handling
+    if (includeRecurring) {
+      // Get both master tasks and individual instances
+      whereClause.OR = [
+        { isRecurringMaster: true },
+        { isRecurringMaster: false, parentTaskId: null }
+      ]
+    } else {
+      // Only get non-recurring or individual instances
+      whereClause.OR = [
+        { recurring: false },
+        { isException: true }
+      ]
     }
     
     // Add date range filtering for better performance
@@ -83,7 +110,9 @@ export async function GET(request: NextRequest) {
             id: true,
             title: true,
             recurring: true,
-            recurringPattern: true
+            recurringPattern: true,
+            recurrenceRule: true,
+            isRecurringMaster: true
           }
         },
         instances: {
@@ -92,12 +121,64 @@ export async function GET(request: NextRequest) {
             startDate: true,
             status: true
           }
+        },
+        exceptions: {
+          select: {
+            id: true,
+            exceptionDate: true,
+            exceptionType: true,
+            notes: true
+          }
         }
       },
       orderBy: {
         startDate: 'asc'
       }
     })
+
+    // If expandInstances is true, generate recurring instances for master tasks
+    if (expandInstances) {
+      const expandedTasks = [...tasks]
+      
+      for (const task of tasks) {
+        if (task.isRecurringMaster && task.recurrenceRule) {
+          try {
+            const rule = parseRRULE(task.recurrenceRule)
+            const instances = generateRecurringInstances({
+              startDate: new Date(task.startDate!),
+              endDate: task.recurrenceEndDate ? new Date(task.recurrenceEndDate) : undefined,
+              rule,
+              excludeDates: task.exceptions
+                .filter(ex => ex.exceptionType === 'cancelled')
+                .map(ex => new Date(ex.exceptionDate))
+            })
+            
+            // Add generated instances to the results
+            for (const instance of instances) {
+              // Check if this instance already exists as an exception
+              const existingException = task.exceptions.find(
+                ex => isSameDay(new Date(ex.exceptionDate), instance.startDate)
+              )
+              
+              if (!existingException) {
+                expandedTasks.push({
+                  ...task,
+                  id: `${task.id}_${instance.startDate.toISOString()}`,
+                  startDate: instance.startDate,
+                  endDate: instance.endDate,
+                  isGeneratedInstance: true,
+                  parentTaskId: task.id
+                })
+              }
+            }
+          } catch (error) {
+            console.error('Error generating recurring instances for task:', task.id, error)
+          }
+        }
+      }
+      
+      return NextResponse.json(expandedTasks)
+    }
 
     return NextResponse.json(tasks)
   } catch (error) {
@@ -109,9 +190,21 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+function isSameDay(date1: Date, date2: Date): boolean {
+  return date1.getFullYear() === date2.getFullYear() &&
+         date1.getMonth() === date2.getMonth() &&
+         date1.getDate() === date2.getDate()
+}
+
+async function createTaskHandler(request: NextRequest) {
   try {
+    // Add debugging
+    const currentUser = getCurrentUser(request)
+    console.log('Create Task API - Current user:', currentUser)
+
     const body = await request.json()
+    console.log('Create Task API - Request body:', body)
+    
     const {
       title,
       description,
@@ -119,11 +212,12 @@ export async function POST(request: NextRequest) {
       endDate,
       allDay,
       recurring,
-      recurringPattern,
+      recurrenceRule,
       businessId,
       assigneeId,
       status,
-      priority
+      priority,
+      createdById
     } = body
 
     if (!title) {
@@ -135,6 +229,19 @@ export async function POST(request: NextRequest) {
 
     const tasks = []
 
+    // Parse recurrence rule if provided
+    let parsedRule: RecurrenceRule | null = null
+    if (recurrenceRule) {
+      try {
+        parsedRule = parseRRULE(recurrenceRule)
+      } catch (error) {
+        return NextResponse.json(
+          { error: 'Invalid recurrence rule format' },
+          { status: 400 }
+        )
+      }
+    }
+
     // Create the main task
     const mainTask = await db.task.create({
       data: {
@@ -144,9 +251,15 @@ export async function POST(request: NextRequest) {
         endDate: endDate ? new Date(endDate) : null,
         allDay: allDay || false,
         recurring: recurring || false,
-        recurringPattern,
+        recurrenceRule,
+        isRecurringMaster: recurring && parsedRule ? true : false,
+        recurrenceInterval: parsedRule?.interval,
+        recurrenceCount: parsedRule?.count,
+        recurrenceEndDate: parsedRule?.endDate,
+        recurrenceCustomDays: parsedRule?.customDays ? JSON.stringify(parsedRule.customDays) : null,
         businessId,
         assigneeId,
+        createdById: createdById || currentUser?.id,
         status: status || 'pending',
         priority: priority || 'medium'
       },
@@ -177,7 +290,9 @@ export async function POST(request: NextRequest) {
             id: true,
             title: true,
             recurring: true,
-            recurringPattern: true
+            recurringPattern: true,
+            recurrenceRule: true,
+            isRecurringMaster: true
           }
         },
         instances: {
@@ -186,6 +301,14 @@ export async function POST(request: NextRequest) {
             startDate: true,
             status: true
           }
+        },
+        exceptions: {
+          select: {
+            id: true,
+            exceptionDate: true,
+            exceptionType: true,
+            notes: true
+          }
         }
       }
     })
@@ -193,154 +316,77 @@ export async function POST(request: NextRequest) {
     tasks.push(mainTask)
 
     // If recurring, create additional task instances
-    if (recurring && recurringPattern && startDate) {
-      console.log('Creating recurring tasks with pattern:', recurringPattern)
-      const baseDate = new Date(startDate)
-      const createdTasks = [mainTask]
-      
-      // For forever repeating tasks, create instances for 5 years
-      // This provides a good balance between "forever" and practical database management
-      const yearsToCreate = 5
-      let currentDate = new Date(baseDate)
-      const recurrenceEndDate = new Date(baseDate)
-      recurrenceEndDate.setFullYear(recurrenceEndDate.getFullYear() + yearsToCreate)
-      
-      // Store the recurrence end date in the main task for reference
-      await db.task.update({
-        where: { id: mainTask.id },
-        data: {
-          recurrenceEndDate: recurrenceEndDate
-        }
-      })
-      
-      // For weekly repeating tasks, ensure we create at least 52 instances (1 year worth)
-      // This addresses the specific issue of only seeing 3 events for weekly repeats
-      const minInstances = recurringPattern === 'weekly' ? 52 : 
-                          recurringPattern === 'daily' ? 365 : 
-                          recurringPattern === 'monthly' ? 60 : 
-                          recurringPattern === 'yearly' ? 10 : 52
-      
-      let i = 1
-      console.log('Starting recurrence loop from', currentDate.toISOString(), 'to', recurrenceEndDate.toISOString())
-      
-      while (currentDate < recurrenceEndDate || i < minInstances) {
-        let nextDate = new Date(currentDate)
-        
-        switch (recurringPattern) {
-          case 'daily':
-            nextDate.setDate(currentDate.getDate() + 1)
-            break
-          case 'weekly':
-            nextDate.setDate(currentDate.getDate() + 7)
-            break
-          case 'monthly':
-            // Set to same day next month, but handle edge cases (e.g., Jan 31 -> Feb 28/29)
-            nextDate = new Date(currentDate)
-            nextDate.setMonth(currentDate.getMonth() + 1)
-            // If the day changed, it means we rolled over to the next month (e.g., Jan 31 -> Mar 3)
-            // In that case, set to the last day of the previous month
-            if (nextDate.getDate() !== currentDate.getDate()) {
-              nextDate.setDate(0) // Set to last day of previous month
-            }
-            console.log(`Monthly: from ${currentDate.toISOString()} to ${nextDate.toISOString()}, day changed: ${nextDate.getDate() !== currentDate.getDate()}`)
-            break
-          case 'yearly':
-            // Set to same day next year, handle leap years for Feb 29th
-            const originalDay = currentDate.getDate()
-            nextDate.setFullYear(currentDate.getFullYear() + 1)
-            // Check if we're in a different month (e.g., Feb 29 -> Mar 1 in non-leap year)
-            if (nextDate.getMonth() !== currentDate.getMonth()) {
-              // Set to last day of February for leap year cases
-              nextDate.setMonth(1) // February
-              nextDate.setDate(29) // Try Feb 29
-              if (nextDate.getMonth() !== 1) { // If not February, set to Feb 28
-                nextDate.setDate(28)
-              }
-            }
-            break
-          default:
-            if (recurringPattern.startsWith('custom-')) {
-              const weeks = parseInt(recurringPattern.split('-')[1]) || 1
-              nextDate.setDate(currentDate.getDate() + (weeks * 7))
-            } else {
-              break
-            }
-        }
-        
-        // Don't create if we've exceeded the limit and minimum instances are met
-        if (nextDate > recurrenceEndDate && i >= minInstances) {
-          console.log(`Stopping recurrence: nextDate ${nextDate.toISOString()} exceeds endDate ${recurrenceEndDate.toISOString()} and minimum instances met`)
-          break
-        }
-        
-        console.log(`Creating task ${i} for date:`, nextDate.toISOString())
-        
-        // Create the recurring task instance
-        const recurringTask = await db.task.create({
-          data: {
-            title,
-            description,
-            startDate: nextDate,
-            endDate: endDate ? new Date(nextDate.getTime() + (new Date(endDate).getTime() - baseDate.getTime())) : null,
-            allDay: allDay || false,
-            recurring: false, // Individual instances are not recurring
-            recurringPattern: null,
-            parentTaskId: mainTask.id, // Link to the parent task
-            businessId,
-            assigneeId, // Keep the same assignee for all instances
-            status: status || 'pending',
-            priority: priority || 'medium'
-          },
-          include: {
-            assignee: {
-              select: {
-                id: true,
-                name: true,
-                email: true,
-                color: true
-              }
-            },
-            createdBy: {
-              select: {
-                id: true,
-                name: true,
-                email: true
-              }
-            },
-            business: {
-              select: {
-                id: true,
-                name: true
-              }
-            },
-            parentTask: {
-              select: {
-                id: true,
-                title: true,
-                recurring: true,
-                recurringPattern: true
-              }
-            },
-            instances: {
-              select: {
-                id: true,
-                startDate: true,
-                status: true
-              }
-            }
-          }
+    if (recurring && parsedRule && startDate) {
+      try {
+        const instances = generateRecurringInstances({
+          startDate: new Date(startDate),
+          endDate: parsedRule.endDate,
+          rule: parsedRule
         })
-        
-        createdTasks.push(recurringTask)
-        currentDate = nextDate
-        i++
+
+        // Create instances (skip the first one as it's the main task)
+        for (let i = 1; i < instances.length; i++) {
+          const instance = instances[i]
+          
+          const recurringTask = await db.task.create({
+            data: {
+              title,
+              description,
+              startDate: instance.startDate,
+              endDate: instance.endDate,
+              allDay: allDay || false,
+              recurring: false, // Individual instances are not recurring
+              parentTaskId: mainTask.id, // Link to the parent task
+              businessId,
+              assigneeId, // Keep the same assignee for all instances
+              createdById: createdById || currentUser?.id,
+              status: status || 'pending',
+              priority: priority || 'medium'
+            },
+            include: {
+              assignee: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true,
+                  color: true
+                }
+              },
+              createdBy: {
+                select: {
+                  id: true,
+                  name: true,
+                  email: true
+                }
+              },
+              business: {
+                select: {
+                  id: true,
+                  name: true
+                }
+              },
+              parentTask: {
+                select: {
+                  id: true,
+                  title: true,
+                  recurring: true,
+                  recurringPattern: true,
+                  recurrenceRule: true,
+                  isRecurringMaster: true
+                }
+              }
+            }
+          })
+          
+          tasks.push(recurringTask)
+        }
+      } catch (error) {
+        console.error('Error creating recurring instances:', error)
       }
-      
-      console.log('Created', createdTasks.length, 'recurring tasks')
-      return NextResponse.json(createdTasks, { status: 201 })
     }
 
-    return NextResponse.json([mainTask], { status: 201 })
+    console.log('Create Task API - Created tasks:', tasks.length)
+    return NextResponse.json(tasks, { status: 201 })
   } catch (error) {
     console.error('Error creating task:', error)
     return NextResponse.json(
@@ -349,3 +395,7 @@ export async function POST(request: NextRequest) {
     )
   }
 }
+
+// Export the wrapped handlers
+export const GET = withAuth(getTasksHandler)
+export const POST = withAuth(createTaskHandler)

@@ -191,7 +191,7 @@ export async function deleteUser(id: string) {
 // Task API functions
 export async function getTasks() {
   try {
-    const response = await fetch('/api/tasks')
+    const response = await authenticatedFetch('/api/tasks')
     if (!response.ok) {
       throw new Error('Failed to fetch tasks')
     }
@@ -205,12 +205,24 @@ export async function getTasks() {
 
 export async function createTask(taskData: any) {
   try {
-    const response = await fetch('/api/tasks', {
+    // Get current user from localStorage to include createdById
+    let currentUser = null
+    if (typeof window !== 'undefined') {
+      const userString = localStorage.getItem('currentUser')
+      if (userString) {
+        currentUser = JSON.parse(userString)
+      }
+    }
+
+    // Add createdById if we have a current user
+    const taskDataWithCreator = {
+      ...taskData,
+      createdById: currentUser?.id || null
+    }
+
+    const response = await authenticatedFetch('/api/tasks', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(taskData),
+      body: JSON.stringify(taskDataWithCreator),
     })
     if (!response.ok) {
       throw new Error('Failed to create task')
@@ -225,11 +237,8 @@ export async function createTask(taskData: any) {
 
 export async function updateTask(id: string, taskData: any) {
   try {
-    const response = await fetch(`/api/tasks/${id}`, {
+    const response = await authenticatedFetch(`/api/tasks/${id}`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
       body: JSON.stringify(taskData),
     })
     if (!response.ok) {
@@ -245,7 +254,7 @@ export async function updateTask(id: string, taskData: any) {
 
 export async function deleteTask(id: string) {
   try {
-    const response = await fetch(`/api/tasks/${id}`, {
+    const response = await authenticatedFetch(`/api/tasks/${id}`, {
       method: 'DELETE',
     })
     if (!response.ok) {

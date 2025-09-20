@@ -44,6 +44,10 @@ const nextConfig: NextConfig = {
   },
   // Handle transpilation properly
   transpilePackages: ['lucide-react'],
+  // Ensure proper asset prefix for deployment environments
+  assetPrefix: process.env.NODE_ENV === 'production' ? '' : '',
+  // Add trailing slash for consistent routing
+  trailingSlash: false,
 };
 
 export default nextConfig;

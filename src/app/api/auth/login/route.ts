@@ -44,8 +44,14 @@ export async function POST(request: NextRequest) {
     // Return user data without password and JWT token
     const { password: _, ...userWithoutPassword } = user
     
+    // Ensure name is not null for JWT token
+    const userForToken = {
+      ...userWithoutPassword,
+      name: userWithoutPassword.name || ''
+    }
+    
     // Generate JWT token
-    const token = generateJWTToken(userWithoutPassword)
+    const token = generateJWTToken(userForToken)
     
     return NextResponse.json({
       user: userWithoutPassword,
